@@ -1,0 +1,51 @@
+\documentclass[11pt]{article}
+\usepackage{times}
+\usepackage{pl}
+\usepackage{plpage}
+\usepackage{html}
+\sloppy
+\makeindex
+
+\onefile
+\htmloutput{html}				% Output directory
+\htmlmainfile{index}				% Main document file
+\bodycolor{white}				% Page colour
+
+\renewcommand{\runningtitle}{Googles''s Protocol Buffers}
+
+\begin{document}
+
+\title{Google''s Protocol Buffers Library} 
+\author{Jeffrey Rosenwald \\
+        E-mail: \email{JeffRose@acm.org}}
+
+\maketitle
+
+\begin{abstract}
+Protocol  Buffers  are  Google''s    language-neutral,  platform-neutral,
+extensible mechanism for serializing structured data   –  think XML, but
+smaller, faster, and simpler. You define how   you  want your data to be
+structured once. This takes the form of   a  template that describes the
+data structure. You use this template  to   encode  and decode your data
+structure into wire-streams that may be sent-to or read-from your peers.
+The underlying wire stream is platform independent, lossless, and may be
+used to interwork with a variety of  languages and systems regardless of
+word size or endianness.
+\end{abstract}
+
+\vfill
+
+\pagebreak
+\tableofcontents
+
+\vfill
+\vfill
+
+\newpage
+
+\input{protobufs_overview.tex}
+\input{protobufspl.tex}
+
+\printindex
+
+\end{document}

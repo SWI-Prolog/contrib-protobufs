@@ -1,0 +1,538 @@
+---+ Google's Protocol Buffers
+
+---++ Overview
+
+Protocol  buffers  are  Google's    language-neutral,  platform-neutral,
+extensible mechanism for serializing structured data   –  think XML, but
+smaller, faster, and simpler. You define how   you  want your data to be
+structured once. This takes the form of   a  template that describes the
+data structure. You use this template  to   encode  and decode your data
+structure into wire-streams that may be sent-to or read-from your peers.
+The underlying wire stream is platform independent, lossless, and may be
+used to interwork with a variety of  languages and systems regardless of
+word size or endianness. Techniques  exist   to  safely extend your data
+structure without breaking deployed programs   that are compiled against
+the "old" format.
+
+The idea behind Google's  Protocol  Buffers   is  that  you  define your
+structured messages using a domain-specific   language.  This takes
+the form of a =|.proto|=  source  file.   You  pass  this file through a
+Google provided tool that generates source   code for a target language,
+creating an interpreter that can encode/decode your structured data. You
+then compile and build this interpreter   into your application program.
+Depending on the platform, the underlying runtime support is provided by
+a Google supplied library that is also bound into your program.
+
+---++ The SWI-Prolog Implementation
+
+In SWI-Prolog, the wire stream interpreter is embodied in the form of a
+Definite Clause Grammar (DCG). It has a small underlying C-support
+library that loads when the Prolog module loads. This implementation
+does not depend on any code that is provided by Google and thus, is not
+bound by its license terms.
+
+On the Prolog side, you define your message template as a list of
+predefined Prolog terms that correspond to production rules in the
+DCG. The process is not unlike specifiying the format of a
+regular expression. To encode a wire-stream to variable =X=, you pass a
+grounded template and a variable, =Y=, to protobuf_message/2. To decode
+a wire-stream, =Y=, you pass an ungrounded template along with a
+grounded wire-stream message, =Y=, to protobuf_message/2. The
+interpreter will unify the unbound variables in the template with values
+decoded from the wire-stream.
+
+---++ Wiretypes
+
+The wire-stream consists of six primitive payload types, two of which
+have been deprecated. A primitive in the wire-stream is a multi-byte
+string that provides three pieces of information: a wire-type, a
+user-specified tag, and the raw payload. Except for the tag and its
+wire-type, protobuf payloads are not instantaneously recognizable
+because the wire-stream contains no payload type information. The
+interpreter uses the tag to associate the raw payload with a local host
+type specified by the template. Hence, the message can only be properly
+decoded using to the template that was used to encode it. Note also that
+the primitive is interpreted according to the needs of a local host.
+Local word-size and endianness are dealt with at this level.
+
+The following table shows the association between various
+"host types" used by several peer languages, and the primitives used in
+the wire-stream:
+
+==
+
+  |   Prolog     |   Wirestream     |    C++    |  Java      |  Notes |
+  ---------------------------------------------------------------------
+  |  double      | fixed64          | double    | double     |        |
+  |  integer64   | fixed64          | int64     | long       |        |
+  |  float       | fixed32          | float     | float      |        |
+  |  integer32   | fixed32          | int32     | int        |        |
+  |  integer     | varint           | int32/64  | int/long   | 1, 2   |
+  |  unsigned    | varint           | uint32/64 | int/long   | 2, 3   |
+  |  boolean     | varint           | bool      | boolean    | 2      |
+  |  enum        | varint           | int       | int        | 2      |
+  |  atom        | length delimited | string    | String     |        |
+  |  codes       | length delimited | string    | ByteString |        |
+  |  string      | length delimited | string    | String     |        |
+  ---------------------------------------------------------------------
+
+Note 1: Encoded using a compression technique known as zig-zagging.
+Note 2: Encoded as a modulo 128 string. Its length is proprotional to
+        the absolute value of its magnitude. The intrinsic word length
+        is decoupled between parties.
+Note 3: Prolog's unbounded integer may be expressed as unsigned. This
+        is not portable across languages.
+
+==
+
+---++ Tags
+
+A tag is a small integer that is present in every wire-stream structure.
+The tag is the only means that the interpreter has to synchrononize the
+wire-stream with its template. Tags are user defined for each term
+in each message of the wire-stream. It is important therefore, that they
+be chosen carefully and in such a way as to not introduce ambiguity.
+
+---++ Basic Usage
+
+A protobuf wire-stream is a byte string that is comprised of zero
+or more of the above multi-byte wire-stream structures. Templates are
+lists of Prolog terms. Each term corresponds to a production
+rule in the DCG. The purpose of the template is to provide a recipe and
+value set for encoding and decoding a particular message. Each term in
+the template has an arity of three. The term's functor is the local
+"host type". Argument 1 is its tag, which must be ground, and argument 2
+is its associated value, which may or may not be ground.
+
+*|Note:|* It is an error to attempt to encode a message using a template
+that is not ground. Decoding a message into a template that has unbound
+variables has the effect of unifying the variables with their
+corresponding values in the wire-stream.
+
+==
+
+Map a Prolog structure to a Protocol Buffer:
+
+command(add(X,Y), Proto) :-
+
+   Proto = protobuf([
+		     atom(1, command),
+		     atom(2, add),
+		     integer(3, X),
+		     integer(4, Y)
+		    ]).
+
+Later on:
+
+   ... prepare X, Y for command ...
+
+   command(add(X,Y), Proto),
+
+   protobuf_message(Proto, Msg),
+
+   ... send the message ...
+
+==
+
+Proto is the protobuf template. Each template describes exactly one
+message. Msg is the wire-stream. If you are interworking with other
+systems and languages, then the protobuf templates that you supply to
+protobuf_message/2 must be equivalent to those described in the
+=|.proto|= file that is used on the other side.
+
+---++ Alternation, Aggregation, Encapsulation, and Enumeration
+
+---+++ Alternation
+
+The  protobuf  grammar  provides  a   reserved  word,  =optional=,  that
+indicates that the production rule that it refers to may appear once or
+not at all in a protobuf message. Since Prolog has its own means of
+alternation, this reserved word is not supported on the Prolog side. It
+is anticipated that customary Prolog mechanisms for nondeterminism (e.g.
+backtracking) will be used to generate and test alternatives.
+
+---+++ Aggregation
+
+It is possible to specify vectors of homogeneous things (e.g. lists
+of numbers) using the =repeated= attribute. You specify a repeated item
+as follows:
+
+==
+    repeated(22, float([1,2,3,4])).
+==
+
+The above will cause all four items in the list to be encoded in the
+wire-stream as IEEE-754 32-bit floating point numbers, all with tag 22.
+The decoder will aggregate all items in the wire-stream with tag 22
+into a list as above.
+
+*|Note:|* Beware that there is no explicit means to encode an empty set.
+The protobuf specification provides that the =repeated= clause may match
+a tag zero or more times. The empty set, while legal, produces no output
+on encode. While decoding a =repeated= term, failure to match the
+specified tag will yield an empty set of the specified host type.
+
+---+++ Encapsulation and Enumeration
+
+It is possible to embed one protocol buffer specification inside another
+using the =embedded= term. The following example shows a vector of
+numbers being placed in an envelope that contains a command enumeration.
+
+Enumerations are a compact method of sending tokens from one system to
+another. Most occupy only two bytes in the wire-stream. An
+enumeration requires that you specify a callable predicate like
+=|commands/2|=, below. The first argument is an atom specifying the name
+of token, and the second is an non-negative integer that specifies the
+token's value. These must of course, match a corresponding
+enumeration in the =|.proto|= file. 
+
+*|Note:|* You must expose this predicate to the protobufs module 
+by assigning it explicitly.
+
+==
+
+protobufs:commands(Key, Value) :-
+	commands(Key, Value).
+
+commands(square, 1).
+commands(decimate, 2).
+commands(transform, 3).
+commands(inverse_transform, 4).
+
+basic_vector(Type, Proto) :-
+	vector_type(Type, Tag),
+
+	Proto = protobuf([ repeated(Tag, Type) ]).
+
+send_command(Command, Vector, Msg) :-
+
+	basic_vector(Vector, Proto1),
+
+	Proto = protobuf([enum(1, commands(Command)), embedded(2, Proto1)]),
+
+	protobuf_message(Proto, Msg).
+
+==
+
+Use it as follows:
+
+==
+?- send_command(square, double([1,22,3,4]), Msg).
+Msg = [8, 1, 18, 36, 17, 0, 0, 0, 0|...] [write]
+Msg = [8, 1, 18, 36, 17, 0, 0, 0, 0, 0, 0, 240, 63, 17, 0, 0, 0, 0, 0,
+0, 54, 64, 17, 0, 0, 0, 0, 0, 0, 8, 64, 17, 0, 0, 0, 0, 0, 0, 16, 64].
+
+?- send_command(Cmd, V, $Msg).
+Cmd = square,
+V = double([1.0, 22.0, 3.0, 4.0]) .
+
+
+==
+
+*|Compatibility Note:|* The protobuf   grammar  (protobuf-2.1.0) permits
+enumerations to assume negative values. This requires them to be encoded
+as integers. But Google's own  Golden   Message  unit-test framework has
+enumerations encoded as unsigned. Consequently, parsers that encode
+them as integers cannot properly parse the Golden Message. So it's
+probably a good idea to avoid negative values in enumerations. Our
+parser forbids it anyway.
+
+---+++ Heterogeneous Collections
+
+Using Protocol Buffers, it is quite an easy matter to specify fixed data
+structures and homogeneous vectors like one might find in languages like
+C++ and Java. It is however, quite another matter to interwork with
+these languages when requirements call for working with compound
+structures, arrays of compound structures, or unstructured collections
+(e.g. bags) of data.
+
+At bottom, a wire-stream is nothing more than a concatenated stream of
+primitive wire type strings. As long as you can associate a tag with
+its host type in advance, you will have no difficulty in decoding the
+message. You do this by supplying the _structure_. Tell the parser
+what is possible and let the parser figure it out on its own, one
+production at a time.
+
+The following example shows how one can specify a Protocol Buffer
+message that can deal with variable-length, unstructured bags of
+numbers:
+
+==
+
+compound_protobuf(complex(Real, Img), group(12, [double(1, Real), double(2, Img)])).
+compound_protobuf(float(Val), float(13, Val)).
+compound_protobuf(double(Val), double(14, Val)).
+compound_protobuf((Num rdiv Den), group(15, [integer(1, Num), integer(2, Den)])).
+compound_protobuf(integer(Val), integer(16, Val)).
+
+
+protobuf_bag([], []).
+
+protobuf_bag([ Type | More], Msg) :-
+
+	compound_protobuf(Type, Proto),
+
+	protobuf_message(protobuf([Proto]), Msg, Msg1),
+
+	protobuf_bag(More, Msg1), !.
+
+
+==
+
+Use it as follows:
+
+==
+?- protobuf_bag([complex(2,3), complex(4,5), complex(6,7), (355 rdiv -113), integer(11)], X).
+X = [99, 9, 0, 0, 0, 0, 0, 0, 0, 64, 17, 0, 0, 0, 0, 0, 0, 8, 64, 100,
+   99, 9, 0, 0, 0, 0, 0, 0, 16, 64, 17, 0, 0, 0, 0, 0, 0, 20, 64, 100,
+   99, 9, 0, 0, 0, 0, 0, 0, 24, 64, 17, 0, 0, 0, 0, 0, 0, 28, 64, 100,
+  123, 8, 198, 5, 16, 225, 1, 124, 128, 1, 22].
+
+?- protobuf_bag(Y, $X).
+Y = [complex(2.0, 3.0), complex(4.0, 5.0), complex(6.0, 7.0), 355 rdiv -113, integer(11)].
+
+==
+
+---++ Groups (deprecated)
+
+Protocol Buffer Groups provide a means for constructing unitary messages
+consisting of ad-hoc lists of terms. The following protobuf
+fragment shows the definition of a group carrying a complex number.
+
+==
+     Proto = group(2, [ double(1, Real_part), double(2, Img_part) ]).
+==
+
+Groups have been replaced by =embedded= messages, which are slightly
+less expensive to encode.
+
+---+ Appendix: Vectors of Numbers Between Prolog and C++ Clients.
+
+In Prolog client:
+==
+vector_type(double(_List), 2).
+vector_type(float(_List), 3).
+vector_type(integer(_List), 4).
+vector_type(integer64(_List), 5).
+vector_type(integer32(_List), 6).
+vector_type(unsigned(_List), 7).
+vector_type(codes(_List), 8).
+vector_type(atom(_List), 9).
+vector_type(string(_List), 10).
+
+
+vector(Type, B):-
+	vector_type(Type, Tag),
+
+	Proto = protobuf([ repeated(Tag, Type) ]),
+
+	protobuf_message(Proto, B).
+
+==
+In the C++ client:
+==
+The .proto file:
+
+  message Vector {
+  repeated double double_values 	= 2;
+  repeated float float_values 	= 3;
+  repeated sint32 integer_values	= 4;
+  repeated fixed64 integer64_values	= 5;
+  repeated fixed32 integer32_values	= 6;
+  repeated uint32 unsigned_values	= 7;
+  repeated bytes bytes_values		= 8;
+  repeated string atom_values 	= 9;
+  repeated string string_values 	= 10;
+  }
+
+==
+
+A typical application might consist of an abstract adapter class along
+with a collection of concrete subclasses that refine an abstract
+behavior in order to hide the interaction with the underlying protobuf
+interpreter. An excerpt of such a class follows:
+
+==
+
+// Abstract class
+
+  class PBVector
+  {
+  protected:
+	Vector numberList;
+
+  private:
+	int serializeToStream(ostream &stream)
+		{
+		return numberList.SerializeToOstream(&stream);
+		}
+
+	int parseFromStream(istream &stream)
+		{
+		return numberList.ParseFromIstream(&stream);
+		}
+
+	int serializeToString(string & data)
+		{
+		return numberList.SerializeToString( &data);
+		}
+
+	int parseFromString(const string &data)
+		{
+		return numberList.ParseFromString(data);
+		}
+
+  public:
+	friend ostream & operator << (ostream & out, PBVector & a)
+		{
+		int ret = a.serializeToStream(out);
+
+		if(!ret)
+			throw Exception("error while serializing output stream!");
+
+		return out;
+		}
+
+	friend string & operator << (string & out, PBVector & a)
+		{
+		int ret = a.serializeToString(out);
+
+		if(!ret)
+			throw Exception("error while serializing output string!");
+
+		return out;
+		}
+
+	friend PBVector & operator << (PBVector & a, istream & cin)
+		{
+		int ret = a.parseFromStream(cin);
+
+		if(!ret)
+			throw Exception("error while parsing input stream!");
+
+		return a;
+		}
+
+	friend PBVector & operator << (PBVector & a, string & cin)
+		{
+		int ret = a.parseFromString(cin);
+
+		if(!ret)
+			throw Exception("error while parsing input string!");
+
+		return a;
+		}
+  };
+
+  // Concrete class
+
+  class DoublePBVector : public PBVector
+  {
+
+  public:
+	void add_value(double value)
+		{
+		numberList.add_double_values(value);
+		}
+
+	double value(int at_index)
+		{
+		return numberList.double_values(at_index);
+		}
+
+	int size(void)
+		{
+		return numberList.double_values_size();
+		}
+  };
+
+==
+Here is the C++ client application:
+==
+
+	string stuff[] = { "one", "two", "three", "four", "five", };
+
+  int main(int argc, char *argv[])
+  {
+	GOOGLE_PROTOBUF_VERIFY_VERSION;
+
+	DoublePBVector buffer, buffer1;
+
+	register int i;
+
+	try
+		{
+		buffer << cin;     // parse a wirestream from a istream &
+		}
+
+	catch (Exception e)
+		{
+		cerr << "exception: " << e.reason() << "\n";
+
+		exit(1);
+		}
+
+	string serialized_data;
+
+	serialized_data << buffer;  // serialize a buffer to a string
+
+	buffer1 << serialized_data;  // parse the string to another buffer
+
+	int size = buffer1.size();    // inspect the second instance
+
+	for(i = 0; i < size; i++)
+		cout << buffer1.value(i) << "\n";
+
+	return 0;
+  }
+==
+---++ A Simple Test
+
+On the Prolog side:
+
+==
+
+  :- meta_predicate ~>(0,0).
+  :- op(950, xfy, ~>).
+
+  ~>(P, Q) :-
+	setup_call_cleanup(P, (true; fail), assertion(Q)).
+   
+  write_as_proto(Vector) :-
+	vector(Vector, Wirestream),
+
+	open('tmp99.tmp', write, S, [type(binary)])
+	  ~> close(S),
+
+	format(S, '~s', [Wirestream]), !.
+
+  testv1(V) :-
+	read_file_to_codes('tmp99.tmp', Codes, [type(binary)]),
+
+	vector(V, Codes).
+==
+Run the Prolog side:
+==
+  ?- X is pi, write_as_proto(double([-2.2212, -7.6675, X, 0, 1.77e-9, 2.54e222])).
+  X = 3.14159.
+
+  ?- testv1(Vector).
+  Vector = double([-2.2212, -7.6675, 3.14159, 0.0, 1.77e-09, 2.54e+222])
+  ?-
+
+==
+Make and run the C++ side:
+==
+jeffr@jeffr-laptop:~/test/protob$ make foo
+protoc --cpp_out=. pb-vector.proto
+g++ -c -Wall -O3 pb-vector.pb.cc
+g++ -c -Wall -O3 foo.cpp
+g++ -o foo pb-vector.pb.o foo.o -lprotobuf
+jeffr@jeffr-laptop:~/test/protob$ foo <tmp99.tmp
+-2.2212
+-7.6675
+3.14159
+0
+1.77e-09
+2.54e+222
+==
