@@ -82,7 +82,7 @@ golden_message(Proto) :-
 			   repeated(51, enum([nested_enum(bar), nested_enum(baz)])),
 			   repeated(52, enum([foreign_enum(bar), foreign_enum(baz)])),
 			   repeated(53, enum([import_enum(bar), import_enum(baz)])),
-			   repeated(54, codes(["224", "324"])),   % string_piece
+			   repeated(54, string([`224`, `324`])),   % string_piece
 			   repeated(55, codes(["225", "325"])),    % cord
 			   unsigned(61, 401),  % default_int32
 			   unsigned(62, 402),
@@ -153,7 +153,7 @@ golden_message_template(Proto) :-
 			   repeated(_, enum([nested_enum(_), nested_enum(_)])),
 			   repeated(_, enum([foreign_enum(_), foreign_enum(_)])),
 			   repeated(_, enum([import_enum(_), import_enum(_)])),
-			   repeated(_, codes(_)),   % string_piece
+			   repeated(_, string(_)),   % string_piece
 			   repeated(_, codes(_)),    % cord
 			   unsigned(_, _),  % default_int_
 			   unsigned(_, _),
@@ -181,40 +181,44 @@ check :-
 	golden_message(Message),
 	golden_message_template(Template),
 	copy_term(Template, Template1),
+	copy_term(Template, Template2),
 
-	read_file_to_codes('./golden_message', Codes, [type(binary)]),
+	read_file_to_codes('./golden_message', Wirestream, [type(binary)]),
 
 	write('Unifying canned Golden Message with canned Golden Template...')
 	  ~> (Test1 == ok -> writeln('OK'); writeln('FAILED')),
 
 	  (   (Message = Template, Message == Template) -> Test1 = ok), !,
 
-	write('Unifying canned Golden Message with Google''s Golden Message...')
+	write('Unifying canned Golden Message with Google''s Golden Wirestream...')
 	  ~> (Test2 == ok -> writeln('OK'); writeln('FAILED')),
 
-	(   protobuf_message(Message, Codes) -> Test2 = ok), !,
+	(   protobuf_message(Message, Wirestream) -> Test2 = ok), !,
 
-	write('Unifying canned Golden Template with Google''s Golden Message...')
+	write('Parsing Google''s Golden Wirestream to canned Golden Template...')
 	  ~> (Test3 == ok -> writeln('OK'); writeln('FAILED')),
 
-	(   protobuf_message(Template, Codes) -> Test3 = ok), !,
+	(   protobuf_message(Template2, Wirestream) -> Test3 = ok), !,
+
+	write('Comparing canned Golden Message to parsed Golden Template...')
+	  ~> (Test3a == ok -> writeln('OK'); writeln('FAILED')),
+
+	(   Message == Template2 -> Test3a = ok), !,
 
 	write('Serializing canned Golden Message to Codes...')
 	  ~> (Test4 == ok -> writeln('OK'); writeln('FAILED')),
 
-	(   protobuf_message(Message, Serialized )
-	-> Test4 = ok), !,
+	(   protobuf_message(Message, Codes ) -> Test4 = ok), !,
 
-	write('Comparing Google''s Golden Message to Codes...')
+	write('Comparing Google''s Golden Wirestream to Codes...')
 	  ~> (Test4a == ok -> writeln('OK'); writeln('FAILED')),
 
-	(   Serialized == Codes
-	-> Test4a = ok), !,
+	(   (Wirestream == Codes) -> Test4a = ok), !,
 
 	write('Parsing Codes to canned Golden Template...')
 	  ~> (Test5 == ok -> writeln('OK'); writeln('FAILED')),
 
-	(   protobuf_message(Template1, Serialized) -> Test5 = ok), !,
+	(   protobuf_message(Template1, Codes) -> Test5 = ok), !,
 
 	write('Comparing canned Golden Message to parsed Golden Template...')
 	  ~> (Test6 == ok -> writeln('OK'); writeln('FAILED')),
