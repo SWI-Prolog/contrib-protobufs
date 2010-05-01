@@ -100,9 +100,9 @@ or more of the above multi-byte wire-stream structures. Templates are
 lists of Prolog terms. Each term corresponds to a production
 rule in the DCG. The purpose of the template is to provide a recipe and
 value set for encoding and decoding a particular message. Each term in
-the template has an arity of three. The term's functor is the local
-"host type". Argument 1 is its tag, which must be ground, and argument 2
-is its associated value, which may or may not be ground.
+the template has an arity of two. The term's functor is the local
+"host type". Argument 1 is its tag, which must always be ground, and
+argument 2 is its associated value, which may or may not be ground.
 
 *|Note:|* It is an error to attempt to encode a message using a template
 that is not ground. Decoding a message into a template that has unbound
