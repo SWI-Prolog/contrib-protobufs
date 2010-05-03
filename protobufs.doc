@@ -15,14 +15,14 @@
 
 \begin{document}
 
-\title{Google''s Protocol Buffers Library}
+\title{Google's Protocol Buffers Library}
 \author{Jeffrey Rosenwald \\
         E-mail: \email{JeffRose@acm.org}}
 
 \maketitle
 
 \begin{abstract}
-Protocol  Buffers  are  Google''s    language-neutral,  platform-neutral,
+Protocol  Buffers  are  Google's    language-neutral,  platform-neutral,
 extensible mechanism for serializing structured data   –  think XML, but
 smaller, faster, and simpler. You define how   you  want your data to be
 structured once. This takes the form of   a  template that describes the
