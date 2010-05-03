@@ -29,16 +29,6 @@
 #endif
 
 #include <SWI-Prolog.h>
-#include <SWI-Stream.h>
-#include "clib.h"
-#include "error.h"
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <errno.h>
-#include <sys/types.h>
-#include <assert.h>
-#include <string.h>
 
 static functor_t FUNCTOR_error2;  /* error(Formal, Context) */
 
