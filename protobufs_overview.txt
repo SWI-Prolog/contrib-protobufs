@@ -181,12 +181,12 @@ numbers being placed in an envelope that contains a command enumeration.
 Enumerations are a compact method of sending tokens from one system to
 another. Most occupy only two bytes in the wire-stream. An
 enumeration requires that you specify a callable predicate like
-=|commands/2|=, below. The first argument is an atom specifying the name
+commands/2, below. The first argument is an atom specifying the name
 of token, and the second is an non-negative integer that specifies the
 token's value. These must of course, match a corresponding
-enumeration in the =|.proto|= file. 
+enumeration in the =|.proto|= file.
 
-*|Note:|* You must expose this predicate to the protobufs module 
+*|Note:|* You must expose this predicate to the protobufs module
 by assigning it explicitly.
 
 ==
@@ -497,7 +497,7 @@ On the Prolog side:
 
   ~>(P, Q) :-
 	setup_call_cleanup(P, (true; fail), assertion(Q)).
-   
+
   write_as_proto(Vector) :-
 	vector(Vector, Wirestream),
 

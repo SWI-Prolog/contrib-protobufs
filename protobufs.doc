@@ -15,7 +15,7 @@
 
 \begin{document}
 
-\title{Google''s Protocol Buffers Library} 
+\title{Google''s Protocol Buffers Library}
 \author{Jeffrey Rosenwald \\
         E-mail: \email{JeffRose@acm.org}}
 
@@ -43,7 +43,7 @@ word size or endianness.
 
 \newpage
 
-\input{protobufs_overview.tex}
+\input{protobufsoverview.tex}
 \input{protobufspl.tex}
 
 \printindex
