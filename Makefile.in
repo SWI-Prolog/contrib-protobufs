@@ -127,7 +127,7 @@ $(TEX):		$(DOCTOTEX)
 protobufsoverview.tex:	protobufs_overview.txt
 		$(PLTOTEX) --section $<
 protobufspl.tex:	protobufs.pl
-		$(PLTOTEX) --subsection --out=protobufspl $<
+		$(PLTOTEX) --section --out=protobufspl $<
 
 .doc.tex:
 		$(DOCTOTEX) $*.doc > $*.tex
