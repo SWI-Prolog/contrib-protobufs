@@ -1,0 +1,24 @@
+
+enum VectorType {
+	DOUBLE 	= 2;
+	FLOAT 	= 3;
+	INTEGER	= 4;
+	INTEGER64 	= 5;
+	INTEGER32  = 6;
+	UNSIGNED  = 7;
+	BYTES	= 8;
+	ATOM	= 9;
+	STRING	= 10;
+	}
+
+message Vector {
+repeated double double_values 	= 2;
+repeated float float_values 	= 3;
+repeated sint32 integer_values	= 4;
+repeated fixed64 integer64_values	= 5;
+repeated fixed32 integer32_values	= 6;
+repeated uint32 unsigned_values	= 7;
+repeated bytes bytes_values		= 8;
+repeated string atom_values 	= 9;
+repeated string string_values 	= 10;
+}
