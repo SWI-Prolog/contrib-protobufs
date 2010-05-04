@@ -3,61 +3,61 @@
 ---++ Overview
 
 Protocol  buffers  are  Google's    language-neutral,  platform-neutral,
-extensible mechanism for serializing structured data   –  think XML, but
+extensible mechanism for serializing structured data   -- think XML, but
 smaller, faster, and simpler. You define how   you  want your data to be
 structured once. This takes the form of   a  template that describes the
-data structure. You use this template  to   encode  and decode your data
-structure into wire-streams that may be sent-to or read-from your peers.
-The underlying wire stream is platform independent, lossless, and may be
-used to interwork with a variety of  languages and systems regardless of
-word size or endianness. Techniques  exist   to  safely extend your data
+data structure. You use this template to encode your data structure into
+wire-streams that may be sent-to or read-from your peers. The underlying
+wire stream is platform  independent,  lossless,   and  may  be  used to
+interwork with a variety of  languages   and  systems regardless of word
+size  or  endianness.  Techniques  exist  to  safely  extend  your  data
 structure without breaking deployed programs   that are compiled against
 the "old" format.
 
 The idea behind Google's  Protocol  Buffers   is  that  you  define your
-structured messages using a domain-specific   language.  This takes
-the form of a =|.proto|=  source  file.   You  pass  this file through a
-Google provided tool that generates source   code for a target language,
-creating an interpreter that can encode/decode your structured data. You
-then compile and build this interpreter   into your application program.
+structured messages using a  domain-specific   language.  This takes the
+form of a =|.proto|= source file. You   pass  this file through a Google
+provided tool that generates source code for a target language, creating
+an interpreter that can encode/decode  your   structured  data. You then
+compile and build  this  interpreter   into  your  application  program.
 Depending on the platform, the underlying runtime support is provided by
 a Google supplied library that is also bound into your program.
 
 ---++ The SWI-Prolog Implementation
 
-In SWI-Prolog, the wire stream interpreter is embodied in the form of a
-Definite Clause Grammar (DCG). It has a small underlying C-support
-library that loads when the Prolog module loads. This implementation
-does not depend on any code that is provided by Google and thus, is not
+In SWI-Prolog, the wire stream interpreter is  embodied in the form of a
+Definite Clause Grammar (DCG).  It  has   a  small  underlying C-support
+library that loads when the  Prolog   module  loads. This implementation
+does not depend on any code that is  provided by Google and thus, is not
 bound by its license terms.
 
-On the Prolog side, you define your message template as a list of
-predefined Prolog terms that correspond to production rules in the
-DCG. The process is not unlike specifiying the format of a
-regular expression. To encode a wire-stream to variable =X=, you pass a
-grounded template and a variable, =Y=, to protobuf_message/2. To decode
-a wire-stream, =Y=, you pass an ungrounded template along with a
-grounded wire-stream message, =Y=, to protobuf_message/2. The
-interpreter will unify the unbound variables in the template with values
-decoded from the wire-stream.
+On the Prolog side, you  define  your   message  template  as  a list of
+predefined Prolog terms that correspond to  production rules in the DCG.
+The  process  is  not  unlike  specifiying   the  format  of  a  regular
+expression. To encode a wire-stream to variable =X=, you pass a grounded
+template and a  variable,  =Y=,  to   protobuf_message/2.  To  decode  a
+wire-stream, =Y=, you pass an ungrounded  template along with a grounded
+wire-stream message, =Y=, to protobuf_message/2.   The  interpreter will
+unify the unbound variables in the template with values decoded from the
+wire-stream.
 
 ---++ Wiretypes
 
-The wire-stream consists of six primitive payload types, two of which
-have been deprecated. A primitive in the wire-stream is a multi-byte
-string that provides three pieces of information: a wire-type, a
-user-specified tag, and the raw payload. Except for the tag and its
-wire-type, protobuf payloads are not instantaneously recognizable
-because the wire-stream contains no payload type information. The
-interpreter uses the tag to associate the raw payload with a local host
-type specified by the template. Hence, the message can only be properly
+The wire-stream consists of six primitive   payload  types, two of which
+have been deprecated. A primitive  in   the  wire-stream is a multi-byte
+string that provides  three  pieces  of   information:  a  wire-type,  a
+user-specified tag, and the raw payload.  Except   for  the  tag and its
+wire-type,  protobuf  payloads  are   not  instantaneously  recognizable
+because the wire-stream  contains  no   payload  type  information.  The
+interpreter uses the tag to associate the  raw payload with a local host
+type specified by the template. Hence, the  message can only be properly
 decoded using to the template that was used to encode it. Note also that
-the primitive is interpreted according to the needs of a local host.
+the primitive is interpreted according to  the   needs  of a local host.
 Local word-size and endianness are dealt with at this level.
 
-The following table shows the association between various
-"host types" used by several peer languages, and the primitives used in
-the wire-stream:
+The following table shows the association   between various "host types"
+used  by  several  peer  languages,  and  the  primitives  used  in  the
+wire-stream:
 
 ==
 
@@ -88,25 +88,25 @@ Note 3: Prolog's unbounded integer may be expressed as unsigned. This
 ---++ Tags
 
 A tag is a small integer that is present in every wire-stream structure.
-The tag is the only means that the interpreter has to synchrononize the
-wire-stream with its template. Tags are user defined for each term
-in each message of the wire-stream. It is important therefore, that they
-be chosen carefully and in such a way as to not introduce ambiguity.
+The tag is the only means that  the interpreter has to synchrononize the
+wire-stream with its template. Tags are user   defined  for each term in
+each message of the wire-stream. It is important therefore, that they be
+chosen carefully and in such a way as to not introduce ambiguity.
 
 ---++ Basic Usage
 
-A protobuf wire-stream is a byte string that is comprised of zero
-or more of the above multi-byte wire-stream structures. Templates are
-lists of Prolog terms. Each term corresponds to a production
-rule in the DCG. The purpose of the template is to provide a recipe and
-value set for encoding and decoding a particular message. Each term in
-the template has an arity of two. The term's functor is the local
-"host type". Argument 1 is its tag, which must always be ground, and
-argument 2 is its associated value, which may or may not be ground.
+A protobuf wire-stream is a byte  string   that  is comprised of zero or
+more of the above multi-byte wire-stream structures. Templates are lists
+of Prolog terms. Each term corresponds to  a production rule in the DCG.
+The purpose of the template is to  provide   a  recipe and value set for
+encoding and decoding a particular message.   Each  term in the template
+has an arity of two.  The  term's   functor  is  the  local "host type".
+Argument 1 is its tag, which must always   be  ground, and argument 2 is
+its associated value, which may or may not be ground.
 
 *|Note:|* It is an error to attempt to encode a message using a template
-that is not ground. Decoding a message into a template that has unbound
-variables has the effect of unifying the variables with their
+that is not ground. Decoding a message  into a template that has unbound
+variables  has  the  effect  of  unifying    the  variables  with  their
 corresponding values in the wire-stream.
 
 ==
@@ -134,10 +134,10 @@ Later on:
 
 ==
 
-Proto is the protobuf template. Each template describes exactly one
-message. Msg is the wire-stream. If you are interworking with other
-systems and languages, then the protobuf templates that you supply to
-protobuf_message/2 must be equivalent to those described in the
+Proto is the protobuf template.  Each   template  describes  exactly one
+message. Msg is the wire-stream.  If   you  are  interworking with other
+systems and languages, then the protobuf   templates  that you supply to
+protobuf_message/2  must  be  equivalent  to   those  described  in  the
 =|.proto|= file that is used on the other side.
 
 ---++ Alternation, Aggregation, Encapsulation, and Enumeration
@@ -145,46 +145,46 @@ protobuf_message/2 must be equivalent to those described in the
 ---+++ Alternation
 
 The  protobuf  grammar  provides  a   reserved  word,  =optional=,  that
-indicates that the production rule that it refers to may appear once or
-not at all in a protobuf message. Since Prolog has its own means of
-alternation, this reserved word is not supported on the Prolog side. It
+indicates that the production rule that it  refers to may appear once or
+not at all in a protobuf message.  Since   Prolog  has  its own means of
+alternation, this reserved word is not supported  on the Prolog side. It
 is anticipated that customary Prolog mechanisms for nondeterminism (e.g.
 backtracking) will be used to generate and test alternatives.
 
 ---+++ Aggregation
 
-It is possible to specify vectors of homogeneous things (e.g. lists
-of numbers) using the =repeated= attribute. You specify a repeated item
-as follows:
+It is possible to specify vectors of   homogeneous things (e.g. lists of
+numbers) using the =repeated= attribute. You  specify a repeated item as
+follows:
 
 ==
     repeated(22, float([1,2,3,4])).
 ==
 
-The above will cause all four items in the list to be encoded in the
-wire-stream as IEEE-754 32-bit floating point numbers, all with tag 22.
-The decoder will aggregate all items in the wire-stream with tag 22
-into a list as above.
+The above will cause all four items  in   the  list to be encoded in the
+wire-stream as IEEE-754 32-bit floating point  numbers, all with tag 22.
+The decoder will aggregate all items in the wire-stream with tag 22 into
+a list as above.
 
 *|Note:|* Beware that there is no explicit means to encode an empty set.
 The protobuf specification provides that the =repeated= clause may match
 a tag zero or more times. The empty set, while legal, produces no output
-on encode. While decoding a =repeated= term, failure to match the
+on encode. While decoding  a  =repeated=   term,  failure  to  match the
 specified tag will yield an empty set of the specified host type.
 
 ---+++ Encapsulation and Enumeration
 
 It is possible to embed one protocol buffer specification inside another
-using the =embedded= term. The following example shows a vector of
+using the =embedded= term.  The  following   example  shows  a vector of
 numbers being placed in an envelope that contains a command enumeration.
 
-Enumerations are a compact method of sending tokens from one system to
-another. Most occupy only two bytes in the wire-stream. An
-enumeration requires that you specify a callable predicate like
-commands/2, below. The first argument is an atom specifying the name
-of token, and the second is an non-negative integer that specifies the
-token's value. These must of course, match a corresponding
-enumeration in the =|.proto|= file.
+Enumerations are a compact method of sending   tokens from one system to
+another. Most occupy only two bytes   in the wire-stream. An enumeration
+requires that you specify a callable   predicate like commands/2, below.
+The first argument is an atom  specifying   the  name  of token, and the
+second is an non-negative integer  that   specifies  the  token's value.
+These  must  of  course,  match  a   corresponding  enumeration  in  the
+=|.proto|= file.
 
 *|Note:|* You must expose this predicate to the protobufs module
 by assigning it explicitly.
@@ -232,29 +232,29 @@ V = double([1.0, 22.0, 3.0, 4.0]) .
 *|Compatibility Note:|* The protobuf   grammar  (protobuf-2.1.0) permits
 enumerations to assume negative values. This requires them to be encoded
 as integers. But Google's own  Golden   Message  unit-test framework has
-enumerations encoded as unsigned. Consequently, parsers that encode
-them as integers cannot properly parse the Golden Message. So it's
-probably a good idea to avoid negative values in enumerations. Our
-parser forbids it anyway.
+enumerations encoded as unsigned. Consequently, parsers that encode them
+as integers cannot properly parse the Golden Message. So it's probably a
+good idea to avoid negative values   in enumerations. Our parser forbids
+it anyway.
 
 ---+++ Heterogeneous Collections
 
 Using Protocol Buffers, it is quite an easy matter to specify fixed data
 structures and homogeneous vectors like one might find in languages like
-C++ and Java. It is however, quite another matter to interwork with
-these languages when requirements call for working with compound
-structures, arrays of compound structures, or unstructured collections
+C++ and Java. It is however,  quite   another  matter  to interwork with
+these  languages  when  requirements  call  for  working  with  compound
+structures, arrays of compound structures,   or unstructured collections
 (e.g. bags) of data.
 
-At bottom, a wire-stream is nothing more than a concatenated stream of
-primitive wire type strings. As long as you can associate a tag with
-its host type in advance, you will have no difficulty in decoding the
-message. You do this by supplying the _structure_. Tell the parser
-what is possible and let the parser figure it out on its own, one
-production at a time.
+At bottom, a wire-stream is nothing more   than a concatenated stream of
+primitive wire type strings. As long as you can associate a tag with its
+host type in advance, you  will  have   no  difficulty  in  decoding the
+message. You do this by supplying the  _structure_. Tell the parser what
+is possible and let the parser figure it  out on its own, one production
+at a time.
 
-The following example shows how one can specify a Protocol Buffer
-message that can deal with variable-length, unstructured bags of
+The following example shows  how  one   can  specify  a  Protocol Buffer
+message  that  can  deal  with  variable-length,  unstructured  bags  of
 numbers:
 
 ==
@@ -296,8 +296,8 @@ Y = [complex(2.0, 3.0), complex(4.0, 5.0), complex(6.0, 7.0), 355 rdiv -113, int
 ---++ Groups (deprecated)
 
 Protocol Buffer Groups provide a means for constructing unitary messages
-consisting of ad-hoc lists of terms. The following protobuf
-fragment shows the definition of a group carrying a complex number.
+consisting of ad-hoc lists of  terms.   The  following protobuf fragment
+shows the definition of a group carrying a complex number.
 
 ==
      Proto = group(2, [ double(1, Real_part), double(2, Img_part) ]).
@@ -306,7 +306,7 @@ fragment shows the definition of a group carrying a complex number.
 Groups have been replaced by =embedded= messages, which are slightly
 less expensive to encode.
 
----+ Appendix: Vectors of Numbers Between Prolog and C++ Clients.
+---+ Example: Vectors of Numbers Between Prolog and C++ Clients.
 
 In Prolog client:
 ==
@@ -347,9 +347,9 @@ The .proto file:
 
 ==
 
-A typical application might consist of an abstract adapter class along
-with a collection of concrete subclasses that refine an abstract
-behavior in order to hide the interaction with the underlying protobuf
+A typical application might consist of   an abstract adapter class along
+with a collection  of  concrete  subclasses   that  refine  an  abstract
+behavior in order to hide the   interaction with the underlying protobuf
 interpreter. An excerpt of such a class follows:
 
 ==
