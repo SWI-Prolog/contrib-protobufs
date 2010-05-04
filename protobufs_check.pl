@@ -205,6 +205,12 @@ golden_message_template(Proto) :-
 			   codes(_, _)
 			 ]).
 
+
+announce(Announcement, Test) :-
+	write(Announcement)
+	  ~> (Test == ok -> writeln('OK'); writeln('FAILED')).
+
+
 check :-
 	golden_message(Message),
 	golden_message_template(Template),
@@ -212,49 +218,40 @@ check :-
 	copy_term(Template, Template2),
 
 
-	write('Loading Google''s Golden Wirestream...')
-	  ~> (Test1a == ok -> writeln('OK'); writeln('FAILED')),
+	announce('Loading Google''s Golden Wirestream...', Test1a),
 
 	  (    read_file_to_codes('./golden_message', Wirestream, [type(binary)])
 	  -> Test1a = ok), !,
 
-	write('Unifying canned Golden Message with canned Golden Template...')
-	  ~> (Test1 == ok -> writeln('OK'); writeln('FAILED')),
+	announce('Unifying canned Golden Message with canned Golden Template...', Test1),
 
 	  (   (Message = Template, Message == Template) -> Test1 = ok), !,
 
-	write('Unifying canned Golden Message with Google''s Golden Wirestream...')
-	  ~> (Test2 == ok -> writeln('OK'); writeln('FAILED')),
+	announce('Unifying canned Golden Message with Google''s Golden Wirestream...', Test2),
 
 	(   protobuf_message(Message, Wirestream) -> Test2 = ok), !,
 
-	write('Parsing Google''s Golden Wirestream to canned Golden Template...')
-	  ~> (Test3 == ok -> writeln('OK'); writeln('FAILED')),
+	announce('Parsing Google''s Golden Wirestream to canned Golden Template...', Test3),
 
 	(   protobuf_message(Template2, Wirestream) -> Test3 = ok), !,
 
-	write('Comparing canned Golden Message to parsed Golden Template...')
-	  ~> (Test3a == ok -> writeln('OK'); writeln('FAILED')),
+	announce('Comparing canned Golden Message to parsed Golden Template...', Test3a),
 
 	(   Message == Template2 -> Test3a = ok), !,
 
-	write('Serializing canned Golden Message to Codes...')
-	  ~> (Test4 == ok -> writeln('OK'); writeln('FAILED')),
+	announce('Serializing canned Golden Message to Codes...', Test4),
 
 	(   protobuf_message(Message, Codes ) -> Test4 = ok), !,
 
-	write('Comparing Google''s Golden Wirestream to Codes...')
-	  ~> (Test4a == ok -> writeln('OK'); writeln('FAILED')),
+	announce('Comparing Google''s Golden Wirestream to Codes...', Test4a),
 
 	(   (Wirestream == Codes) -> Test4a = ok), !,
 
-	write('Parsing Codes to canned Golden Template...')
-	  ~> (Test5 == ok -> writeln('OK'); writeln('FAILED')),
+	announce('Parsing Codes to canned Golden Template...', Test5),
 
 	(   protobuf_message(Template1, Codes) -> Test5 = ok), !,
 
-	write('Comparing canned Golden Message to parsed Golden Template...')
-	  ~> (Test6 == ok -> writeln('OK'); writeln('FAILED')),
+	announce('Comparing canned Golden Message to parsed Golden Template...', Test6),
 
 	(   (Message == Template1) -> Test6 = ok), !,
 
