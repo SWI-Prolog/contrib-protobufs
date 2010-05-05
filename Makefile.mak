@@ -11,21 +11,19 @@
 PLHOME=..\..
 !include $(PLHOME)\src\rules.mk
 CFLAGS=$(CFLAGS) /D__SWI_PROLOG__
+PKGDLL=protobufs
 
-PROTOBOBJ=	protobufs.obj
+OBJS=	protobufs.obj
 
-all:		protobufs.dll
+all:		$(PKGDLL).dll
 
-protobufs.dll:	$(PROTOBOBJ)
-		$(LD) /dll /out:$@ $(LDFLAGS) $(PROTOBOBJ) $(PLLIB)
-
-$(SBLIB):
-		chdir libstemmer_c & $(MAKE)
+$(PKGDLL).dll:	$(OBJS)
+		$(LD) /dll /out:$@ $(LDFLAGS) $(OBJS) $(PLLIB)
 
 !IF "$(CFG)" == "rt"
-install:	idll
+install:	all idll
 !ELSE
-install:	idll ilib
+install:	all idll ilib
 !ENDIF
 
 ################################################################
@@ -40,7 +38,10 @@ check::
 ################################################################
 
 idll::
-		copy protobufs.dll "$(BINDIR)"
+		copy $(PKGDLL).dll "$(BINDIR)"
+!IF "$(PDB)" == "true"
+		copy $(PKGDLL).pdb "$(BINDIR)"
+!ENDIF
 
 ilib::
 		copy protobufs.pl "$(PLBASE)\library"
@@ -48,7 +49,7 @@ ilib::
 		$(MAKEINDEX)
 
 uninstall::
-		del "$(BINDIR)\protobufs.dll"
+		del "$(BINDIR)\$(PKGDLL).dll"
 		del "$(PLBASE)\library\protobufs.pl"
 		del "$(PLBASE)\library\protobufs_overview.txt"
 		$(MAKEINDEX)
