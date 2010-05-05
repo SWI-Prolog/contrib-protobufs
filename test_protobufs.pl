@@ -27,10 +27,12 @@
     the GNU General Public License.
 */
 
-:- module(protobufs_check,
-	[ check/0,
-	  protobuf_check/0
+:- module(test_protobufs,
+	[ test_protobufs/0
 	]).
+
+:- asserta(user:file_search_path(library, .)).
+:- asserta(user:file_search_path(foreign, .)).
 
 :- use_module(library(protobufs)).
 
@@ -211,7 +213,7 @@ announce(Announcement, Test) :-
 	  ~> (Test == ok -> writeln('OK'); writeln('FAILED')).
 
 
-check :-
+test_protobufs :-
 	golden_message(Message),
 	golden_message_template(Template),
 	copy_term(Template, Template1),
@@ -256,11 +258,4 @@ check :-
 	(   (Message == Template1) -> Test6 = ok), !,
 
 	writeln('All tests passed.').
-
-protobuf_check :-
-	catch(check, Err, (print_message(error, Err), fail)),
-	!, halt(0).
-
-protobuf_check :-
-	halt(1).
 
