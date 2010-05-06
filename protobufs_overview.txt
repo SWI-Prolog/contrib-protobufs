@@ -87,8 +87,8 @@ Note 3: Prolog's unbounded integer may be expressed as unsigned. This
 
 ---++ Tags
 
-A tag is a small integer that is present in every wire-stream structure.
-The tag is the only means that  the interpreter has to synchrononize the
+A tag is a small integer that is present in every wire-stream primitive.
+The tag is the only means that  the interpreter has to synchronize the
 wire-stream with its template. Tags are user   defined  for each term in
 each message of the wire-stream. It is important therefore, that they be
 chosen carefully and in such a way as to not introduce ambiguity.
@@ -96,7 +96,7 @@ chosen carefully and in such a way as to not introduce ambiguity.
 ---++ Basic Usage
 
 A protobuf wire-stream is a byte  string   that  is comprised of zero or
-more of the above multi-byte wire-stream structures. Templates are lists
+more of the above multi-byte wire-stream primitives. Templates are lists
 of Prolog terms. Each term corresponds to  a production rule in the DCG.
 The purpose of the template is to  provide   a  recipe and value set for
 encoding and decoding a particular message.   Each  term in the template
@@ -153,8 +153,8 @@ backtracking) will be used to generate and test alternatives.
 
 ---+++ Aggregation
 
-It is possible to specify vectors of   homogeneous things (e.g. lists of
-numbers) using the =repeated= attribute. You  specify a repeated item as
+It is possible to specify homogeneous vectors   of things (e.g. lists of
+numbers) using the =repeated= attribute. You specify a repeated field as
 follows:
 
 ==
@@ -166,11 +166,18 @@ wire-stream as IEEE-754 32-bit floating point  numbers, all with tag 22.
 The decoder will aggregate all items in the wire-stream with tag 22 into
 a list as above.
 
-*|Note:|* Beware that there is no explicit means to encode an empty set.
-The protobuf specification provides that the =repeated= clause may match
-a tag zero or more times. The empty set, while legal, produces no output
-on encode. While decoding  a  =repeated=   term,  failure  to  match the
-specified tag will yield an empty set of the specified host type.
+*|Notes:|*
+
+ Beware that there is no explicit means  to encode an empty set. The
+ protobuf specification provides that a =repeated= field may match a
+ tag zero or more times. The empty set, while legal, produces no output
+ on encode. While decoding a =repeated= term, failure to match the
+ specified tag will yield an empty set of the specified host type.
+
+ The protobuf grammar provides a variant   of the =repeated= field known
+ as "packed." Packed, repeated fields are currently not supported by our
+ interpreter.
+
 
 ---+++ Encapsulation and Enumeration
 
