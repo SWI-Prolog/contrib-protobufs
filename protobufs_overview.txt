@@ -59,10 +59,7 @@ The following table shows the association   between various "host types"
 used  by  several  peer  languages,  and  the  primitives  used  in  the
 wire-stream:
 
-==
-
-  |   Prolog     |   Wirestream     |    C++    |  Java      |  Notes |
-  ---------------------------------------------------------------------
+  |  *Prolog*    | *Wirestream*     | C++       | *Java*     | *Notes*|
   |  double      | fixed64          | double    | double     |        |
   |  integer64   | fixed64          | int64     | long       |        |
   |  float       | fixed32          | float     | float      |        |
@@ -74,16 +71,15 @@ wire-stream:
   |  atom        | length delimited | string    | String     |        |
   |  codes       | length delimited | string    | ByteString |        |
   |  string      | length delimited | string    | String     |        |
-  ---------------------------------------------------------------------
 
-Note 1: Encoded using a compression technique known as zig-zagging.
-Note 2: Encoded as a modulo 128 string. Its length is proprotional to
-        the absolute value of its magnitude. The intrinsic word length
-        is decoupled between parties.
-Note 3: Prolog's unbounded integer may be expressed as unsigned. This
-        is not portable across languages.
+Notes:
 
-==
+    1. Encoded using a compression technique known as zig-zagging.
+    2. Encoded as a modulo 128 string. Its length is proprotional to
+       the absolute value of its magnitude. The intrinsic word length
+       is decoupled between parties.
+    3. Prolog's unbounded integer may be expressed as unsigned. This
+       is not portable across languages.
 
 ---++ Tags
 
@@ -109,10 +105,9 @@ that is not ground. Decoding a message  into a template that has unbound
 variables  has  the  effect  of  unifying    the  variables  with  their
 corresponding values in the wire-stream.
 
-==
-
 Map a Prolog structure to a Protocol Buffer:
 
+==
 command(add(X,Y), Proto) :-
 
    Proto = protobuf([
@@ -121,9 +116,11 @@ command(add(X,Y), Proto) :-
 		     integer(3, X),
 		     integer(4, Y)
 		    ]).
+==
 
 Later on:
 
+==
    ... prepare X, Y for command ...
 
    command(add(X,Y), Proto),
@@ -131,7 +128,6 @@ Later on:
    protobuf_message(Proto, Msg),
 
    ... send the message ...
-
 ==
 
 Proto is the protobuf template.  Each   template  describes  exactly one
@@ -265,39 +261,37 @@ message  that  can  deal  with  variable-length,  unstructured  bags  of
 numbers:
 
 ==
-
-compound_protobuf(complex(Real, Img), group(12, [double(1, Real), double(2, Img)])).
+compound_protobuf(complex(Real, Img),
+		  group(12, [double(1, Real), double(2, Img)])).
 compound_protobuf(float(Val), float(13, Val)).
 compound_protobuf(double(Val), double(14, Val)).
-compound_protobuf((Num rdiv Den), group(15, [integer(1, Num), integer(2, Den)])).
+compound_protobuf((Num rdiv Den),
+		  group(15, [integer(1, Num), integer(2, Den)])).
 compound_protobuf(integer(Val), integer(16, Val)).
 
 
 protobuf_bag([], []).
-
 protobuf_bag([ Type | More], Msg) :-
-
 	compound_protobuf(Type, Proto),
-
 	protobuf_message(protobuf([Proto]), Msg, Msg1),
-
 	protobuf_bag(More, Msg1), !.
-
-
 ==
 
 Use it as follows:
 
 ==
-?- protobuf_bag([complex(2,3), complex(4,5), complex(6,7), (355 rdiv -113), integer(11)], X).
-X = [99, 9, 0, 0, 0, 0, 0, 0, 0, 64, 17, 0, 0, 0, 0, 0, 0, 8, 64, 100,
-   99, 9, 0, 0, 0, 0, 0, 0, 16, 64, 17, 0, 0, 0, 0, 0, 0, 20, 64, 100,
-   99, 9, 0, 0, 0, 0, 0, 0, 24, 64, 17, 0, 0, 0, 0, 0, 0, 28, 64, 100,
-  123, 8, 198, 5, 16, 225, 1, 124, 128, 1, 22].
+?- protobuf_bag([complex(2,3), complex(4,5), complex(6,7),
+		 (355 rdiv -113), integer(11)], X).
+X = [ 99, 9, 0, 0, 0, 0, 0, 0, 0, 64, 17, 0, 0, 0, 0, 0,
+      0, 8, 64, 100, 99, 9, 0, 0, 0, 0, 0, 0, 16, 64, 17, 0,
+      0, 0, 0, 0, 0, 20, 64, 100, 99, 9, 0, 0, 0, 0, 0, 0, 24,
+      64, 17, 0, 0, 0, 0, 0, 0, 28, 64, 100, 123, 8, 198, 5,
+      16, 225, 1, 124, 128, 1, 22
+    ].
 
 ?- protobuf_bag(Y, $X).
-Y = [complex(2.0, 3.0), complex(4.0, 5.0), complex(6.0, 7.0), 355 rdiv -113, integer(11)].
-
+Y = [complex(2.0, 3.0), complex(4.0, 5.0), complex(6.0, 7.0),
+     355 rdiv -113, integer(11)].
 ==
 
 ---++ Groups (deprecated)
@@ -310,12 +304,13 @@ shows the definition of a group carrying a complex number.
      Proto = group(2, [ double(1, Real_part), double(2, Img_part) ]).
 ==
 
-Groups have been replaced by =embedded= messages, which are slightly
+Groups have been replaced by _embedded_ messages, which are slightly
 less expensive to encode.
 
 ---+ Example: Vectors of Numbers Between Prolog and C++ Clients.
 
 In Prolog client:
+
 ==
 vector_type(double(_List), 2).
 vector_type(float(_List), 3).
@@ -327,31 +322,30 @@ vector_type(codes(_List), 8).
 vector_type(atom(_List), 9).
 vector_type(string(_List), 10).
 
-
 vector(Type, B):-
 	vector_type(Type, Tag),
 
 	Proto = protobuf([ repeated(Tag, Type) ]),
 
 	protobuf_message(Proto, B).
-
 ==
+
 In the C++ client:
+
 ==
 The .proto file:
 
   message Vector {
-  repeated double double_values 	= 2;
-  repeated float float_values 	= 3;
-  repeated sint32 integer_values	= 4;
-  repeated fixed64 integer64_values	= 5;
-  repeated fixed32 integer32_values	= 6;
-  repeated uint32 unsigned_values	= 7;
-  repeated bytes bytes_values		= 8;
-  repeated string atom_values 	= 9;
-  repeated string string_values 	= 10;
+  repeated double double_values     = 2;
+  repeated float float_values	    = 3;
+  repeated sint32 integer_values    = 4;
+  repeated fixed64 integer64_values = 5;
+  repeated fixed32 integer32_values = 6;
+  repeated uint32 unsigned_values   = 7;
+  repeated bytes bytes_values       = 8;
+  repeated string atom_values 	    = 9;
+  repeated string string_values     = 10;
   }
-
 ==
 
 A typical application might consist of   an abstract adapter class along
@@ -452,11 +446,11 @@ interpreter. An excerpt of such a class follows:
 		return numberList.double_values_size();
 		}
   };
-
 ==
+
 Here is the C++ client application:
-==
 
+==
 	string stuff[] = { "one", "two", "three", "four", "five", };
 
   int main(int argc, char *argv[])
@@ -493,12 +487,12 @@ Here is the C++ client application:
 	return 0;
   }
 ==
+
 ---++ A Simple Test
 
 On the Prolog side:
 
 ==
-
   :- meta_predicate ~>(0,0).
   :- op(950, xfy, ~>).
 
@@ -518,17 +512,23 @@ On the Prolog side:
 
 	vector(V, Codes).
 ==
+
 Run the Prolog side:
-==
-  ?- X is pi, write_as_proto(double([-2.2212, -7.6675, X, 0, 1.77e-9, 2.54e222])).
-  X = 3.14159.
-
-  ?- testv1(Vector).
-  Vector = double([-2.2212, -7.6675, 3.14159, 0.0, 1.77e-09, 2.54e+222])
-  ?-
 
 ==
+?- X is pi,
+   write_as_proto(double([-2.2212, -7.6675, X, 0,
+			  1.77e-9, 2.54e222])).
+X = 3.14159.
+
+?- testv1(Vector).
+Vector = double([-2.2212, -7.6675, 3.14159, 0.0,
+		 1.77e-09, 2.54e+222])
+?-
+==
+
 Make and run the C++ side:
+
 ==
 jeffr@jeffr-laptop:~/test/protob$ make foo
 protoc --cpp_out=. pb-vector.proto

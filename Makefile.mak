@@ -31,7 +31,7 @@ install:	all idll ilib
 ################################################################
 
 check::
-	$(PUBLICPL) -q -s protobufs_check.pl -g protobuf_check --
+	$(PUBLICPL) -q -s test_protobufs.pl -g test_protobufs,halt -t 'halt(1)'
 
 ################################################################
 # Installation

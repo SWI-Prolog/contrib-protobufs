@@ -8,6 +8,8 @@
 :- use_module(library(apply)).
 :- use_module(library(lists)).
 
+:- asserta(user:file_search_path(foreign, .)).
+
 pltotex(File, Options) :-
 	file_name_extension(_, txt, File), !,
 	tex_file(File, Out, Options),

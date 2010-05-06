@@ -31,7 +31,7 @@ PUBLICPL=swipl
 DOCTOTEX=$(PCEHOME)/bin/doc2tex
 PLTOTEX=$(PUBLICPL) -q -s pltotex.pl -g pltotex --
 DOC=protobufs
-TEX=$(DOC).tex protobufsoverview.tex protobufspl.tex 
+TEX=$(DOC).tex protobufsoverview.tex protobufspl.tex
 DVI=$(DOC).dvi
 PDF=$(DOC).pdf
 RUNTEX=../../man/runtex
@@ -52,9 +52,9 @@ PROTOBUFSOBJ=	protobufs.o
 all:		$(TARGETS)
 
 protobufs.@SO@:	$(PROTOBUFSOBJ)
-		$(LD) $(LDFLAGS) -o $@ $(PROTOBUFSOBJ) 
+		$(LD) $(LDFLAGS) -o $@ $(PROTOBUFSOBJ)
 
-protobufs.o:		protobufs.c 
+protobufs.o:		protobufs.c
 
 ifeq ($(TARGETS),)
 
@@ -103,7 +103,7 @@ endif
 ################################################################
 
 check::
-	$(PUBLICPL) -q -s protobufs_check.pl -g protobuf_check --
+	$(PUBLICPL) -q -s test_protobufs.pl -g test_protobufs,halt -t 'halt(1)'
 
 ################################################################
 # Documentation
