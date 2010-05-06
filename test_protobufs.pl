@@ -36,9 +36,6 @@
 
 :- use_module(library(protobufs)).
 
-:- multifile
-    prolog:message/3.
-
 :- include(eventually_implies).   % ~> operator
 
 :- set_prolog_flag(backquoted_string, true).

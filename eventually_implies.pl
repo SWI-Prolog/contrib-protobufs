@@ -14,6 +14,9 @@
 %    some point in the future.
 %
 
+:- multifile
+     prolog:message/3.
+
 :- if(\+prolog:message(error(consequent_failed, _),_,_)).
 
 prolog:message(error(consequent_failed, context(Where, _Msg))) -->
