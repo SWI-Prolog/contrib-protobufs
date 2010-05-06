@@ -34,11 +34,10 @@
 
 :- use_module(library(protobufs)).
 
-:- meta_predicate ~>(0,0).
-:- op(950, xfy, ~>).
+:- multifile
+    prolog:message/3.
 
-~>(P, Q) :-
-	setup_call_cleanup(P, (true; fail), assertion(Q)).
+:- include(eventually_implies).   % ~> operator
 
 :- set_prolog_flag(backquoted_string, true).
 
@@ -210,13 +209,11 @@ announce(Announcement, Test) :-
 	write(Announcement)
 	  ~> (Test == ok -> writeln('OK'); writeln('FAILED')).
 
-
 check :-
 	golden_message(Message),
 	golden_message_template(Template),
 	copy_term(Template, Template1),
 	copy_term(Template, Template2),
-
 
 	announce('Loading Google''s Golden Wirestream...', Test1a),
 
