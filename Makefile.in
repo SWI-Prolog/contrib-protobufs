@@ -16,6 +16,7 @@ PLBASE=@PLBASE@
 PLARCH=@PLARCH@
 PLINCL=@PLINCL@
 PKGDOC=$(PLBASE)/doc/packages
+EXDIR=$(PKGDOC)/examples/protobufs
 PCEHOME=../xpce
 
 CC=@CC@
@@ -45,6 +46,7 @@ INSTALL_DATA=@INSTALL_DATA@
 
 LIBPL=		@PLTARGETS@
 TARGETS=	@TARGETS@
+EXAMPLES=	foo.cpp Makefile pb-vector.proto vector_demo.pl
 
 PROTOBUFSOBJ=	protobufs.o
 
@@ -82,13 +84,17 @@ ln-install::
 
 rpm-install:	install
 
-html-install::
+html-install:	install-examples
 		mkdir -p $(DESTDIR)$(PKGDOC)
 		$(INSTALL) -m 644 $(DOC).html $(DESTDIR)$(PKGDOC)
 
-pdf-install::
+pdf-install:	install-examples
 		mkdir -p $(DESTDIR)$(PKGDOC)
 		$(INSTALL) -m 644 $(DOC).pdf $(DESTDIR)$(PKGDOC)
+
+install-examples::
+		mkdir -p $(DESTDIR)$(EXDIR)
+		(cd demo && $(INSTALL_DATA) $(EXAMPLES) $(DESTDIR)$(EXDIR))
 
 uninstall::
 		(cd $(PLBASE)/lib/$(PLARCH) && rm -f $(TARGETS))

@@ -10,28 +10,26 @@
 
 PLHOME=..\..
 !include $(PLHOME)\src\rules.mk
+EXDIR=$(PKGDOC)\examples\protobufs
 CFLAGS=$(CFLAGS) /D__SWI_PROLOG__
 PKGDLL=protobufs
 
-OBJS=	protobufs.obj
+OBJS=		protobufs.obj
+EXAMPLES=	foo.cpp Makefile pb-vector.proto vector_demo.pl
 
 all:		$(PKGDLL).dll
 
 $(PKGDLL).dll:	$(OBJS)
 		$(LD) /dll /out:$@ $(LDFLAGS) $(OBJS) $(PLLIB)
 
-!IF "$(CFG)" == "rt"
-install:	all idll
-!ELSE
-install:	all idll ilib
-!ENDIF
+install:	idll ilib
 
 ################################################################
 # Testing
 ################################################################
 
 check::
-	$(PUBLICPL) -q -s test_protobufs.pl -g test_protobufs,halt -t 'halt(1)'
+		$(PUBLICPL) -q -s test_protobufs.pl -g test_protobufs,halt -t 'halt(1)'
 
 ################################################################
 # Installation
@@ -54,6 +52,10 @@ uninstall::
 
 html-install::
 		copy protobufs.html "$(PKGDOC)"
+
+install-examples::
+		if not exist "$(EXDIR)\$(NULL)" $(MKDIR) "$(EXDIR)"
+		cd examples & @for %f in ($(EXAMPLES)) do @copy %f "$(EXDIR)"
 
 xpce-install::
 
