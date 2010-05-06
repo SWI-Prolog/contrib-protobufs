@@ -29,6 +29,10 @@
 #endif
 
 #include <SWI-Prolog.h>
+#ifdef _MSC_VER
+#define inline __inline
+typedef int int32_t;
+#endif
 
 static functor_t FUNCTOR_error2;  /* error(Formal, Context) */
 
@@ -96,7 +100,7 @@ foreign_t int32_codes(term_t Number, term_t Codes)
 		return PL_unify_list_ncodes(Codes, sizeof(val1.asCodes), val1.asCodes);
 		}
 
-	if(PL_get_list_nchars(Codes, &len, &data, CVT_LIST) 
+	if(PL_get_list_nchars(Codes, &len, &data, CVT_LIST)
 			&& len == sizeof(val.asCodes))
 		{ cp_net_order(val.asCodes, data, sizeof(val.asCodes));
 
@@ -124,7 +128,7 @@ foreign_t int64_codes(term_t Number, term_t Codes)
 		return PL_unify_list_ncodes(Codes, sizeof(val1.asCodes), val1.asCodes);
 		}
 
-	if(PL_get_list_nchars(Codes, &len, &data, CVT_LIST) 
+	if(PL_get_list_nchars(Codes, &len, &data, CVT_LIST)
 			&& len == sizeof(val.asCodes))
 		{ cp_net_order(val.asCodes, data, sizeof(val.asCodes));
 
@@ -148,14 +152,14 @@ foreign_t float32_codes(term_t Number, term_t Codes)
 	double tmp;
 
 	if(PL_get_float(Number, &tmp))
-		{ val.asNumber = tmp;
+		{ val.asNumber = (float)tmp;
 
 		cp_net_order(val1.asCodes, val.asCodes, sizeof(val1.asCodes));
 
 		return PL_unify_list_ncodes(Codes, sizeof(val1.asCodes), val1.asCodes);
 		}
 
-	if(PL_get_list_nchars(Codes, &len, &data, CVT_LIST) 
+	if(PL_get_list_nchars(Codes, &len, &data, CVT_LIST)
 			&& len == sizeof(val.asCodes))
 		{ cp_net_order(val.asCodes, data, sizeof(val.asCodes));
 
@@ -185,7 +189,7 @@ foreign_t float64_codes(term_t Number, term_t Codes)
 		return PL_unify_list_ncodes(Codes, sizeof(val1.asCodes), val1.asCodes);
 		}
 
-	if(PL_get_list_nchars(Codes, &len, &data, CVT_LIST) 
+	if(PL_get_list_nchars(Codes, &len, &data, CVT_LIST)
 			&& len == sizeof(val.asCodes))
 		{ cp_net_order(val.asCodes, data, sizeof(val.asCodes));
 
@@ -197,7 +201,7 @@ foreign_t float64_codes(term_t Number, term_t Codes)
 
 install_t
 install_protobufs()
-{ 
+{
   FUNCTOR_error2				= PL_new_functor(PL_new_atom("error"), 2);
 
   PL_register_foreign("int32_codes",          2, int32_codes,         0);
