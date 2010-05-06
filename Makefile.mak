@@ -45,13 +45,11 @@ idll::
 
 ilib::
 		copy protobufs.pl "$(PLBASE)\library"
-		copy protobufs_overview.txt "$(PLBASE)\library"
 		$(MAKEINDEX)
 
 uninstall::
 		del "$(BINDIR)\$(PKGDLL).dll"
 		del "$(PLBASE)\library\protobufs.pl"
-		del "$(PLBASE)\library\protobufs_overview.txt"
 		$(MAKEINDEX)
 
 html-install::
