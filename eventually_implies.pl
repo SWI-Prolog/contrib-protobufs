@@ -1,5 +1,6 @@
 
 % %	~>(:P, :Q) is semidet.
+% %     eventually_implies(P, Q) is semidet.
 %    asserts temporal Liveness (something good happens, eventually) and
 %    Safety (nothing bad ever happens) properties. Analogous to the
 %    "leads-to" operator of Owicki and Lamport, 1982. Provides a sort of
@@ -14,21 +15,11 @@
 %    some point in the future.
 %
 
-:- multifile
-     prolog:message/3.
-
-:- if(\+prolog:message(error(consequent_failed, _),_,_)).
-
-prolog:message(error(consequent_failed, context(Where, _Msg))) -->
-	[ '~w: predicate must succeed or throw an exception.'-[Where] ].
-
-:- endif.
-
 :- meta_predicate ~>(0,0).
 :- op(950, xfy, ~>).
 
 ~>(P, Q) :-
 	setup_call_cleanup(P,
 			   (true; fail),
-			   Q -> true; throw(error(consequent_failed, context(Q, _)))).
+			   Q -> true; throw(error(goal_failed(Q), context(~>, _)))).
 
