@@ -4,8 +4,9 @@
 	   read_from_proto/1,
 	   vector/2,
 	   send_command/3,
+	   send_precompiled_command/3,
 	   protobuf_bag/2,
-	   make_tmp99
+	   make_tmp99/0
 	  ]).
 
 :- use_module(library(protobufs)).
@@ -71,6 +72,29 @@ send_command(Command, Vector, Msg) :-
 
 	protobuf_message(Proto, Msg).
 
+%
+%
+:- dynamic precompiled_message/3.
+
+send_precompiled_command(Command, Vector, Msg) :-
+	basic_vector(Vector, Proto1),
+
+	precompiled_message(commands(Command), Msg, Msg1),
+
+	protobuf_message(protobuf([embedded(3, Proto1)]), Msg1).
+
+precompile_commands :-
+	abolish(precompiled_message/3),
+	forall(protobufs:commands(Key, _),
+	      (	  Proto = protobuf([atom(1, command),
+				    enum(2, commands(Key))]),
+		  protobuf_message(Proto, Msg, Tail),
+		  assert(precompiled_message(commands(Key), Msg, Tail))
+	      )),
+	compile_predicates([precompiled_message/3]).
+
+%
+%
 
 compound_protobuf(complex(Real, Img), group(12, [double(1, Real), double(2, Img)])).
 compound_protobuf(float(Val), float(13, Val)).
@@ -93,4 +117,16 @@ make_tmp99 :-
 	X is pi,
 	write_as_proto(double([-2.2212, -7.6675, X, 0, 1.77e-9, 2.54e222])),
 	halt(0).
+
+:- initialization
+      precompile_commands.
+
+
+
+
+
+
+
+
+
 
