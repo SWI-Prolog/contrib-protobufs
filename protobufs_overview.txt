@@ -110,8 +110,7 @@ Map a Prolog structure to a Protocol Buffer:
 ==
 command(add(X,Y), Proto) :-
 
-   Proto = protobuf([
-		     atom(1, command),
+   Proto = protobuf([atom(1, command),
 		     atom(2, add),
 		     integer(3, X),
 		     integer(4, Y)
@@ -211,7 +210,8 @@ send_command(Command, Vector, Msg) :-
 
 	basic_vector(Vector, Proto1),
 
-	Proto = protobuf([enum(1, commands(Command)), embedded(2, Proto1)]),
+	Proto = protobuf([enum(1, commands(Command)),
+			  embedded(2, Proto1)]),
 
 	protobuf_message(Proto, Msg).
 
@@ -221,7 +221,6 @@ Use it as follows:
 
 ==
 ?- send_command(square, double([1,22,3,4]), Msg).
-Msg = [8, 1, 18, 36, 17, 0, 0, 0, 0|...] [write]
 Msg = [8, 1, 18, 36, 17, 0, 0, 0, 0, 0, 0, 240, 63, 17, 0, 0, 0, 0, 0,
 0, 54, 64, 17, 0, 0, 0, 0, 0, 0, 8, 64, 17, 0, 0, 0, 0, 0, 0, 16, 64].
 

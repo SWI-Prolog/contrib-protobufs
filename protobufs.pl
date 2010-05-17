@@ -53,15 +53,15 @@ SWI-Prolog, you define your message  template   as  a list of predefined
 Prolog terms that correspond to production  rules in the Definite Clause
 Grammar (DCG) that realizes the interpreter. Each production rule has an
 equivalent rule in the  protobuf  grammar.   The  process  is not unlike
-specifiying the format of a regular  expression. To encode a wire-stream
-to variable =X=, you pass a grounded   template  and a variable, =Y=, to
+specifiying the format of a regular  expression. To encode a template to
+a wire-stream, you pass a grounded template, =X=, and  variable, =Y=, to
 protobuf_message/2. To decode a wire-stream, =Y=, you pass an ungrounded
-template  along  with  a   grounded    wire-stream   message,   =Y=,  to
+template, =X=,  along  with  a   grounded    wire-stream,   =Y=,  to
 protobuf_message/2. The interpreter will unify  the unbound variables in
 the template with values decoded from the wire-stream.
 
 For an overview and tutorial  with examples, see protobufs_overview.txt.
-Examples of usage may also be found by inspecting protobufs_check.pl.
+Examples of usage may also be found by inspecting test_protobufs.pl.
 
 @see http://code.google.com/apis/protocolbuffers
 @author: Jeffrey Rosenwald (JeffRose@acm.org)
