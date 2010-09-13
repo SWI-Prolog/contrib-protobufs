@@ -2,10 +2,17 @@
 *.obj
 *.o
 *.so
+*.dylib
 *.lib
 *.exp
 *.dll
 *.manifest
+*.aux
+*.idx
+*.ilg
+*.log
+*.out
+*.toc
 protobufs.tex
 protobufspl.tex
 protobufsoverview.tex
