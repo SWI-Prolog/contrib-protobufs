@@ -54,7 +54,7 @@ static inline
 void cp_net_order(char * to, char * from, int size)  /* must be a power of 2 */
 { 	register int i = 0, j = 0;
 
-#ifdef ARCH_IS_BIG_ENDIAN
+#ifdef WORDS_BIGENDIAN
 	j = size - 1;
 #endif
 
