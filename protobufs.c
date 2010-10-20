@@ -1,6 +1,4 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jeffrey Rosenwald
     E-mail:        jeffrose@acm.org
@@ -62,8 +60,9 @@ void cp_net_order(char * to, char * from, int size)  /* must be a power of 2 */
 		to[i] = from[i ^ j];
 }
 
+// DARIO - Modified by me
 static
-foreign_t integer_zigzag(term_t Integer, term_t ZigZag)
+foreign_t integer_zigzag_64(term_t Integer, term_t ZigZag)
 { 	int64_t val, val1;
 
 	if(PL_get_int64(Integer, &val))
@@ -82,6 +81,29 @@ foreign_t integer_zigzag(term_t Integer, term_t ZigZag)
 
 	return instantiation_error();
 }
+
+// DARIO - Added by me (start)
+static
+foreign_t integer_zigzag_32(term_t Integer, term_t ZigZag)
+{ 	int32_t val, val1;
+
+	if(PL_get_integer(Integer, &val))
+		{
+		val1 = (val << 1) ^ (val >> 31);
+
+		return PL_unify_integer(ZigZag, val1);
+		}
+
+	if(PL_get_integer(ZigZag, &val))
+		{
+		val1 = (val >> 1) ^ (-1 * (val & 1));
+
+		return PL_unify_integer(Integer, val1);
+		}
+
+	return instantiation_error();
+}
+// DARIO - Added by me (end)
 
 static
 foreign_t int32_codes(term_t Number, term_t Codes)
@@ -208,5 +230,6 @@ install_protobufs()
   PL_register_foreign("float32_codes",        2, float32_codes,       0);
   PL_register_foreign("int64_codes",          2, int64_codes,         0);
   PL_register_foreign("float64_codes",        2, float64_codes,       0);
-  PL_register_foreign("integer_zigzag",       2, integer_zigzag,      0);
+  PL_register_foreign("integer_zigzag_32",    2, integer_zigzag_32,   0);  // DARIO - Added by me
+  PL_register_foreign("integer_zigzag_64",    2, integer_zigzag_64,   0);	// DARIO - Modified by me
 }
