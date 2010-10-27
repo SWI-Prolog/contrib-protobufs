@@ -110,65 +110,64 @@ zig_zag(Int, X) :-
 %  basic wire-type processing handled by C-support code
 %
 
-fixed_int32(X) -->
-	[A0, A1, A2, A3],
-	{ int32_codes(X, [A0, A1, A2, A3]) }.
+fixed_int32(X, [A0, A1, A2, A3 | Rest], Rest) :-
+	int32_codes(X, [A0, A1, A2, A3]).
 
-fixed_int64(X) -->
-	[A0, A1, A2, A3, A4, A5, A6, A7],
-	{ int64_codes(X, [A0, A1, A2, A3, A4, A5, A6, A7]) }.
+fixed_int64(X, [A0, A1, A2, A3, A4, A5, A6, A7 | Rest], Rest) :-
+	int64_codes(X, [A0, A1, A2, A3, A4, A5, A6, A7]).
 
-fixed_float64(X) -->
-	[A0, A1, A2, A3, A4, A5, A6, A7],
-	{ float64_codes(X, [A0, A1, A2, A3, A4, A5, A6, A7]) }.
+fixed_float64(X, [A0, A1, A2, A3, A4, A5, A6, A7 | Rest], Rest) :-
+	float64_codes(X, [A0, A1, A2, A3, A4, A5, A6, A7]).
 
-fixed_float32(X) -->
-	[A0, A1, A2, A3],
-	{ float32_codes(X, [A0, A1, A2, A3]) }.
+fixed_float32(X, [A0, A1, A2, A3 | Rest], Rest) :-
+	float32_codes(X, [A0, A1, A2, A3]).
 
 %
 %   Start of the DCG
 %
-code(A) -->
-	[A],
-	{ integer(A), between(0,255, A), ! }.
 
-code_string(0, A) --> nothing(A).
-
-code_string(N, [A | B]) -->
-	code(A),
-	{ succ(N1, N) },
-	code_string(N1, B).
-
+code_string(N, Codes, Rest, Rest1) :-
+	length(Codes, N),
+	append(Codes, Rest1, Rest), !.
+/*
+code_string(N, Codes) -->
+	{ length(Codes, N)},
+	Codes, !.
+*/
 %
 % deal with Google's method of packing unsigned integers in variable
 % length, modulo 128 strings.
 %
+% var_int and tag_type productions were rewritten in straight Prolog for
+% speed's sake.
+%
 
-var_int(A)-->
-	[A], { A < 128 }, !.
+var_int(A, [A | Rest], Rest) :-
+	A < 128, !.
 
-var_int(X) -->
-	[A],
-	{ nonvar(X), !,
-	  X1 is X // 128,
-	  A is 128 + (X - (128 * X1))
-	},
-	var_int(X1).
+var_int(X, [A | Rest], Rest1) :-
+	nonvar(X),
+	X1 is X >> 7,
+	A is 128 + (X /\ 0x7f),
+	var_int(X1, Rest, Rest1), !.
 
-var_int(X) -->
-	[A],
-	var_int(X1),
-	{ X is A - 128 + (128 * X1) }.
+var_int(X, [A | Rest], Rest1) :-
+	var_int(X1, Rest, Rest1),
+	X is (X1 << 7) + A - 128, !.
 %
 %
-tag_type(Tag, Type) -->
-	{ (nonvar(Tag), nonvar(Type)) ->
-	     (	 wire_type(Type, X), A is Tag << 3 \/ X); true },
 
-	var_int(A),
+tag_type(Tag, Type, Rest, Rest1) :-
+	nonvar(Tag), nonvar(Type),
+	wire_type(Type, X),
+	A is Tag << 3 \/ X,
+	var_int(A, Rest, Rest1), !.
 
-	{ X is A /\ 0x07, wire_type(Type, X), Tag is A >> 3 }.
+tag_type(Tag, Type, Rest, Rest1) :-
+	var_int(A, Rest, Rest1),
+	X is A /\ 0x07,
+	wire_type(Type, X),
+	Tag is A >> 3.
 %
 prolog_type(Tag, double) -->     tag_type(Tag, fixed64).
 prolog_type(Tag, integer64) -->	 tag_type(Tag, fixed64).
@@ -188,68 +187,72 @@ prolog_type(Tag, embedded) -->   tag_type(Tag, length_delimited).
 %   But they are encoded as unsigned in the  golden message.
 %   Encode as integer and lose. Encode as unsigned and win.
 %
-payload(enum(Tag, Type)) -->
-	{ call(Type, Value) },
-	payload(unsigned(Tag, Value)).
 
-payload(double(_Tag, A)) -->
+payload(enum, Type) -->
+	{ call(Type, Value) },
+	payload(unsigned, Value).
+
+payload(double,  A) -->
 	fixed_float64(A).
 
-payload(integer64(_Tag, A)) -->
+payload(integer64, A) -->
 	fixed_int64(A).
 
-payload(float(_Tag, A)) -->
+payload(float, A) -->
 	fixed_float32(A).
 
-payload(integer32(_Tag, A)) -->
+payload(integer32, A) -->
 	fixed_int32(A).
 
-payload(integer(_Tag, A)) -->
-	{ nonvar(A) -> integer_zigzag(A,X); true },
+payload(integer, A) -->
+	{ nonvar(A), integer_zigzag(A,X) }, !,
+	var_int(X).
 
+payload(integer, A) -->
 	var_int(X),
-
 	{ integer_zigzag(A, X) }.
 
-payload(unsigned(_Tag, A)) -->
+payload(unsigned, A) -->
 	{ nonvar(A) -> A >= 0; true },
-
 	var_int(A).
 
-payload(codes(_Tag, A)) -->
-	{ nonvar(A) -> length(A, Len); true},
-
+payload(codes, A) -->
+	{ nonvar(A), length(A, Len)},
 	var_int(Len),
-	code_string(Len, A),
+	code_string(Len, A).
 
-	{ length(A, Len) }.
+payload(codes, A) -->
+	var_int(Len),
+	code_string(Len, A).
 
-payload(atom(Tag, A)) -->
-	{ nonvar(A) -> atom_codes(A, Codes); true },
+payload(atom, A) -->
+	{ nonvar(A), atom_codes(A, Codes) },
+	payload(codes, Codes), !.
 
-	payload(codes(Tag, Codes)),
-
+payload(atom, A) -->
+	payload(codes, Codes),
 	{ atom_codes(A, Codes) }.
 
-payload(boolean(Tag, true)) -->
-	payload(unsigned(Tag, 1)).
+payload(boolean, true) -->
+	payload(unsigned, 1).
 
-payload(boolean(Tag, false)) -->
-	payload(unsigned(Tag, 0)).
+payload(boolean, false) -->
+	payload(unsigned, 0).
 
-payload(string(Tag, A)) -->
+payload(string, A) -->
 	{ nonvar(A) -> string_to_list(A, Codes); true },
 
-	payload(codes(Tag, Codes)),
+	payload(codes, Codes),
 
 	{ string_to_list(A, Codes) }.
 
-payload(embedded(Tag, protobuf(A))) -->
-	{ ground(A) -> phrase(protobuf(A), Codes, []); true },
+payload(embedded, protobuf(A)) -->
+	{ ground(A), phrase(protobuf(A), Codes) },
+	payload(codes, Codes), !.
 
-	payload(codes(Tag, Codes)),
-
-	{ phrase(protobuf(A), Codes, []) }.
+payload(embedded, protobuf(A)) -->
+	payload(codes, Codes),
+	{ phrase(protobuf(A), Codes) }.
 
 start_group(Tag) -->    	tag_type(Tag, start_group).
 
@@ -259,29 +262,29 @@ end_group(Tag) -->      	tag_type(Tag, end_group).
 nothing([]) --> [], !.
 
 protobuf([A | B]) -->
-	message_sequence(A),
+	{ A =.. [ Type, Tag, Payload] },
+	message_sequence(Type, Tag, Payload),
 	(   protobuf(B); nothing(B)).
 
-message_sequence(repeated(Tag, Compound)) -->
-	{ Compound =.. [Type, [A | B]],
-	  More =.. [Type, B],
-	  Proto =.. [Type, Tag, A] },
-	message_sequence(Proto),
-	message_sequence(repeated(Tag, More)).
+repeated_message_sequence(Type, Tag, [A | B]) -->
+	message_sequence(Type, Tag, A),
+	repeated_message_sequence(Type, Tag, B).
 
-message_sequence(repeated(_Tag, Compound)) -->
-	{ Compound =.. [ _Type , []] }.
+repeated_message_sequence(_Type, _Tag, A) -->
+	nothing(A).
 
-message_sequence(group(Tag, A)) -->
+message_sequence(repeated, Tag, Compound) -->
+	{ Compound =.. [Type, A] },
+	repeated_message_sequence(Type, Tag, A).
+
+message_sequence(group, Tag, A) -->
 	start_group(Tag),
   	protobuf(A),
 	end_group(Tag), !.
 
-message_sequence(Compound) -->
-	{ nonvar(Compound) -> Compound =.. [PrologType, Tag, Payload]; true },
+message_sequence(PrologType, Tag, Payload) -->
 	prolog_type(Tag, PrologType),
-        payload(Compound),
-	{ Compound =.. [PrologType, Tag, Payload] }.
+        payload(PrologType, Payload).
 
 
 %%	protobuf_message(?Template, ?Wire_stream) is semidet.
@@ -303,7 +306,7 @@ message_sequence(Compound) -->
 %
 protobuf_message(protobuf(Template), Wirestream) :-
 	must_be(list, Template),
-	phrase(protobuf(Template), Wirestream).
+	phrase(protobuf(Template), Wirestream), !.
 
 protobuf_message(protobuf(Template), Wirestream, Residue) :-
 	must_be(list, Template),

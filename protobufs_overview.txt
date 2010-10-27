@@ -346,6 +346,109 @@ precompile_commands :-
      precompile_commands.
 ==
 
+---+++ Supplying Your Own Host Type Message Sequences
+
+You can extend the parser to support your own compound host types. These
+are treated as first class entities by the   parser. That is they can be
+used either by themselves, or in  =repeated= and =embedded= clauses just
+as any other host type would be. You  do this by hooking into the parser
+and adding your own =message_sequence= productions. Your hook eventually
+calls back into the parser   with  your substitution/expansion protobuf,
+which is then embedded in the wire   stream. Recursive structures can be
+defined this way. A simple example of  a recursive XML like structure is
+shown below:
+
+==
+:- multifile protobufs:message_sequence/5.
+
+protobufs:message_sequence(Type, Tag, Value)  -->
+	{ my_message_sequence(Type, Value, Proto) },
+	protobufs:message_sequence(embedded, Tag, Proto), !.
+%
+%
+guard(Type, Value) :-
+       (   nonvar(Value) -> is_of_type(Type, Value); true).
+
+my_message_sequence(kv_pair, Key=Value, Proto) :-
+       guard(integer, Value),
+       Proto = protobuf([ atom(31, Key), integer(30, Value)]).
+
+my_message_sequence(kv_pair, Key=Value, Proto) :-
+       guard(float, Value),
+       Proto = protobuf([ atom(32, Key), double(30, Value)]).
+
+my_message_sequence(kv_pair, Key=Value, Proto) :-
+       guard(atom, Value),
+       Proto = protobuf([ atom(33, Key), atom(30, Value)]).
+
+my_message_sequence(xml_element, element(Name, Attributes, Contents), Proto) :-
+       Proto = protobuf([ atom(21, Name),
+			  repeated(22, kv_pair(Attributes)),
+			  repeated(23, aux_xml_element(Contents))]).
+
+my_message_sequence(aux_xml_element,  Contents, Proto) :-
+	functor(Contents, element, 3),
+	Proto = protobuf([xml_element(40, Contents)]).
+
+my_message_sequence(aux_xml_element, Contents, Proto) :-
+	Proto = protobuf([atom(43, Contents)]).
+
+
+xml_proto([element(space1,
+		  [foo='1', bar='2'],
+		  [fum,
+		   bar,
+		        element(space2,
+				[fum=3.1415, bum= -14],
+				['more stuff for you']),
+		        element(space2b,
+				[],
+				[this, is, embedded, also]),
+		   to,
+		   you])]).
+
+test_xml(X, Y) :-
+	Proto = protobuf([repeated(20, xml_element(X))]),
+
+	protobuf_message(Proto, Y).
+
+% And test it:
+
+?- xml_proto(X), test_xml(X,Y), test_xml(Z,Y), Z == X.
+X = [element(space1,
+            [foo='1', bar='2'],
+            [fum,
+             bar,
+             element(space2,
+                       [fum=3.1415, bum= -14],
+                       ['more stuff for you']
+                    ),
+             element(space2b,
+                       [],
+                       [this, is|...]
+                    ),
+             to,
+             you])],
+
+Y = [162, 1, 193, 1, 170, 1, 6, 115, 112|...],
+
+Z = [element(space1,
+            [foo='1', bar='2'],
+            [fum,
+             bar,
+             element(space2,
+                       [fum=3.1415, bum= -14],
+                       ['more stuff for you']
+                    ),
+             element(space2b,
+                       [],
+                       [this, is|...]
+                    ),
+             to,
+             you])]
+
+==
+
 ---+ Example: Vectors of Numbers Between Prolog and C++ Clients.
 
 In Prolog client:

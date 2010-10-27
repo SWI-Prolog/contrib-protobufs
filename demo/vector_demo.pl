@@ -6,10 +6,13 @@
 	   send_command/3,
 	   send_precompiled_command/3,
 	   protobuf_bag/2,
-	   make_tmp99/0
+	   make_tmp99/0,
+	   xml_proto/1,
+	   test_xml/2
 	  ]).
 
 :- use_module(library(protobufs)).
+:- use_module(library(error)).
 
 :- meta_predicate ~>(0,0).
 :- op(950, xfy, ~>).
@@ -101,6 +104,7 @@ compound_protobuf(float(Val), float(13, Val)).
 compound_protobuf(double(Val), double(14, Val)).
 compound_protobuf((Num rdiv Den), group(15, [integer(1, Num), integer(2, Den)])).
 compound_protobuf(integer(Val), integer(16, Val)).
+compound_protobuf(Key=Value, group(20, [ atom(1, Key), atom(2, Value)])).
 
 
 protobuf_bag([], []).
@@ -118,15 +122,69 @@ make_tmp99 :-
 	write_as_proto(double([-2.2212, -7.6675, X, 0, 1.77e-9, 2.54e222])),
 	halt(0).
 
+%
+%  Example of adding ornamental message sequences to the parser.
+%  In this example we demonstrate managing a recursive structure like
+%  XML. The structure shown in xml_proto/1 below, is similar to the
+%  structure returned by load_xml_file/2, which is part of the SGML
+%  library. We supply three message_sequence decorators: kv_pair,
+%  xml_element, and aux_xml_element. These are treated as first class
+%  host types.
+%
+:- multifile protobufs:message_sequence/5.
+
+protobufs:message_sequence(Type, Tag, Value)  -->
+	{ my_message_sequence(Type, Value, Proto) },
+	protobufs:message_sequence(embedded, Tag, Proto), !.
+%
+%
+guard(Type, Value) :-
+	(nonvar(Value) -> is_of_type(Type, Value); true).
+
+my_message_sequence(kv_pair, Key=Value, Proto) :-
+       guard(integer, Value),
+       Proto = protobuf([ atom(31, Key), integer(30, Value)]).
+
+my_message_sequence(kv_pair, Key=Value, Proto) :-
+       guard(float, Value),
+       Proto = protobuf([ atom(32, Key), double(30, Value)]).
+
+my_message_sequence(kv_pair, Key=Value, Proto) :-
+       guard(atom, Value),
+       Proto = protobuf([ atom(33, Key), atom(30, Value)]).
+%
+%
+my_message_sequence(xml_element, element(Name, Attributes, Contents), Proto) :-
+       Proto = protobuf([ atom(21, Name),
+			  repeated(22, kv_pair(Attributes)),
+			  repeated(23, aux_xml_element(Contents))]).
+%
+%
+my_message_sequence(aux_xml_element,  Contents, Proto) :-
+	functor(Contents, element, 3),
+	Proto = protobuf([xml_element(40, Contents)]).
+
+my_message_sequence(aux_xml_element, Contents, Proto) :-
+	Proto = protobuf([atom(43, Contents)]).
+
+
+xml_proto([element(space1,
+		  [foo='1', bar='2'],
+		  [fum,
+		   bar,
+		        element(space2,
+				[fum= 3.1415, bum= -14],
+				['more stuff for you']),
+		        element(space2b,
+				[],
+				[this, is, embedded, also]),
+		   to,
+		   you])]).
+
+test_xml(X, Y) :-
+	Proto = protobuf([repeated(20, xml_element(X))]),
+
+	protobuf_message(Proto, Y).
+
 :- initialization
       precompile_commands.
-
-
-
-
-
-
-
-
-
-
