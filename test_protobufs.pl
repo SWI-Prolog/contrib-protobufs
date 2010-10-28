@@ -5,6 +5,9 @@
     WWW:           http://www.swi-prolog.org
     Copyright (C): 2010, Jeffrey Rosenwald
 
+	 Modified by:	Dario Campagna
+	 E-mail:			dario.campagna@dmi.unipg.it
+
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
     as published by the Free Software Foundation; either version 2
@@ -66,8 +69,8 @@ golden_message(Proto) :-
 			   unsigned(2, 102),
 			   unsigned(3, 103),
 			   unsigned(4, 104),
-			   integer(5,105),
-			   integer(6, 106),
+			   integer(5,210),
+			   integer(6, 212),
 			   integer32(7, 107),
 			   integer64(8, 108),
 			   integer32(9, 109),
@@ -90,8 +93,8 @@ golden_message(Proto) :-
 			   repeated(32, unsigned([202, 302])),
 			   repeated(33, unsigned([203, 303])),
 			   repeated(34, unsigned([204, 304])),
-			   repeated(35, integer([205, 305])),
-			   repeated(36, integer([206, 306])),
+			   repeated(35, integer([410, 610])),
+			   repeated(36, integer([412, 612])),
 			   repeated(37, integer32([207, 307])),
 			   repeated(38, integer64([208, 308])),
 			   repeated(39, integer32([209, 309])),
@@ -102,9 +105,9 @@ golden_message(Proto) :-
 			   repeated(44, atom(['215', '315'])),
 			   repeated(45, codes(["216", "316"])),
 			   repeated(46, group([[unsigned(47, 217)], [unsigned(47, 317)]])),
-			   repeated(48, embedded([protobuf([unsigned(1, 218)]), protobuf([unsigned(1,318)])])),  % nested
-			   repeated(49, embedded([protobuf([unsigned(1, 219)]), protobuf([unsigned(1, 319)])])), % foreign
-			   repeated(50, embedded([protobuf([unsigned(1, 220)]), protobuf([unsigned(1, 320)])])),  % import
+			   repeated(48, embedded([protobuf([unsigned(1, 218)]), protobuf([unsigned(1,318)])],_)),  % nested
+			   repeated(49, embedded([protobuf([unsigned(1, 219)]), protobuf([unsigned(1, 319)])],_)), % foreign
+			   repeated(50, embedded([protobuf([unsigned(1, 220)]), protobuf([unsigned(1, 320)])],_)),  % import
 			   repeated(51, enum([nested_enum(bar), nested_enum(baz)])),
 			   repeated(52, enum([foreign_enum(bar), foreign_enum(baz)])),
 			   repeated(53, enum([import_enum(bar), import_enum(baz)])),
@@ -114,8 +117,8 @@ golden_message(Proto) :-
 			   unsigned(62, 402),
 			   unsigned(63, 403),
 			   unsigned(64, 404),
-			   integer(65, 405),
-			   integer(66, 406),
+			   integer(65, 810),
+			   integer(66, 812),
 			   integer32(67, 407),
 			   integer64(68, 408),
 			   integer32(69, 409),
@@ -173,9 +176,9 @@ golden_message_template(Proto) :-
 			   repeated(_, atom(_)),
 			   repeated(_, codes(_)),
 			   repeated(_, group([[unsigned(_, _)], [unsigned(_, _)]])),
-			   repeated(_, embedded([protobuf([unsigned(_, _)]), protobuf([unsigned(_,_)])])),  % nested
-			   repeated(_, embedded([protobuf([unsigned(_, _)]), protobuf([unsigned(_, _)])])), % foreign
-			   repeated(_, embedded([protobuf([unsigned(_, _)]), protobuf([unsigned(_, _)])])),  % import
+			   repeated(_, embedded(_,protobuf([unsigned(_, _)]))),  % nested
+			   repeated(_, embedded(_,protobuf([unsigned(_, _)]))), % foreign
+			   repeated(_, embedded(_,protobuf([unsigned(_, _)]))),  % import
 			   repeated(_, enum([nested_enum(_), nested_enum(_)])),
 			   repeated(_, enum([foreign_enum(_), foreign_enum(_)])),
 			   repeated(_, enum([import_enum(_), import_enum(_)])),
@@ -233,7 +236,7 @@ test_protobufs :-
 
 	announce('Comparing canned Golden Message to parsed Golden Template...', Test3a),
 
-	(   Message == Template2 -> Test3a = ok), !,
+	(  Message = Template2 -> Test3a = ok), !,
 
 	announce('Serializing canned Golden Message to Codes...', Test4),
 
@@ -249,7 +252,7 @@ test_protobufs :-
 
 	announce('Comparing canned Golden Message to parsed Golden Template...', Test6),
 
-	(   (Message == Template1) -> Test6 = ok), !,
+	(   (Message = Template1) -> Test6 = ok), !,
 
 	writeln('All tests passed.').
 

@@ -1,9 +1,14 @@
-/*  Part of SWI-Prolog
+/*  $Id: protobufs.c,v 1.2 2010-10-21 07:33:38 dario Exp $
+
+    Part of SWI-Prolog
 
     Author:        Jeffrey Rosenwald
     E-mail:        jeffrose@acm.org
     WWW:           http://www.swi-prolog.org
     Copyright (C): 2010, Jeffrey Rosenwald
+
+	 Modified by:	Dario Campagna
+	 E-mail:			dario.campagna@dmi.unipg.it
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
