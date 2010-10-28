@@ -5,8 +5,8 @@
     WWW:           http://www.swi-prolog.org
     Copyright (C): 2010, Jeffrey Rosenwald
 
-	 Modified by:	Dario Campagna
-	 E-mail:			dario.campagna@dmi.unipg.it
+    Modified by:   Dario Campagna
+    E-mail:        dario.campagna@dmi.unipg.it
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -56,10 +56,10 @@ SWI-Prolog, you define your message  template   as  a list of predefined
 Prolog terms that correspond to production  rules in the Definite Clause
 Grammar (DCG) that realizes the interpreter. Each production rule has an
 equivalent rule in the  protobuf  grammar.   The  process  is not unlike
-specifiying the format of a regular  expression. To encode a template to
-a wire-stream, you pass a grounded template, =X=, and  variable, =Y=, to
+specifiying the format of a regular expression.  To encode a template to
+a wire-stream, you pass a grounded template,  =X=, and variable, =Y=, to
 protobuf_message/2. To decode a wire-stream, =Y=, you pass an ungrounded
-template, =X=,  along  with  a   grounded    wire-stream,   =Y=,  to
+template,  =X=,  along   with   a    grounded   wire-stream,   =Y=,   to
 protobuf_message/2. The interpreter will unify  the unbound variables in
 the template with values decoded from the wire-stream.
 
@@ -86,7 +86,7 @@ Examples of usage may also be found by inspecting test_protobufs.pl.
 	   , between/3
 	   ]).
 
-:- use_foreign_library(foreign('protobufs')).
+:- use_foreign_library(foreign(protobufs)).
 
 :- multifile message/2.
 
@@ -98,12 +98,12 @@ wire_type(end_group, 4).
 wire_type(fixed32, 5).
 
 % Predicate for computing an unsigned int from an int usign two's complement
-unsigned_int(A,UA) :- Aux is abs(A), UA is (Aux xor 18446744073709551615) + 1.
+unsigned_int(A,UA) :- Aux is abs(A), UA is xor(Aux, 18446744073709551615) + 1.
 
 % Predicate for computing the int corresponding to an unsigned int encoding int with two's complement
 int_unsigned(A,UA) :-
 	(UA >> 63 =:= 1
-	 ->	Aux is (UA xor 18446744073709551615) + 1,
+	 ->	Aux is xor(UA, 18446744073709551615) + 1,
 			A is -Aux
 	 ;		A is UA
 	).
@@ -122,7 +122,7 @@ fixed_int64(X) -->
 fixed_float32(X) -->
 	[A0, A1, A2, A3],
 	{ float32_codes(X, [A0, A1, A2, A3]) }.
-	
+
 fixed_float64(X) -->
 	[A0, A1, A2, A3, A4, A5, A6, A7],
 	{ float64_codes(X, [A0, A1, A2, A3, A4, A5, A6, A7]) }.
@@ -136,7 +136,7 @@ code_string(N, [A | B]) -->
 	[A],
 	{ N1 is N - 1 },
 	code_string(N1, B).
-	
+
 %
 % deal with Google's method of packing unsigned integers in variable
 % length, modulo 128 strings.
@@ -168,7 +168,7 @@ tag_type_encode(Tag,Type,Len,NLen) -->
 	  A is Tag << 3 \/ X
 	},
 	var_int_encode(A,Len,NLen).
-	
+
 tag_type_decode(Tag,Type,Dec,NDec) -->
 	var_int_decode(A,Dec,NDec),
 	{ X is A /\ 0x07, wire_type(Type, X), Tag is A >> 3 }.
@@ -180,8 +180,8 @@ prolog_type_encode(Tag, float, Len, NLen) -->      tag_type_encode(Tag, fixed32,
 prolog_type_encode(Tag, integer32, Len, NLen) -->  tag_type_encode(Tag, fixed32, Len, NLen).
 prolog_type_encode(Tag, integer, Len, NLen) -->    tag_type_encode(Tag, varint, Len, NLen).
 prolog_type_encode(Tag, unsigned, Len, NLen) -->	 tag_type_encode(Tag, varint, Len, NLen).
-prolog_type_encode(Tag, sinteger64, Len, NLen) --> tag_type_encode(Tag, varint, Len, NLen).						
-prolog_type_encode(Tag, sinteger32, Len, NLen) --> tag_type_encode(Tag, varint, Len, NLen).						
+prolog_type_encode(Tag, sinteger64, Len, NLen) --> tag_type_encode(Tag, varint, Len, NLen).
+prolog_type_encode(Tag, sinteger32, Len, NLen) --> tag_type_encode(Tag, varint, Len, NLen).
 prolog_type_encode(Tag, boolean, Len, NLen) -->    tag_type_encode(Tag, varint, Len, NLen).
 prolog_type_encode(Tag, enum, Len, NLen) -->       tag_type_encode(Tag, varint, Len, NLen).
 prolog_type_encode(Tag, atom, Len, NLen) -->       tag_type_encode(Tag, length_delimited, Len, NLen).
@@ -228,15 +228,15 @@ payload_encode(integer32(_Tag, A), Len, NLen) -->
 payload_encode(integer(_Tag, A), Len, NLen) -->
 	{ A >= 0 -> UA = A ; unsigned_int(A,UA) },
 	var_int_encode(UA, Len, NLen).
-	
+
 payload_encode(unsigned(_Tag, A), Len, NLen) -->
 	{ A >= 0 },
 	var_int_encode(A, Len, NLen).
-	
+
 payload_encode(sinteger64(_Tag, A), Len, NLen) -->
 	{ integer_zigzag_64(A,X) },
 	var_int_encode(X, Len, NLen).
-	
+
 payload_encode(sinteger32(_Tag, A), Len, NLen) -->
 	{ integer_zigzag_32(A,X) },
 	var_int_encode(X, Len, NLen).
@@ -252,7 +252,7 @@ payload_encode(atom(_Tag, A), Len, NLen) -->
 	var_int_encode(Length, Len, NLen1),
 	Codes,
 	{ NLen is NLen1 + Length }.
-	
+
 payload_encode(codes(_Tag, A), Len, NLen) -->
 	{ length(A,Length) },
 	var_int_encode(Length,Len,NLen1),
@@ -267,7 +267,7 @@ payload_encode(string(_Tag,A), Len, NLen) -->
 
 payload_encode(embedded(_Tag, protobuf(A)), Len, NLen, List, Tail) :-
 	phrase(protobuf_encode(A,0,LenA), Codes, CTail),
-	var_int_encode(LenA, Len, NLen1, List, Tail1),			
+	var_int_encode(LenA, Len, NLen1, List, Tail1),
 	Tail1 = Codes,
 	NLen is NLen1 + LenA,
 	CTail = Tail.
@@ -286,11 +286,11 @@ payload_decode(enum(Tag, Type),Dec,NDec) -->
 payload_decode(double(_Tag, A),Dec,NDec) -->
 	fixed_float64(A),
 	{ nonvar(Dec) -> NDec is Dec - 8 ; NDec = Dec }.
-	
+
 payload_decode(integer64(_Tag, A),Dec,NDec) -->
 	fixed_int64(A),
 	{ nonvar(Dec) -> NDec is Dec - 8 ; NDec = Dec }.
-	
+
 payload_decode(float(_Tag, A),Dec,NDec) -->
 	fixed_float32(A),
 	{ nonvar(Dec) -> NDec is Dec - 4 ; NDec = Dec }.
@@ -298,7 +298,7 @@ payload_decode(float(_Tag, A),Dec,NDec) -->
 payload_decode(integer32(_Tag, A),Dec,NDec) -->
 	fixed_int32(A),
 	{ nonvar(Dec) -> NDec is Dec - 4 ; NDec = Dec }.
-	
+
 payload_decode(integer(_Tag, A),Dec,NDec) -->
 	var_int_decode(UA,Dec,NDec),
 	{int_unsigned(A,UA)}.
@@ -313,15 +313,15 @@ payload_decode(sinteger64(_Tag, A),Dec,NDec) -->
 payload_decode(sinteger32(_Tag, A),Dec,NDec) -->
 	var_int_decode(X,Dec,NDec),
 	{ integer_zigzag_32(A,X) }.
-	
+
 payload_decode(boolean(Tag, true),Dec,NDec) -->
 	payload_decode(unsigned(Tag, 1),Dec,NDec).
 
 payload_decode(boolean(Tag, false),Dec,NDec) -->
 	payload_decode(unsigned(Tag, 0),Dec,NDec).
 
-payload_decode(codes(_Tag, A),Dec,NDec) -->	
-	var_int_decode(Len,Dec,NDec1),	
+payload_decode(codes(_Tag, A),Dec,NDec) -->
+	var_int_decode(Len,Dec,NDec1),
 	code_string(Len, A),
 	{ nonvar(Dec) -> NDec is NDec1 - Len ; NDec = Dec }.
 
@@ -372,7 +372,7 @@ protobuf_decode([A | B],Dec,NDec) -->
    ).
 %
 %
-message_sequence_encode_cons(embedded(Tag,A),repeated(Tag,More),Len,NLen) -->	
+message_sequence_encode_cons(embedded(Tag,A),repeated(Tag,More),Len,NLen) -->
 	prolog_type_encode(Tag, embedded, Len, NLen1),
    payload_encode(embedded(Tag,A), NLen1, LenEmb),
 	message_sequence_encode(repeated(Tag,More),LenEmb,NLen).
@@ -494,9 +494,9 @@ message_sequence_encode(repeated(Tag, enum([A|B])), Len, NLen) -->
 		Proto = enum(Tag, A) },
 	message_sequence_encode(Proto, Len, LenProto),
 	message_sequence_encode(repeated(Tag, More), LenProto, NLen).
-	
+
 message_sequence_encode(repeated(_Tag, enum([])), Len, Len) --> [].
-/*	
+/*
 message_sequence_encode(repeated(Tag, Compound), Len, NLen) -->
 	{ Compound =.. [Type, [A | B]],
 	  More =.. [Type, B],
@@ -603,9 +603,9 @@ message_sequence_decode(repeated(Tag, integer([A|B])),Dec,NDec) -->
 	  Proto = integer(Tag, A) },
 	message_sequence_decode(Proto,Dec,NDec1),
 	message_sequence_decode(repeated(Tag, More),NDec1,NDec).
-	
+
 message_sequence_decode(repeated(_Tag, integer([])),Dec,Dec) --> [].
-	
+
 message_sequence_decode(repeated(Tag, boolean([A|B])),Dec,NDec) -->
 	{ More = boolean(B),
 	  Proto = boolean(Tag, A) },
@@ -613,13 +613,13 @@ message_sequence_decode(repeated(Tag, boolean([A|B])),Dec,NDec) -->
 	message_sequence_decode(repeated(Tag, More),NDec1,NDec).
 
 message_sequence_decode(repeated(_Tag, boolean([])),Dec,Dec) --> [].
-	
+
 message_sequence_decode(repeated(Tag, unsigned([A|B])),Dec,NDec) -->
 	{ More = unsigned(B),
 	  Proto = unsigned(Tag, A) },
 	message_sequence_decode(Proto,Dec,NDec1),
 	message_sequence_decode(repeated(Tag, More),NDec1,NDec).
-	
+
 message_sequence_decode(repeated(_Tag, unsigned([])),Dec,Dec) --> [].
 
 message_sequence_decode(repeated(Tag, atom([A|B])),Dec,NDec) -->
@@ -637,21 +637,21 @@ message_sequence_decode(repeated(Tag, codes([A|B])),Dec,NDec) -->
 	message_sequence_decode(repeated(Tag, More),NDec1,NDec).
 
 message_sequence_decode(repeated(_Tag, codes([])),Dec,Dec) --> [].
-	
+
 message_sequence_decode(repeated(Tag, string([A|B])),Dec,NDec) -->
 	{ More = string(B),
 	  Proto = string(Tag, A) },
 	message_sequence_decode(Proto,Dec,NDec1),
 	message_sequence_decode(repeated(Tag, More),NDec1,NDec).
-	
+
 message_sequence_decode(repeated(_Tag, string([])),Dec,Dec) --> [].
-	
+
 message_sequence_decode(repeated(Tag, double([A|B])),Dec,NDec) -->
 	{ More = double(B),
 	  Proto = double(Tag, A) },
 	message_sequence_decode(Proto,Dec,NDec1),
 	message_sequence_decode(repeated(Tag, More),NDec1,NDec).
-	
+
 message_sequence_decode(repeated(_Tag, double([])),Dec,Dec) --> [].
 
 message_sequence_decode(repeated(Tag, integer64([A|B])),Dec,NDec) -->
@@ -659,39 +659,39 @@ message_sequence_decode(repeated(Tag, integer64([A|B])),Dec,NDec) -->
 	  Proto = integer64(Tag, A) },
 	message_sequence_decode(Proto,Dec,NDec1),
 	message_sequence_decode(repeated(Tag, More),NDec1,NDec).
-	
+
 message_sequence_decode(repeated(_Tag, integer64([])),Dec,Dec) --> [].
-	
+
 message_sequence_decode(repeated(Tag, float([A|B])),Dec,NDec) -->
 	{ More = float(B),
 	  Proto = float(Tag, A) },
 	message_sequence_decode(Proto,Dec,NDec1),
 	message_sequence_decode(repeated(Tag, More),NDec1,NDec).
-	
+
 message_sequence_decode(repeated(_Tag, float([])),Dec,Dec) --> [].
-	
+
 message_sequence_decode(repeated(Tag, integer32([A|B])),Dec,NDec) -->
 	{ More = integer32(B),
 	  Proto = integer32(Tag, A) },
 	message_sequence_decode(Proto,Dec,NDec1),
 	message_sequence_decode(repeated(Tag, More),NDec1,NDec).
-	
+
 message_sequence_decode(repeated(_Tag, integer32([])),Dec,Dec) --> [].
-	
+
 message_sequence_decode(repeated(Tag, sinteger64([A|B])),Dec,NDec) -->
 	{ More = sinteger64(B),
 	  Proto = sinteger64(Tag, A) },
 	message_sequence_decode(Proto,Dec,NDec1),
 	message_sequence_decode(repeated(Tag, More),NDec1,NDec).
-	
+
 message_sequence_decode(repeated(_Tag, sinteger32([])),Dec,Dec) --> [].
-	
+
 message_sequence_decode(repeated(Tag, sinteger32([A|B])),Dec,NDec) -->
 	{ More = sinteger32(B),
 	  Proto = sinteger32(Tag, A) },
 	message_sequence_decode(Proto,Dec,NDec1),
 	message_sequence_decode(repeated(Tag, More),NDec1,NDec).
-	
+
 message_sequence_decode(repeated(_Tag, sinteger64([])),Dec,Dec) --> [].
 
 message_sequence_decode(repeated(Tag, group([A|B])),Dec,NDec) -->
@@ -699,7 +699,7 @@ message_sequence_decode(repeated(Tag, group([A|B])),Dec,NDec) -->
 	  Proto = group(Tag, A) },
 	message_sequence_decode(Proto,Dec,NDec1),
 	message_sequence_decode(repeated(Tag, More),NDec1,NDec).
-	
+
 message_sequence_decode(repeated(_Tag, group([])),Dec,Dec) --> [].
 
 message_sequence_decode(repeated(Tag, enum([A|B])),Dec,NDec) -->
@@ -707,9 +707,9 @@ message_sequence_decode(repeated(Tag, enum([A|B])),Dec,NDec) -->
 	  Proto = enum(Tag, A) },
 	message_sequence_decode(Proto,Dec,NDec1),
 	message_sequence_decode(repeated(Tag, More),NDec1,NDec).
-	
+
 message_sequence_decode(repeated(_Tag, enum([])),Dec,Dec) --> [].
-/*	
+/*
 message_sequence_decode(repeated(Tag, Compound)) -->
 	{ Compound =.. [Type, [A | B]],
 	  More =.. [Type, B],
@@ -810,8 +810,7 @@ message_sequence_decode(Compound) -->
 	prolog_type_decode(Tag, PrologType),
    payload_decode(Compound).
 */
-%
-%
+
 %%	protobuf_message(?Template, ?Wire_stream) is semidet.
 %%	protobuf_message(?Template, ?Wire_stream, ?Rest) is nondet.
 %
@@ -828,7 +827,7 @@ message_sequence_decode(Compound) -->
 %
 %  @param Wire_stream is a code list that was generated by a protobuf
 %  encoder using a equivalent template.
-%
+
 protobuf_message(protobuf(Template), Wirestream) :-
 	must_be(list, Template),
 	( optional_ground(Template)
@@ -843,7 +842,7 @@ protobuf_message(message(Name,Template), Wirestream) :-
 		->	phrase(protobuf_encode(Template,0,_), Wirestream)
 		;	phrase(protobuf_decode(Template,_,_), Wirestream)
 	).
-	
+
 protobuf_message(protobuf(Template), Wirestream, Residue) :-
 	must_be(list, Template),
 	( optional_ground(Template)
@@ -867,7 +866,7 @@ optional_ground([L|Ls]) :-
 	;   nonvar(L),% writeln(L), nl,
 		 optional_ground_cons(L,Ls)
 	).
-	
+
 optional_ground_cons(optional(_,not_present),Ls) :-
 	optional_ground(Ls).
 optional_ground_cons(optional(T,present),Ls) :-
