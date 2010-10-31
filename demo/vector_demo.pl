@@ -104,16 +104,16 @@ compound_protobuf(float(Val), float(13, Val)).
 compound_protobuf(double(Val), double(14, Val)).
 compound_protobuf((Num rdiv Den), group(15, [integer(1, Num), integer(2, Den)])).
 compound_protobuf(integer(Val), integer(16, Val)).
-compound_protobuf(Key=Value, group(20, [ atom(1, Key), atom(2, Value)])).
-
 
 protobuf_bag([], []).
 
 protobuf_bag([ Type | More], Msg) :-
 
-	compound_protobuf(Type, Proto),
+	compound_protobuf(Type, X),
 
-	protobuf_message(protobuf([Proto]), Msg, Msg1),
+	Proto = protobuf([embedded(1, protobuf([X]))]),
+
+	protobuf_message(Proto, Msg, Msg1),
 
 	protobuf_bag(More, Msg1), !.
 
@@ -137,21 +137,18 @@ protobufs:message_sequence(Type, Tag, Value)  -->
 	{ my_message_sequence(Type, Value, Proto) },
 	protobufs:message_sequence(embedded, Tag, Proto), !.
 %
+% On encode, the value type determines the tag. And on decode
+% the tag to determines the value type.
 %
 guard(Type, Value) :-
-	(nonvar(Value) -> is_of_type(Type, Value); true).
+       (nonvar(Value) -> is_of_type(Type, Value); true).
 
 my_message_sequence(kv_pair, Key=Value, Proto) :-
-       guard(integer, Value),
-       Proto = protobuf([ atom(31, Key), integer(30, Value)]).
+       Proto = protobuf([ atom(30, Key), X]),
+       (   (   guard(integer, Value), X = integer(31, Value));
+           (   guard(float, Value),   X = double(32, Value));
+           (   guard(atom, Value),    X = atom(33, Value))).
 
-my_message_sequence(kv_pair, Key=Value, Proto) :-
-       guard(float, Value),
-       Proto = protobuf([ atom(32, Key), double(30, Value)]).
-
-my_message_sequence(kv_pair, Key=Value, Proto) :-
-       guard(atom, Value),
-       Proto = protobuf([ atom(33, Key), atom(30, Value)]).
 %
 %
 my_message_sequence(xml_element, element(Name, Attributes, Contents), Proto) :-
@@ -172,12 +169,12 @@ xml_proto([element(space1,
 		  [foo='1', bar='2'],
 		  [fum,
 		   bar,
-		        element(space2,
-				[fum= 3.1415, bum= -14],
-				['more stuff for you']),
-		        element(space2b,
-				[],
-				[this, is, embedded, also]),
+		   element(space2,
+			   [fum= 3.1415, bum= -14],
+			   ['more stuff for you']),
+		   element(space2b,
+			   [],
+			   [this, is, embedded, also]),
 		   to,
 		   you])]).
 
