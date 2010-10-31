@@ -253,45 +253,7 @@ primitive wire type strings. As long as you can associate a tag with its
 host type in advance, you  will  have   no  difficulty  in  decoding the
 message. You do this by supplying the  _structure_. Tell the parser what
 is possible and let the parser figure it  out on its own, one production
-at a time.
-
-The following example shows  how  one   can  specify  a  Protocol Buffer
-message  that  can  deal  with  variable-length,  unstructured  bags  of
-numbers:
-
-==
-compound_protobuf(complex(Real, Img),
-		  group(12, [double(1, Real), double(2, Img)])).
-compound_protobuf(float(Val), float(13, Val)).
-compound_protobuf(double(Val), double(14, Val)).
-compound_protobuf((Num rdiv Den),
-		  group(15, [integer(1, Num), integer(2, Den)])).
-compound_protobuf(integer(Val), integer(16, Val)).
-
-
-protobuf_bag([], []).
-protobuf_bag([ Type | More], Msg) :-
-	compound_protobuf(Type, Proto),
-	protobuf_message(protobuf([Proto]), Msg, Msg1),
-	protobuf_bag(More, Msg1), !.
-==
-
-Use it as follows:
-
-==
-?- protobuf_bag([complex(2,3), complex(4,5), complex(6,7),
-		 (355 rdiv -113), integer(11)], X).
-X = [ 99, 9, 0, 0, 0, 0, 0, 0, 0, 64, 17, 0, 0, 0, 0, 0,
-      0, 8, 64, 100, 99, 9, 0, 0, 0, 0, 0, 0, 16, 64, 17, 0,
-      0, 0, 0, 0, 0, 20, 64, 100, 99, 9, 0, 0, 0, 0, 0, 0, 24,
-      64, 17, 0, 0, 0, 0, 0, 0, 28, 64, 100, 123, 8, 198, 5,
-      16, 225, 1, 124, 128, 1, 22
-    ].
-
-?- protobuf_bag(Y, $X).
-Y = [complex(2.0, 3.0), complex(4.0, 5.0), complex(6.0, 7.0),
-     355 rdiv -113, integer(11)].
-==
+at a time. An example may be found in the appendix.
 
 ---++ Groups (deprecated)
 
@@ -356,7 +318,17 @@ and adding your own =message_sequence= productions. Your hook eventually
 calls back into the parser   with  your substitution/expansion protobuf,
 which is then embedded in the wire   stream. Recursive structures can be
 defined this way. A simple example of  a recursive XML like structure is
-shown below:
+shown in the appendix.
+
+---+ Appendix
+
+---++ Example: A Simple XML Like Structure
+
+In this example we demonstrate managing  a recursive structure like XML.
+The structure shown in xml_proto/1 below,   is  similar to the structure
+returned by load_xml_file/2, which  is  part   of  the  SGML library. We
+supply three =message_sequence= decorators: =kv_pair=, =xml_element=,
+and =aux_xml_element=. These are treated as first class host types.
 
 ==
 :- multifile protobufs:message_sequence/5.
@@ -365,23 +337,22 @@ protobufs:message_sequence(Type, Tag, Value)  -->
 	{ my_message_sequence(Type, Value, Proto) },
 	protobufs:message_sequence(embedded, Tag, Proto), !.
 %
+% On encode, the value type determines the tag. And on decode
+% the tag to determines the value type.
 %
+
 guard(Type, Value) :-
        (   nonvar(Value) -> is_of_type(Type, Value); true).
 
 my_message_sequence(kv_pair, Key=Value, Proto) :-
-       guard(integer, Value),
-       Proto = protobuf([ atom(31, Key), integer(30, Value)]).
+       Proto = protobuf([ atom(30, Key), X]),
+       (   (   guard(integer, Value), X = integer(31, Value));
+           (   guard(float, Value),   X = double(32, Value));
+           (   guard(atom, Value),    X = atom(33, Value))).
 
-my_message_sequence(kv_pair, Key=Value, Proto) :-
-       guard(float, Value),
-       Proto = protobuf([ atom(32, Key), double(30, Value)]).
+my_message_sequence(xml_element,
+                    element(Name, Attributes, Contents), Proto) :-
 
-my_message_sequence(kv_pair, Key=Value, Proto) :-
-       guard(atom, Value),
-       Proto = protobuf([ atom(33, Key), atom(30, Value)]).
-
-my_message_sequence(xml_element, element(Name, Attributes, Contents), Proto) :-
        Proto = protobuf([ atom(21, Name),
 			  repeated(22, kv_pair(Attributes)),
 			  repeated(23, aux_xml_element(Contents))]).
@@ -398,12 +369,12 @@ xml_proto([element(space1,
 		  [foo='1', bar='2'],
 		  [fum,
 		   bar,
-		        element(space2,
-				[fum=3.1415, bum= -14],
+		   element(space2,
+			[fum=3.1415, bum= -14],
 				['more stuff for you']),
-		        element(space2b,
-				[],
-				[this, is, embedded, also]),
+		   element(space2b,
+			[],
+			[this, is, embedded, also]),
 		   to,
 		   you])]).
 
@@ -449,9 +420,100 @@ Z = [element(space1,
 
 ==
 
----+ Example: Vectors of Numbers Between Prolog and C++ Clients.
+A protobuf description that is compatible with the above wire stream
+follows:
 
-In Prolog client:
+==
+message kv_pair {
+  required string key = 30;
+  optional sint64  int_value = 31;
+  optional double float_value  = 32;
+  optional string atom_value = 33;
+}
+
+message aux_xml_element {
+  optional string atom = 43;
+  optional xml_element element = 40;
+}
+
+message xml_element {
+  required string name = 21;
+  repeated kv_pair attributes = 22;
+  repeated aux_xml_element contents = 23;
+}
+
+message XMLFile {
+  repeated xml_element elements = 20;
+}
+
+==
+
+Verify the wire stream using the protobuf compiler's decoder:
+
+==
+$ protoc --decode=XMLFile pb-vector.proto <tmp98.tmp
+elements {
+  name: "space1"
+  attributes {
+    key: "foo"
+    atom_value: "1"
+  }
+  attributes {
+    key: "bar"
+    atom_value: "2"
+  }
+  contents {
+    atom: "fum"
+  }
+  contents {
+    atom: "bar"
+  }
+  contents {
+    element {
+      name: "space2"
+      attributes {
+        key: "fum"
+        float_value: 3.1415
+      }
+      attributes {
+        key: "bum"
+        int_value: -14
+      }
+      contents {
+        atom: "more stuff for you"
+      }
+    }
+  }
+  contents {
+    element {
+      name: "space2b"
+      contents {
+        atom: "this"
+      }
+      contents {
+        atom: "is"
+      }
+      contents {
+        atom: "embedded"
+      }
+      contents {
+        atom: "also"
+      }
+    }
+  }
+  contents {
+    atom: "to"
+  }
+  contents {
+    atom: "you"
+  }
+}
+
+==
+
+---++ Example: Vectors of Numbers
+
+In the Prolog client:
 
 ==
 vector_type(double(_List), 2).
@@ -472,10 +534,10 @@ vector(Type, B):-
 	protobuf_message(Proto, B).
 ==
 
-In the C++ client:
+A protobuf description that is compatible with the above wire stream
+follows:
 
 ==
-The .proto file:
 
   message Vector {
   repeated double double_values     = 2;
@@ -493,144 +555,8 @@ The .proto file:
 A typical application might consist of   an abstract adapter class along
 with a collection  of  concrete  subclasses   that  refine  an  abstract
 behavior in order to hide the   interaction with the underlying protobuf
-interpreter. An excerpt of such a class follows:
-
-==
-
-// Abstract class
-
-  class PBVector
-  {
-  protected:
-	Vector numberList;
-
-  private:
-	int serializeToStream(ostream &stream)
-		{
-		return numberList.SerializeToOstream(&stream);
-		}
-
-	int parseFromStream(istream &stream)
-		{
-		return numberList.ParseFromIstream(&stream);
-		}
-
-	int serializeToString(string & data)
-		{
-		return numberList.SerializeToString( &data);
-		}
-
-	int parseFromString(const string &data)
-		{
-		return numberList.ParseFromString(data);
-		}
-
-  public:
-	friend ostream & operator << (ostream & out, PBVector & a)
-		{
-		int ret = a.serializeToStream(out);
-
-		if(!ret)
-			throw Exception("error while serializing output stream!");
-
-		return out;
-		}
-
-	friend string & operator << (string & out, PBVector & a)
-		{
-		int ret = a.serializeToString(out);
-
-		if(!ret)
-			throw Exception("error while serializing output string!");
-
-		return out;
-		}
-
-	friend PBVector & operator << (PBVector & a, istream & cin)
-		{
-		int ret = a.parseFromStream(cin);
-
-		if(!ret)
-			throw Exception("error while parsing input stream!");
-
-		return a;
-		}
-
-	friend PBVector & operator << (PBVector & a, string & cin)
-		{
-		int ret = a.parseFromString(cin);
-
-		if(!ret)
-			throw Exception("error while parsing input string!");
-
-		return a;
-		}
-  };
-
-  // Concrete class
-
-  class DoublePBVector : public PBVector
-  {
-
-  public:
-	void add_value(double value)
-		{
-		numberList.add_double_values(value);
-		}
-
-	double value(int at_index)
-		{
-		return numberList.double_values(at_index);
-		}
-
-	int size(void)
-		{
-		return numberList.double_values_size();
-		}
-  };
-==
-
-Here is the C++ client application:
-
-==
-	string stuff[] = { "one", "two", "three", "four", "five", };
-
-  int main(int argc, char *argv[])
-  {
-	GOOGLE_PROTOBUF_VERIFY_VERSION;
-
-	DoublePBVector buffer, buffer1;
-
-	register int i;
-
-	try
-		{
-		buffer << cin;     // parse a wirestream from a istream &
-		}
-
-	catch (Exception e)
-		{
-		cerr << "exception: " << e.reason() << "\n";
-
-		exit(1);
-		}
-
-	string serialized_data;
-
-	serialized_data << buffer;  // serialize a buffer to a string
-
-	buffer1 << serialized_data;  // parse the string to another buffer
-
-	int size = buffer1.size();    // inspect the second instance
-
-	for(i = 0; i < size; i++)
-		cout << buffer1.value(i) << "\n";
-
-	return 0;
-  }
-==
-
----++ A Simple Test
+interpreter. An example of such a class written in C++ may be found in
+the demos.
 
 On the Prolog side:
 
@@ -669,19 +595,123 @@ Vector = double([-2.2212, -7.6675, 3.14159, 0.0,
 ?-
 ==
 
-Make and run the C++ side:
+Verify using the protobuf compiler:
 
 ==
-jeffr@jeffr-laptop:~/test/protob$ make foo
-protoc --cpp_out=. pb-vector.proto
-g++ -c -Wall -O3 pb-vector.pb.cc
-g++ -c -Wall -O3 foo.cpp
-g++ -o foo pb-vector.pb.o foo.o -lprotobuf
-jeffr@jeffr-laptop:~/test/protob$ foo <tmp99.tmp
--2.2212
--7.6675
-3.14159
-0
-1.77e-09
-2.54e+222
+
+$ protoc --decode=Vector pb-vector.proto <tmp99.tmp
+double_values: -2.2212
+double_values: -7.6675
+double_values: 3.1415926535897931
+double_values: 0
+double_values: 1.77e-09
+double_values: 2.5400000000000002e+222
+
 ==
+
+---++ Example: Heterogeneous Collections
+
+The following example shows  how  one   can  specify  a  Protocol Buffer
+message  that  can  deal  with  variable-length,  unstructured  bags  of
+numbers:
+
+==
+compound_protobuf(complex(Real, Img), group(12, [double(1, Real), double(2, Img)])).
+compound_protobuf(float(Val), float(13, Val)).
+compound_protobuf(double(Val), double(14, Val)).
+compound_protobuf((Num rdiv Den), group(15, [integer(1, Num), integer(2, Den)])).
+compound_protobuf(integer(Val), integer(16, Val)).
+
+protobuf_bag([], []).
+
+protobuf_bag([ Type | More], Msg) :-
+
+	compound_protobuf(Type, X),
+
+	Proto = protobuf([embedded(1, protobuf([X]))]),
+
+	protobuf_message(Proto, Msg, Msg1),
+
+	protobuf_bag(More, Msg1), !.
+
+==
+
+Use it as follows:
+
+==
+?- protobuf_bag([complex(2,3), complex(4,5),
+                 complex(6,7), 355 rdiv -113, integer(11)], X).
+
+X = [10, 20, 99, 9, 0, 0, 0, 0, 0|...].
+
+?- protobuf_bag(Y, $X).
+Y = [complex(2.0, 3.0), complex(4.0, 5.0),
+     complex(6.0, 7.0), 355 rdiv -113, integer(11)].
+==
+
+
+A protobuf description that is compatible with the above wire stream
+follows:
+
+==
+message compound_protobuf {
+optional group Complex = 12 {
+    required double real = 1;
+    required double img = 2;
+};
+optional group Fraction = 15 {
+    required sint64 num = 1;
+    required sint64 den = 2;
+};
+optional float float = 13;
+optional double double = 14;
+optional sint32 integer = 16;
+}
+
+message protobuf_bag {
+    repeated compound_protobuf bag = 1;
+
+==
+
+Verify using the protobuf compiler's decoder:
+
+==
+$ protoc --decode=protobuf_bag pb-vector.proto <tmp96.tmp
+bag {
+  Complex {
+    real: 2
+    img: 3
+  }
+}
+bag {
+  Complex {
+    real: 4
+    img: 5
+  }
+}
+bag {
+  Complex {
+    real: 6
+    img: 7
+  }
+}
+bag {
+  Fraction {
+    num: 355
+    den: -113
+  }
+}
+bag {
+  integer: 11
+}
+
+==
+
+
+
+
+
+
+
+
+
