@@ -5,6 +5,8 @@
 *.dylib
 *.lib
 *.exp
+*.ilk
+*.pdb
 *.dll
 *.manifest
 *.aux
