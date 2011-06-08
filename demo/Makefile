@@ -9,7 +9,7 @@ RM=rm
 SWIPL=swipl
 
 CFLAGS=-Wall -O3
-LDFLAGS=-lprotobuf
+LDFLAGS=-lprotobuf -lpthread
 
 .cpp.o:
 	$(CPLUSPLUSC) -c $(CFLAGS) $*.cpp
