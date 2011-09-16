@@ -154,7 +154,7 @@ clean:
 
 distclean:	clean
 		rm -f $(TARGETS)
-		rm -f config.cache config.h config.h.in configure
+		rm -f config.cache config.h config.h.in
 		rm -f config.status Makefile
 		rm -f $(DOC).aux $(DOC).log $(DOC).out $(DOC).toc
 		rm -f protobufs.idx protobufs.ilg
