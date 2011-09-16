@@ -43,6 +43,7 @@ LDFLAGS=@LDSOFLAGS@
 INSTALL=@INSTALL@
 INSTALL_PROGRAM=@INSTALL_PROGRAM@
 INSTALL_DATA=@INSTALL_DATA@
+INSTALL_PLARCH=@INSTALL_PLARCH@
 
 LIBPL=		@PLTARGETS@
 TARGETS=	@TARGETS@
@@ -69,9 +70,9 @@ uninstall::
 else
 
 install:	$(TARGETS) $(LIBPL)
-		mkdir -p $(DESTDIR)$(PLBASE)/lib/$(PLARCH)
+		mkdir -p $(DESTDIR)$(PLBASE)/lib/$(INSTALL_PLARCH)
 		for f in $(TARGETS); do \
-		  $(INSTALL_PROGRAM) $$f $(DESTDIR)$(PLBASE)/lib/$(PLARCH); \
+		  $(INSTALL_PROGRAM) $$f $(DESTDIR)$(PLBASE)/lib/$(INSTALL_PLARCH); \
 		done
 		mkdir -p $(DESTDIR)$(PLBASE)/library
 		for f in $(LIBPL); do \
@@ -97,7 +98,7 @@ install-examples::
 		(cd demo && $(INSTALL_DATA) $(EXAMPLES) $(DESTDIR)$(EXDIR))
 
 uninstall::
-		(cd $(PLBASE)/lib/$(PLARCH) && rm -f $(TARGETS))
+		(cd $(PLBASE)/lib/$(INSTALL_PLARCH) && rm -f $(TARGETS))
 		(cd $(PLBASE)/library && rm -f $(LIBPL))
 		$(PL) -f none -g make -t halt
 
