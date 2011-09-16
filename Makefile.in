@@ -18,6 +18,7 @@ PLINCL=@PLINCL@
 PKGDOC=$(PLBASE)/doc/packages
 EXDIR=$(PKGDOC)/examples/protobufs
 PCEHOME=../xpce
+SOLIB=@SOLIB@
 
 CC=@CC@
 COFLAGS=@COFLAGS@
@@ -70,9 +71,9 @@ uninstall::
 else
 
 install:	$(TARGETS) $(LIBPL)
-		mkdir -p $(DESTDIR)$(PLBASE)/lib/$(INSTALL_PLARCH)
+		mkdir -p $(DESTDIR)$(PLBASE)/$(SOLIB)/$(INSTALL_PLARCH)
 		for f in $(TARGETS); do \
-		  $(INSTALL_PROGRAM) $$f $(DESTDIR)$(PLBASE)/lib/$(INSTALL_PLARCH); \
+		  $(INSTALL_PROGRAM) $$f $(DESTDIR)$(PLBASE)/$(SOLIB)/$(INSTALL_PLARCH); \
 		done
 		mkdir -p $(DESTDIR)$(PLBASE)/library
 		for f in $(LIBPL); do \
@@ -98,7 +99,7 @@ install-examples::
 		(cd demo && $(INSTALL_DATA) $(EXAMPLES) $(DESTDIR)$(EXDIR))
 
 uninstall::
-		(cd $(PLBASE)/lib/$(INSTALL_PLARCH) && rm -f $(TARGETS))
+		(cd $(PLBASE)/$(SOLIB)/$(INSTALL_PLARCH) && rm -f $(TARGETS))
 		(cd $(PLBASE)/library && rm -f $(LIBPL))
 		$(PL) -f none -g make -t halt
 
