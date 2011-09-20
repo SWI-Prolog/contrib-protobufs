@@ -7,9 +7,9 @@
 \makeindex
 
 \onefile
-\htmloutput{html}				% Output directory
-\htmlmainfile{index}				% Main document file
-\bodycolor{white}				% Page colour
+\htmloutput{.}				% Output directory
+\htmlmainfile{protobufs}		% Main document file
+\bodycolor{white}			% Page colour
 
 \renewcommand{\runningtitle}{Googles''s Protocol Buffers}
 
