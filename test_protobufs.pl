@@ -105,9 +105,9 @@ golden_message(Proto) :-
 			   repeated(48, embedded([protobuf([unsigned(1, 218)]), protobuf([unsigned(1,318)])])),  % nested
 			   repeated(49, embedded([protobuf([unsigned(1, 219)]), protobuf([unsigned(1, 319)])])), % foreign
 			   repeated(50, embedded([protobuf([unsigned(1, 220)]), protobuf([unsigned(1, 320)])])),  % import
-			   repeated(51, enum([nested_enum(bar), nested_enum(baz)])),
-			   repeated(52, enum([foreign_enum(bar), foreign_enum(baz)])),
-			   repeated(53, enum([import_enum(bar), import_enum(baz)])),
+			   repeated(51, enum(nested_enum([bar, baz]))),
+			   repeated(52, enum(foreign_enum([bar, baz]))),
+			   repeated(53, enum(import_enum([bar, baz]))),
 			   repeated(54, string([`224`, `324`])),   % string_piece
 			   repeated(55, codes(["225", "325"])),    % cord
 			   unsigned(61, 401),  % default_int32
@@ -176,9 +176,9 @@ golden_message_template(Proto) :-
 			   repeated(_, embedded([protobuf([unsigned(_, _)]), protobuf([unsigned(_,_)])])),  % nested
 			   repeated(_, embedded([protobuf([unsigned(_, _)]), protobuf([unsigned(_, _)])])), % foreign
 			   repeated(_, embedded([protobuf([unsigned(_, _)]), protobuf([unsigned(_, _)])])),  % import
-			   repeated(_, enum([nested_enum(_), nested_enum(_)])),
-			   repeated(_, enum([foreign_enum(_), foreign_enum(_)])),
-			   repeated(_, enum([import_enum(_), import_enum(_)])),
+			   repeated(_, enum(nested_enum(_))),
+			   repeated(_, enum(foreign_enum(_))),
+			   repeated(_, enum(import_enum(_))),
 			   repeated(_, string(_)),   % string_piece
 			   repeated(_, codes(_)),    % cord
 			   unsigned(_, _),  % default_int_

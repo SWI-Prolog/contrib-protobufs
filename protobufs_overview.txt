@@ -153,13 +153,17 @@ numbers) using the =repeated= attribute. You specify a repeated field as
 follows:
 
 ==
-    repeated(22, float([1,2,3,4])).
+    repeated(22, float([1,2,3,4])),
+    repeated(23, enum(tank_state([empty, half_full, full]))).
 ==
 
-The above will cause all four items  in   the  list to be encoded in the
-wire-stream as IEEE-754 32-bit floating point  numbers, all with tag 22.
-The decoder will aggregate all items in the wire-stream with tag 22 into
-a list as above.
+The first clause above, will cause all  four   items  in  the list to be
+encoded in the wire-stream as IEEE-754   32-bit  floating point numbers,
+all with tag 22. The decoder will aggregate all items in the wire-stream
+with tag 22 into a list as above.  Likewise, the all items listed in the
+second clause will be  encoded  in   the  wire-stream  according  to the
+mapping defined in an enumeration   (described below) take_state/2, each
+with tag 23.
 
 *|Notes:|*
 
@@ -547,7 +551,7 @@ follows:
   repeated fixed32 integer32_values = 6;
   repeated uint32 unsigned_values   = 7;
   repeated bytes bytes_values       = 8;
-  repeated string atom_values 	    = 9;
+  repeated string atom_values	    = 9;
   repeated string string_values     = 10;
   }
 ==

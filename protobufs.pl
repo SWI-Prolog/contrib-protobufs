@@ -181,7 +181,6 @@ prolog_type(Tag, atom) -->       tag_type(Tag, length_delimited).
 prolog_type(Tag, codes) -->      tag_type(Tag, length_delimited).
 prolog_type(Tag, string) -->     tag_type(Tag, length_delimited).
 prolog_type(Tag, embedded) -->   tag_type(Tag, length_delimited).
-
 %
 %   The protobuf-2.1.0 grammar allows negative values in enums.
 %   But they are encoded as unsigned in the  golden message.
@@ -189,7 +188,13 @@ prolog_type(Tag, embedded) -->   tag_type(Tag, length_delimited).
 %
 
 payload(enum, Type) -->
-	{ call(Type, Value) },
+	{ must_be(callable, Type),
+	  (  call(Type, Value)
+	     *-> true
+	     ; ( Type =.. [Functor, Arg],
+	         existence_error(enum(Functor), Arg)
+	       )
+	  ) },
 	payload(unsigned, Value).
 
 payload(double,  A) -->
@@ -254,9 +259,9 @@ payload(embedded, protobuf(A)) -->
 	payload(codes, Codes),
 	{ phrase(protobuf(A), Codes) }.
 
-start_group(Tag) -->    	tag_type(Tag, start_group).
+start_group(Tag) -->		tag_type(Tag, start_group).
 
-end_group(Tag) -->      	tag_type(Tag, end_group).
+end_group(Tag) -->		tag_type(Tag, end_group).
 %
 %
 nothing([]) --> [], !.
@@ -266,12 +271,25 @@ protobuf([A | B]) -->
 	message_sequence(Type, Tag, Payload),
 	(   protobuf(B); nothing(B)).
 
+
+repeated_message_sequence(repeated_enum, Tag, Type, [A | B]) -->
+	{ Compound =.. [Type, A] },
+	message_sequence(enum, Tag, Compound),
+	(   repeated_message_sequence(repeated_enum, Tag, Type, B);
+	    nothing(B)).
+
 repeated_message_sequence(Type, Tag, [A | B]) -->
 	message_sequence(Type, Tag, A),
 	repeated_message_sequence(Type, Tag, B).
 
 repeated_message_sequence(_Type, _Tag, A) -->
 	nothing(A).
+%
+%
+
+message_sequence(repeated, Tag, enum(Compound)) -->
+	{ Compound =.. [ Type, List] },
+	repeated_message_sequence(repeated_enum, Tag, Type, List).
 
 message_sequence(repeated, Tag, Compound) -->
 	{ Compound =.. [Type, A] },
@@ -279,7 +297,7 @@ message_sequence(repeated, Tag, Compound) -->
 
 message_sequence(group, Tag, A) -->
 	start_group(Tag),
-  	protobuf(A),
+	protobuf(A),
 	end_group(Tag), !.
 
 message_sequence(PrologType, Tag, Payload) -->
