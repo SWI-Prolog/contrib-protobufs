@@ -4,9 +4,10 @@
     E-mail:        jeffrose@acm.org
     WWW:           http://www.swi-prolog.org
     Copyright (C): 2010, Jeffrey Rosenwald
+    
+    Modified by:  Dario Campagna
+    E-mail:       dario.campagna@dmi.unipg.it
 
-    Modified by:   Dario Campagna
-    E-mail:        dario.campagna@dmi.unipg.it
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -56,10 +57,10 @@ SWI-Prolog, you define your message  template   as  a list of predefined
 Prolog terms that correspond to production  rules in the Definite Clause
 Grammar (DCG) that realizes the interpreter. Each production rule has an
 equivalent rule in the  protobuf  grammar.   The  process  is not unlike
-specifiying the format of a regular expression.  To encode a template to
-a wire-stream, you pass a grounded template,  =X=, and variable, =Y=, to
+specifiying the format of a regular  expression. To encode a template to
+a wire-stream, you pass a grounded template, =X=, and  variable, =Y=, to
 protobuf_message/2. To decode a wire-stream, =Y=, you pass an ungrounded
-template,  =X=,  along   with   a    grounded   wire-stream,   =Y=,   to
+template,  =X=,  along   with   a   grounded    wire-stream,   =Y=,   to
 protobuf_message/2. The interpreter will unify  the unbound variables in
 the template with values decoded from the wire-stream.
 
@@ -836,10 +837,13 @@ protobuf_message(protobuf(Template), Wirestream) :-
 	).
 
 protobuf_message(message(Name,Template), Wirestream) :-
-   message(Name,Template),
+   	% message(Name,Template),
+	(message(Name,Template) ; true),
 	must_be(list, Template),
 	( optional_ground(Template)
-		->	phrase(protobuf_encode(Template,0,_), Wirestream)
+		->	message(Name, DefTemplate),
+                        opt_template(Template, DefTemplate, NewTemplate),
+			phrase(protobuf_encode(NewTemplate,0,_), Wirestream)
 		;	phrase(protobuf_decode(Template,_,_), Wirestream)
 	).
 
@@ -851,10 +855,13 @@ protobuf_message(protobuf(Template), Wirestream, Residue) :-
 	).
 
 protobuf_message(message(Name,Template), Wirestream, Residue) :-
-   message(Name,Template),
+   	% message(Name,Template),
+	( message(Name,Template) ; true ),
 	must_be(list, Template),
 	( optional_ground(Template)
-		->	phrase(protobuf_encode(Template,0,_), Wirestream, Residue)
+		->	message(Name, DefTemplate),
+			opt_template(Template, DefTemplate, NewTemplate),
+			phrase(protobuf_encode(NewTemplate,0,_), Wirestream, Residue)
 		;	phrase(protobuf_decode(Template,_,_), Wirestream, Residue)
 	).
 %
@@ -866,10 +873,12 @@ optional_ground([L|Ls]) :-
 	;   nonvar(L),% writeln(L), nl,
 		 optional_ground_cons(L,Ls)
 	).
-
+	
 optional_ground_cons(optional(_,not_present),Ls) :-
 	optional_ground(Ls).
 optional_ground_cons(optional(T,present),Ls) :-
+	optional_ground_cons(T,Ls).
+optional_ground_cons(optional(_,T), Ls) :-
 	optional_ground_cons(T,Ls).
 optional_ground_cons(embedded(_,E),Ls) :-
 	optional_ground_cons(E,Ls).
@@ -885,3 +894,145 @@ optional_ground_cons(protobuf(L),Ls) :-
 	nonvar(L),
 	optional_ground(L),
 	optional_ground(Ls).
+
+
+% Expansion of message(Name, Template)
+user:term_expansion(protobufs:message(Name, Template), protobufs:message(Name, NewTemplate)) :-
+	expand_term(Template, NewTemplate, []).
+	
+expand_term([], Template, Template).
+expand_term([T|Ts], [NewT|Tail1], Tail2) :-
+	user:term_expansion(T, NewT),
+	expand_term(Ts, Tail1, Tail2).
+
+
+% Expansion of embedded(N, message(Msg))
+user:term_expansion(embedded(N, message(Msg)), embedded(N, message(Msg, _))).
+	
+	
+% Expansion of repeated(N, message(Msg))
+user:term_expansion(repeated(N, message(Msg)), repeated(N, Embedded)) :-
+	Embedded = embedded(_, message(Msg, _)).
+
+% Expansion of repeated(N, double), ...	
+user:term_expansion(repeated(N, double), repeated(N, double(_))).
+user:term_expansion(repeated(N, integer64), repeated(N, integer64(_))).
+user:term_expansion(repeated(N, float), repeated(N, float(_))).
+user:term_expansion(repeated(N, integer32), repeated(N, integer32(_))).
+user:term_expansion(repeated(N, integer), repeated(N, integer(_))).
+user:term_expansion(repeated(N, unsigned), repeated(N, unsigned(_))).
+user:term_expansion(repeated(N, sinteger64), repeated(N, sinteger64(_))).
+user:term_expansion(repeated(N, sinteger32), repeated(N, sinteger32(_))).
+user:term_expansion(repeated(N, boolean), repeated(N, boolean(_))).
+user:term_expansion(repeated(N, string), repeated(N, string(_))).
+user:term_expansion(repeated(N, atom), repeated(N, atom(_))).
+user:term_expansion(repeated(N, codes), repeated(N, codes(_))).
+
+
+%Expansion of optional(N, message(Msg)) 
+user:term_expansion(optional(N, message(Msg)), optional(Embedded, _)) :-
+	Embedded = embedded(N, message(Msg,_)).
+	
+%Expansion of optional(N, double), ...
+user:term_expansion(optional(N, double), optional(NewOptional, _)) :-
+	NewOptional = double(N, _).
+user:term_expansion(optional(N, integer64), optional(NewOptional, _)) :-
+	NewOptional = integer64(N, _).
+user:term_expansion(optional(N, float), optional(NewOptional, _)) :-
+	NewOptional = float(N, _).
+user:term_expansion(optional(N, integer32), optional(NewOptional, _)) :-
+	NewOptional = integer32(N, _).
+user:term_expansion(optional(N, integer), optional(NewOptional, _)) :-
+	NewOptional = integer(N, _).
+user:term_expansion(optional(N, unsigned), optional(NewOptional, _)) :-
+	NewOptional = unsigned(N, _).
+user:term_expansion(optional(N, sinteger64), optional(NewOptional, _)) :-
+	NewOptional = sinteger64(N, _).
+user:term_expansion(optional(N, sinteger32), optional(NewOptional, _)) :-
+	NewOptional = sinteger32(N, _).
+user:term_expansion(optional(N, boolean), optional(NewOptional, _)) :-
+	NewOptional = boolean(N, _).
+user:term_expansion(optional(N, string), optional(NewOptional, _)) :-
+	NewOptional = string(N, _).
+user:term_expansion(optional(N, atom), optional(NewOptional, _)) :-
+	NewOptional = atom(N, _).
+user:term_expansion(optional(N, codes), optional(NewOptional, _)) :-
+	NewOptional = codes(N, _).
+
+%Expansion of optional(N, enum(Enum))
+user:term_expansion(optional(N, enum(Enum)), optional(NewOptional, _)) :-
+	functor(EnumPred, Enum, 1),
+	NewOptional = enum(N, EnumPred).
+
+
+% Expansion of enum(N, Enum)
+user:term_expansion(enum(N, Enum), enum(N, EnumPred)) :-
+	functor(EnumPred, Enum, 1).
+
+
+% Expansion of double, ...
+user:term_expansion(double(N), double(N,_)).
+user:term_expansion(integer64(N), integer64(N,_)).
+user:term_expansion(float(N), float(N,_)).
+user:term_expansion(integer32(N), integer32(N,_)).
+user:term_expansion(integer(N), integer(N,_)).
+user:term_expansion(unsigned(N), unsigned(N,_)).
+user:term_expansion(sinteger64(N), sinteger64(N,_)).
+user:term_expansion(sinteger32(N), sinteger32(N,_)).
+user:term_expansion(boolean(N), boolean(N,_)).
+user:term_expansion(string(N), string(N,_)).
+user:term_expansion(atom(N), atom(N,_)).
+user:term_expansion(codes(N), codes(N,_)).
+
+
+
+% Rewriting templates with omitted optional arguments
+opt_template(MsgTemplate, DefTemplate, Template) :- opt_template(MsgTemplate, DefTemplate, Template, []).
+
+opt_template([], [], Tail, Tail).
+opt_template([], [DefT|DefTemp], [optional(_,not_present)|Tail1], Tail2) :-
+	DefT =.. [optional|_],
+	opt_template([], DefTemp, Tail1, Tail2).
+% optional(N, Term)
+opt_template([optional(N, Term)|MsgTemp], [DefT|DefTemp], [NewT|Tail1], Tail2) :-
+	integer(N),
+	DefT =.. [optional|_],
+	(	Term =.. [message, Name, MsgTemplate]
+	->	message(Name, DefTemplate), opt_template(MsgTemplate, DefTemplate, Template),
+		NewT = optional(embedded(N, message(Name, Template)), present)
+	;	Term =.. [Type, Value], NewTerm =.. [Type, N, Value],
+		NewT = optional(NewTerm, present)
+	),
+	opt_template(MsgTemp, DefTemp, Tail1, Tail2).
+% optional(embedded(N,message(Name, MsgTemplate)))
+opt_template([optional(embedded(N,message(Name, MsgTemplate)),present)|MsgTemp], [DefT|DefTemp], [NewT|Tail1], Tail2) :-
+	DefT =.. [optional|_],
+	message(Name, DefTemplate),
+	opt_template(MsgTemplate, DefTemplate, Template),
+	NewT = optional(embedded(N, message(Name, Template)), present),
+	opt_template(MsgTemp, DefTemp, Tail1, Tail2).
+% Omitted optional argument
+opt_template([MsgT|MsgTemp], [DefT|DefTemp], [optional(_,not_present)|Tail1], Tail2) :-
+	DefT =.. [optional|_], \+ MsgT =.. [optional|_],
+	opt_template([MsgT|MsgTemp], DefTemp, Tail1, Tail2).
+% embedded(N,message(Name, Template))
+opt_template([embedded(N, message(Name, MsgTemplate))|MsgTemp], [_DefT|DefTemp], [NewT|Tail1], Tail2) :-
+	message(Name, DefTemplate),
+	opt_template(MsgTemplate, DefTemplate, Template),
+	NewT = embedded(N, message(Name, Template)),
+	opt_template(MsgTemp, DefTemp, Tail1, Tail2).
+%  repeated(N, embedded(List, _))
+opt_template([repeated(N, embedded(List, _))|MsgTemp], [_DefT|DefTemp], [NewT|Tail1], Tail2) :-
+	list_opt_template(List, NewList, []),
+	NewT = repeated(N, embedded(NewList, _)),
+	opt_template(MsgTemp, DefTemp, Tail1, Tail2).
+% Other elements
+opt_template([MsgT|MsgTemp], [_DefT|DefTemp], [MsgT|Tail1], Tail2) :-
+	opt_template(MsgTemp, DefTemp, Tail1, Tail2).
+
+
+list_opt_template([], Tail, Tail).
+list_opt_template([message(Name, MsgTemplate)|Ls], [message(Name, Template)|Tail1], Tail2) :-
+	message(Name, DefTemplate),
+	opt_template(MsgTemplate, DefTemplate, Template),
+	list_opt_template(Ls, Tail1, Tail2).
