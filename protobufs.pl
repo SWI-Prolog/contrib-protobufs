@@ -902,87 +902,87 @@ user:term_expansion(protobufs:message(Name, Template), protobufs:message(Name, N
 	
 expand_term([], Template, Template).
 expand_term([T|Ts], [NewT|Tail1], Tail2) :-
-	user:term_expansion(T, NewT),
+	expand_term_aux(T, NewT),
 	expand_term(Ts, Tail1, Tail2).
 
 
 % Expansion of embedded(N, message(Msg))
-user:term_expansion(embedded(N, message(Msg)), embedded(N, message(Msg, _))).
+expand_term_aux(embedded(N, message(Msg)), embedded(N, message(Msg, _))).
 	
 	
 % Expansion of repeated(N, message(Msg))
-user:term_expansion(repeated(N, message(Msg)), repeated(N, Embedded)) :-
+expand_term_aux(repeated(N, message(Msg)), repeated(N, Embedded)) :-
 	Embedded = embedded(_, message(Msg, _)).
 
 % Expansion of repeated(N, double), ...	
-user:term_expansion(repeated(N, double), repeated(N, double(_))).
-user:term_expansion(repeated(N, integer64), repeated(N, integer64(_))).
-user:term_expansion(repeated(N, float), repeated(N, float(_))).
-user:term_expansion(repeated(N, integer32), repeated(N, integer32(_))).
-user:term_expansion(repeated(N, integer), repeated(N, integer(_))).
-user:term_expansion(repeated(N, unsigned), repeated(N, unsigned(_))).
-user:term_expansion(repeated(N, sinteger64), repeated(N, sinteger64(_))).
-user:term_expansion(repeated(N, sinteger32), repeated(N, sinteger32(_))).
-user:term_expansion(repeated(N, boolean), repeated(N, boolean(_))).
-user:term_expansion(repeated(N, string), repeated(N, string(_))).
-user:term_expansion(repeated(N, atom), repeated(N, atom(_))).
-user:term_expansion(repeated(N, codes), repeated(N, codes(_))).
+expand_term_aux(repeated(N, double), repeated(N, double(_))).
+expand_term_aux(repeated(N, integer64), repeated(N, integer64(_))).
+expand_term_aux(repeated(N, float), repeated(N, float(_))).
+expand_term_aux(repeated(N, integer32), repeated(N, integer32(_))).
+expand_term_aux(repeated(N, integer), repeated(N, integer(_))).
+expand_term_aux(repeated(N, unsigned), repeated(N, unsigned(_))).
+expand_term_aux(repeated(N, sinteger64), repeated(N, sinteger64(_))).
+expand_term_aux(repeated(N, sinteger32), repeated(N, sinteger32(_))).
+expand_term_aux(repeated(N, boolean), repeated(N, boolean(_))).
+expand_term_aux(repeated(N, string), repeated(N, string(_))).
+expand_term_aux(repeated(N, atom), repeated(N, atom(_))).
+expand_term_aux(repeated(N, codes), repeated(N, codes(_))).
 
 
 %Expansion of optional(N, message(Msg)) 
-user:term_expansion(optional(N, message(Msg)), optional(Embedded, _)) :-
+expand_term_aux(optional(N, message(Msg)), optional(Embedded, _)) :-
 	Embedded = embedded(N, message(Msg,_)).
 	
 %Expansion of optional(N, double), ...
-user:term_expansion(optional(N, double), optional(NewOptional, _)) :-
+expand_term_aux(optional(N, double), optional(NewOptional, _)) :-
 	NewOptional = double(N, _).
-user:term_expansion(optional(N, integer64), optional(NewOptional, _)) :-
+expand_term_aux(optional(N, integer64), optional(NewOptional, _)) :-
 	NewOptional = integer64(N, _).
-user:term_expansion(optional(N, float), optional(NewOptional, _)) :-
+expand_term_aux(optional(N, float), optional(NewOptional, _)) :-
 	NewOptional = float(N, _).
-user:term_expansion(optional(N, integer32), optional(NewOptional, _)) :-
+expand_term_aux(optional(N, integer32), optional(NewOptional, _)) :-
 	NewOptional = integer32(N, _).
-user:term_expansion(optional(N, integer), optional(NewOptional, _)) :-
+expand_term_aux(optional(N, integer), optional(NewOptional, _)) :-
 	NewOptional = integer(N, _).
-user:term_expansion(optional(N, unsigned), optional(NewOptional, _)) :-
+expand_term_aux(optional(N, unsigned), optional(NewOptional, _)) :-
 	NewOptional = unsigned(N, _).
-user:term_expansion(optional(N, sinteger64), optional(NewOptional, _)) :-
+expand_term_aux(optional(N, sinteger64), optional(NewOptional, _)) :-
 	NewOptional = sinteger64(N, _).
-user:term_expansion(optional(N, sinteger32), optional(NewOptional, _)) :-
+expand_term_aux(optional(N, sinteger32), optional(NewOptional, _)) :-
 	NewOptional = sinteger32(N, _).
-user:term_expansion(optional(N, boolean), optional(NewOptional, _)) :-
+expand_term_aux(optional(N, boolean), optional(NewOptional, _)) :-
 	NewOptional = boolean(N, _).
-user:term_expansion(optional(N, string), optional(NewOptional, _)) :-
+expand_term_aux(optional(N, string), optional(NewOptional, _)) :-
 	NewOptional = string(N, _).
-user:term_expansion(optional(N, atom), optional(NewOptional, _)) :-
+expand_term_aux(optional(N, atom), optional(NewOptional, _)) :-
 	NewOptional = atom(N, _).
-user:term_expansion(optional(N, codes), optional(NewOptional, _)) :-
+expand_term_aux(optional(N, codes), optional(NewOptional, _)) :-
 	NewOptional = codes(N, _).
 
 %Expansion of optional(N, enum(Enum))
-user:term_expansion(optional(N, enum(Enum)), optional(NewOptional, _)) :-
+expand_term_aux(optional(N, enum(Enum)), optional(NewOptional, _)) :-
 	functor(EnumPred, Enum, 1),
 	NewOptional = enum(N, EnumPred).
 
 
 % Expansion of enum(N, Enum)
-user:term_expansion(enum(N, Enum), enum(N, EnumPred)) :-
+expand_term_aux(enum(N, Enum), enum(N, EnumPred)) :-
 	functor(EnumPred, Enum, 1).
 
 
 % Expansion of double, ...
-user:term_expansion(double(N), double(N,_)).
-user:term_expansion(integer64(N), integer64(N,_)).
-user:term_expansion(float(N), float(N,_)).
-user:term_expansion(integer32(N), integer32(N,_)).
-user:term_expansion(integer(N), integer(N,_)).
-user:term_expansion(unsigned(N), unsigned(N,_)).
-user:term_expansion(sinteger64(N), sinteger64(N,_)).
-user:term_expansion(sinteger32(N), sinteger32(N,_)).
-user:term_expansion(boolean(N), boolean(N,_)).
-user:term_expansion(string(N), string(N,_)).
-user:term_expansion(atom(N), atom(N,_)).
-user:term_expansion(codes(N), codes(N,_)).
+expand_term_aux(double(N), double(N,_)).
+expand_term_aux(integer64(N), integer64(N,_)).
+expand_term_aux(float(N), float(N,_)).
+expand_term_aux(integer32(N), integer32(N,_)).
+expand_term_aux(integer(N), integer(N,_)).
+expand_term_aux(unsigned(N), unsigned(N,_)).
+expand_term_aux(sinteger64(N), sinteger64(N,_)).
+expand_term_aux(sinteger32(N), sinteger32(N,_)).
+expand_term_aux(boolean(N), boolean(N,_)).
+expand_term_aux(string(N), string(N,_)).
+expand_term_aux(atom(N), atom(N,_)).
+expand_term_aux(codes(N), codes(N,_)).
 
 
 
