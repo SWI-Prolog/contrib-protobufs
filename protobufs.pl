@@ -4,7 +4,7 @@
     E-mail:        jeffrose@acm.org
     WWW:           http://www.swi-prolog.org
     Copyright (C): 2010, Jeffrey Rosenwald
-    
+
     Modified by:  Dario Campagna
     E-mail:       dario.campagna@dmi.unipg.it
 
@@ -361,7 +361,7 @@ nothing([]) --> [], !.
 protobuf_encode([A | B], Len, NLen) -->
 	message_sequence_encode(A, Len, LenA),
 	( protobuf_encode(B, LenA, NLen)
-	 	->	{ true }
+		->	{ true }
 		;	nothing(B), { NLen = LenA }
 		).
 
@@ -483,7 +483,7 @@ message_sequence_encode(repeated(Tag, string([A | B])), Len, NLen) -->
 message_sequence_encode(repeated(_Tag, string([])), Len, Len) --> [].
 
 message_sequence_encode(repeated(Tag, group([A|B])), Len, NLen) -->
-	{ 	More = group(B),
+	{	More = group(B),
 		Proto = group(Tag, A) },
 	message_sequence_encode(Proto, Len, LenProto),
 	message_sequence_encode(repeated(Tag, More), LenProto, NLen).
@@ -491,7 +491,7 @@ message_sequence_encode(repeated(Tag, group([A|B])), Len, NLen) -->
 message_sequence_encode(repeated(_Tag, group([])), Len, Len) --> [].
 
 message_sequence_encode(repeated(Tag, enum([A|B])), Len, NLen) -->
-	{ 	More = enum(B),
+	{	More = enum(B),
 		Proto = enum(Tag, A) },
 	message_sequence_encode(Proto, Len, LenProto),
 	message_sequence_encode(repeated(Tag, More), LenProto, NLen).
@@ -511,7 +511,7 @@ message_sequence_encode(repeated(_Tag, Compound), Len, Len) -->
 
 message_sequence_encode(group(Tag, A), Len, NLen) -->
 	start_group_encode(Tag, Len, NLen1),
-  	protobuf_encode(A, NLen1, NLen2),
+	protobuf_encode(A, NLen1, NLen2),
 	end_group_encode(Tag, NLen2, NLen), !.
 
 message_sequence_encode(optional(Payload,Presence), Len, NLen) -->
@@ -724,7 +724,7 @@ message_sequence_decode(repeated(_Tag, Compound)) -->
 message_sequence_decode(group(Tag, A),Dec,NDec) -->
 	{ nonvar(Dec) -> Dec > 0 ;  true },
 	start_group_decode(Tag,Dec,NDec1),
-  	protobuf_decode(A,NDec1,NDec2),
+	protobuf_decode(A,NDec1,NDec2),
 	end_group_decode(Tag,NDec2,NDec), !.
 
 message_sequence_decode(optional(Payload,Presence),Dec,NDec) -->
@@ -733,7 +733,7 @@ message_sequence_decode(optional(Payload,Presence),Dec,NDec) -->
 		;
 			{ Presence = present }, message_sequence_decode(Payload,Dec,NDec)
 			;
-			{ Presence = not_present }, [], { 	NDec = Dec }
+			{ Presence = not_present }, [], {	NDec = Dec }
 	).
 
 message_sequence_decode(integer(Tag,Payload),Dec,NDec) -->
@@ -837,7 +837,7 @@ protobuf_message(protobuf(Template), Wirestream) :-
 	).
 
 protobuf_message(message(Name,Template), Wirestream) :-
-   	% message(Name,Template),
+	% message(Name,Template),
 	(message(Name,Template) ; true),
 	must_be(list, Template),
 	( optional_ground(Template)
@@ -855,7 +855,7 @@ protobuf_message(protobuf(Template), Wirestream, Residue) :-
 	).
 
 protobuf_message(message(Name,Template), Wirestream, Residue) :-
-   	% message(Name,Template),
+	% message(Name,Template),
 	( message(Name,Template) ; true ),
 	must_be(list, Template),
 	( optional_ground(Template)
@@ -873,7 +873,7 @@ optional_ground([L|Ls]) :-
 	;   nonvar(L),% writeln(L), nl,
 		 optional_ground_cons(L,Ls)
 	).
-	
+
 optional_ground_cons(optional(_,not_present),Ls) :-
 	optional_ground(Ls).
 optional_ground_cons(optional(T,present),Ls) :-
@@ -899,7 +899,7 @@ optional_ground_cons(protobuf(L),Ls) :-
 % Expansion of message(Name, Template)
 user:term_expansion(protobufs:message(Name, Template), protobufs:message(Name, NewTemplate)) :-
 	expand_term(Template, NewTemplate, []).
-	
+
 expand_term([], Template, Template).
 expand_term([T|Ts], [NewT|Tail1], Tail2) :-
 	expand_term_aux(T, NewT),
@@ -908,13 +908,13 @@ expand_term([T|Ts], [NewT|Tail1], Tail2) :-
 
 % Expansion of embedded(N, message(Msg))
 expand_term_aux(embedded(N, message(Msg)), embedded(N, message(Msg, _))).
-	
-	
+
+
 % Expansion of repeated(N, message(Msg))
 expand_term_aux(repeated(N, message(Msg)), repeated(N, Embedded)) :-
 	Embedded = embedded(_, message(Msg, _)).
 
-% Expansion of repeated(N, double), ...	
+% Expansion of repeated(N, double), ...
 expand_term_aux(repeated(N, double), repeated(N, double(_))).
 expand_term_aux(repeated(N, integer64), repeated(N, integer64(_))).
 expand_term_aux(repeated(N, float), repeated(N, float(_))).
@@ -929,10 +929,10 @@ expand_term_aux(repeated(N, atom), repeated(N, atom(_))).
 expand_term_aux(repeated(N, codes), repeated(N, codes(_))).
 
 
-%Expansion of optional(N, message(Msg)) 
+%Expansion of optional(N, message(Msg))
 expand_term_aux(optional(N, message(Msg)), optional(Embedded, _)) :-
 	Embedded = embedded(N, message(Msg,_)).
-	
+
 %Expansion of optional(N, double), ...
 expand_term_aux(optional(N, double), optional(NewOptional, _)) :-
 	NewOptional = double(N, _).
