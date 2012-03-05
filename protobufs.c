@@ -6,7 +6,7 @@
     Copyright (C): 2010, Jeffrey Rosenwald
 
     Modified by:   Dario Campagna
-    E-mail:        dario.campagna@dmi.unipg.it
+    E-mail:        dario.campagna@gmail.com
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -53,7 +53,7 @@ instantiation_error()
 
 static inline
 void cp_net_order(char * to, char * from, int size)  /* must be a power of 2 */
-{ 	register int i = 0, j = 0;
+{	register int i = 0, j = 0;
 
 #ifdef ARCH_IS_BIG_ENDIAN
 	j = size - 1;
@@ -66,7 +66,7 @@ void cp_net_order(char * to, char * from, int size)  /* must be a power of 2 */
 // DARIO - Modified by me
 static
 foreign_t integer_zigzag_64(term_t Integer, term_t ZigZag)
-{ 	int64_t val, val1;
+{	int64_t val, val1;
 
 	if(PL_get_int64(Integer, &val))
 		{
@@ -88,7 +88,7 @@ foreign_t integer_zigzag_64(term_t Integer, term_t ZigZag)
 // DARIO - Added by me (start)
 static
 foreign_t integer_zigzag_32(term_t Integer, term_t ZigZag)
-{ 	int32_t val, val1;
+{	int32_t val, val1;
 
 	if(PL_get_integer(Integer, &val))
 		{

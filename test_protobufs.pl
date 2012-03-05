@@ -5,8 +5,8 @@
     WWW:           http://www.swi-prolog.org
     Copyright (C): 2010, Jeffrey Rosenwald
 
-	 Modified by:	Dario Campagna
-	 E-mail:			dario.campagna@dmi.unipg.it
+    Modified by:   Dario Campagna
+    E-mail:	   dario.campagna@gmail.com
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License

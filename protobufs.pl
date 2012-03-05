@@ -6,7 +6,7 @@
     Copyright (C): 2010, Jeffrey Rosenwald
 
     Modified by:  Dario Campagna
-    E-mail:       dario.campagna@dmi.unipg.it
+    E-mail:       dario.campagna@gmail.com
 
 
     This program is free software; you can redistribute it and/or

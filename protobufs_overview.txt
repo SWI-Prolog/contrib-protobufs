@@ -135,16 +135,30 @@ systems and languages, then the protobuf   templates  that you supply to
 protobuf_message/2  must  be  equivalent  to   those  described  in  the
 =|.proto|= file that is used on the other side.
 
+An alternative way to describe a protobuf message consists in the use of
+the message/2  predicate.   The first argument of message/2 is an   atom
+representing  the  message  name,  the second  argument  is a   protobuf
+template.  message/2 is  essential for  recursive and  repeated embedded
+messages.
+
 ---++ Alternation, Aggregation, Encapsulation, and Enumeration
 
 ---+++ Alternation
 
 The  protobuf  grammar  provides  a   reserved  word,  =optional=,  that
 indicates that the production rule that it  refers to may appear once or
-not at all in a protobuf message.  Since   Prolog  has  its own means of
-alternation, this reserved word is not supported  on the Prolog side. It
-is anticipated that customary Prolog mechanisms for nondeterminism (e.g.
-backtracking) will be used to generate and test alternatives.
+not at  all in a protobuf message.   This reserved word is  supported on
+the Prolog side through the predicate optional/2.
+In template definitions the first argument of optional/2 is a tag, while
+the second argument can be simply either an atom representing a    local
+"host type" (e.g., double), or message(Name), where Name is  the    atom
+representing  a message  name, or  enum(Enum), where   Enum is the  atom
+representing an enumeration.
+When defining a template to encode a message, an optional argument  that
+is not present can be simply omitted, while an optional argument A  that
+is present can be represented in the template as optional(A, present).
+If A is a message/2 term we will simply write optional(Tag, A).
+
 
 ---+++ Aggregation
 
@@ -160,6 +174,34 @@ The above will cause all four items  in   the  list to be encoded in the
 wire-stream as IEEE-754 32-bit floating point  numbers, all with tag 22.
 The decoder will aggregate all items in the wire-stream with tag 22 into
 a list as above.
+
+As  for optional/2,  in  template  definitions  the  second  argument of
+repeated/2 can be simply either an atom representing a local "host type"
+(e.g., double), or message(Name), where Name is  the  atom  representing
+a message name, or enum(Enum), where Enum is the  atom representing   an
+enumeration.
+
+As an example  of  usage of message/2,  optional/2 and repeated/2 let us
+consider the following protobuf messages for logic formulas.
+
+message Formula {
+   optional Atom atom = 1;
+   optional Negation negation = 2;
+   optional Conjunction conjunction = 3;
+   optional Disjunciton disjunction = 4;
+}
+
+message Conjunction { repeated Formula formula = 1; }
+...
+
+We can define them on the Prolog side as follows
+
+protobufs:message(formula, [ optional(1, message(atom)),
+                           , optional(2, message(negation)),
+                           , optional(2, message(conjunction)),
+                           , optional(2, message(disjunction)) ]).
+
+protobufs:message(conjunction, [ repeated(1, message(formula)) ]).
 
 *|Notes:|*
 
@@ -382,7 +424,7 @@ The .proto file:
   repeated fixed32 integer32_values = 6;
   repeated uint32 unsigned_values   = 7;
   repeated bytes bytes_values       = 8;
-  repeated string atom_values 	    = 9;
+  repeated string atom_values	    = 9;
   repeated string string_values     = 10;
   }
 ==
