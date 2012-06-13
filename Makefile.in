@@ -24,7 +24,7 @@ PROTOBUFSOBJ=	protobufs.o
 all:		$(TARGETS)
 
 protobufs.@SO@:	$(PROTOBUFSOBJ)
-		$(LD) $(LDSOFLAGS) -o $@ $(PROTOBUFSOBJ)
+		$(LD) $(LDSOFLAGS) -o $@ $(PROTOBUFSOBJ) $(LIBPLSO)
 
 install:	$(TARGETS) $(LIBPL)
 		mkdir -p $(DESTDIR)$(SOLIBDIR)
