@@ -50,7 +50,7 @@ uninstall::
 		del "$(PLBASE)\library\protobufs.pl"
 		$(MAKEINDEX)
 
-html-install::
+html-install::	install-examples
 		copy protobufs.html "$(PKGDOC)"
 
 install-examples::
