@@ -55,7 +55,7 @@ html-install::	install-examples
 
 install-examples::
 		if not exist "$(EXDIR)\$(NULL)" $(MKDIR) "$(EXDIR)"
-		cd examples & @for %f in ($(EXAMPLES)) do @copy %f "$(EXDIR)"
+		cd demo & @for %f in ($(EXAMPLES)) do @copy %f "$(EXDIR)"
 
 xpce-install::
 
