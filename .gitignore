@@ -3,6 +3,7 @@
 *.o
 *.so
 *.dylib
+*.dSYM
 *.lib
 *.exp
 *.ilk
