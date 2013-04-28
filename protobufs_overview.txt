@@ -68,18 +68,20 @@ wire-stream:
   |  unsigned    | varint           | uint32/64 | int/long   | 2, 3   |
   |  boolean     | varint           | bool      | boolean    | 2      |
   |  enum        | varint           | int       | int        | 2      |
-  |  atom        | length delimited | string    | String     |        |
+  |  atom        | length delimited | string    | String     | 4      |
   |  codes       | length delimited | string    | ByteString |        |
-  |  string      | length delimited | string    | String     |        |
+  |  utf8_codes  | length delimited | string    | ByteString | 4      |
+  |  string      | length delimited | string    | String     | 4      |
 
 Notes:
 
     1. Encoded using a compression technique known as zig-zagging.
     2. Encoded as a modulo 128 string. Its length is proprotional to
-       the absolute value of its magnitude. The intrinsic word length
-       is decoupled between parties.
+       its magnitude. The intrinsic word length is decoupled between
+       parties.
     3. Prolog's unbounded integer may be expressed as unsigned. This
        is not portable across languages.
+    4. Encoded as UTF8 in the wire-stream.
 
 ---++ Tags
 
@@ -162,7 +164,7 @@ encoded in the wire-stream as IEEE-754   32-bit  floating point numbers,
 all with tag 22. The decoder will aggregate all items in the wire-stream
 with tag 22 into a list as above.  Likewise, the all items listed in the
 second clause will be  encoded  in   the  wire-stream  according  to the
-mapping defined in an enumeration   (described below) take_state/2, each
+mapping defined in an enumeration   (described below) tank_state/2, each
 with tag 23.
 
 *|Notes:|*
