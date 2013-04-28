@@ -1,3 +1,7 @@
+:- module(eventually_implies,
+	  [ (~>)/2,
+	    op(950, xfy, '~>')
+	  ]).
 
 % %	~>(:P, :Q) is semidet.
 % %     eventually_implies(P, Q) is semidet.
@@ -16,7 +20,6 @@
 %
 
 :- meta_predicate ~>(0,0).
-:- op(950, xfy, ~>).
 
 ~>(P, Q) :-
 	setup_call_cleanup(P,
