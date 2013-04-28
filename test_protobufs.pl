@@ -36,7 +36,7 @@
 
 :- use_module(library(protobufs)).
 
-:- include(eventually_implies).   % ~> operator
+:- use_module(eventually_implies).   % ~> operator
 
 :- set_prolog_flag(backquoted_string, true).
 
@@ -86,6 +86,8 @@ golden_message(Proto) :-
 			   enum(23, import_enum(baz)),     %  nested_enum IMPORT_BAZ
 			   string(24, `124`),   % string_piece
 			   string(25, `125`),   % cord
+			   codes(26, [8, 126]),        % public_import_message
+			   codes(27, [8, 127]),        % lazy message
 			   repeated(31, unsigned([201, 301])),
 			   repeated(32, unsigned([202, 302])),
 			   repeated(33, unsigned([203, 303])),
@@ -102,14 +104,19 @@ golden_message(Proto) :-
 			   repeated(44, atom(['215', '315'])),
 			   repeated(45, codes(["216", "316"])),
 			   repeated(46, group([[unsigned(47, 217)], [unsigned(47, 317)]])),
-			   repeated(48, embedded([protobuf([unsigned(1, 218)]), protobuf([unsigned(1,318)])])),  % nested
-			   repeated(49, embedded([protobuf([unsigned(1, 219)]), protobuf([unsigned(1, 319)])])), % foreign
-			   repeated(50, embedded([protobuf([unsigned(1, 220)]), protobuf([unsigned(1, 320)])])),  % import
+			   repeated(48, embedded([protobuf([unsigned(1, 218)]),
+						  protobuf([unsigned(1,318)])])),  % nested
+			   repeated(49, embedded([protobuf([unsigned(1, 219)]),
+						  protobuf([unsigned(1, 319)])])), % foreign
+			   repeated(50, embedded([protobuf([unsigned(1, 220)]),
+						  protobuf([unsigned(1, 320)])])),  % import
 			   repeated(51, enum(nested_enum([bar, baz]))),
 			   repeated(52, enum(foreign_enum([bar, baz]))),
 			   repeated(53, enum(import_enum([bar, baz]))),
 			   repeated(54, string([`224`, `324`])),   % string_piece
 			   repeated(55, codes(["225", "325"])),    % cord
+			   repeated(57, embedded([protobuf([unsigned(1,227)]), % lazy msg
+						  protobuf([unsigned(1,327)])])),
 			   unsigned(61, 401),  % default_int32
 			   unsigned(62, 402),
 			   unsigned(63, 403),
@@ -157,6 +164,8 @@ golden_message_template(Proto) :-
 			   enum(_, import_enum(_)),     %  nested_enum IMPORT_BAZ
 			   string(_, _),   % string_piece
 			   string(_, _),   % cord
+			   codes(_, _),        % public_import_message
+			   codes(_, _), %lazy message
 			   repeated(_, unsigned(_)),
 			   repeated(_, unsigned(_)),
 			   repeated(_, unsigned(_)),
@@ -173,14 +182,19 @@ golden_message_template(Proto) :-
 			   repeated(_, atom(_)),
 			   repeated(_, codes(_)),
 			   repeated(_, group([[unsigned(_, _)], [unsigned(_, _)]])),
-			   repeated(_, embedded([protobuf([unsigned(_, _)]), protobuf([unsigned(_,_)])])),  % nested
-			   repeated(_, embedded([protobuf([unsigned(_, _)]), protobuf([unsigned(_, _)])])), % foreign
-			   repeated(_, embedded([protobuf([unsigned(_, _)]), protobuf([unsigned(_, _)])])),  % import
+			   repeated(_, embedded([protobuf([unsigned(_, _)]),
+						 protobuf([unsigned(_,_)])])),  % nested
+			   repeated(_, embedded([protobuf([unsigned(_, _)]),
+						 protobuf([unsigned(_, _)])])), % foreign
+			   repeated(_, embedded([protobuf([unsigned(_, _)]),
+						 protobuf([unsigned(_, _)])])),  % import
 			   repeated(_, enum(nested_enum(_))),
 			   repeated(_, enum(foreign_enum(_))),
 			   repeated(_, enum(import_enum(_))),
 			   repeated(_, string(_)),   % string_piece
 			   repeated(_, codes(_)),    % cord
+			   repeated(_, embedded([protobuf([unsigned(_,_)]),
+						 protobuf([unsigned(_,_)])])),
 			   unsigned(_, _),  % default_int_
 			   unsigned(_, _),
 			   unsigned(_, _),
@@ -198,11 +212,10 @@ golden_message_template(Proto) :-
 			   codes(_, _),
 			   enum(_, nested_enum(_)),
 			   enum(_, foreign_enum(_)),
-			   enum(_, import_enum(foo)),
+			   enum(_, import_enum(_)),
 			   codes(_, _),
 			   codes(_, _)
 			 ]).
-
 
 announce(Announcement, Test) :-
 	write(Announcement)
@@ -214,9 +227,9 @@ test_protobufs :-
 	copy_term(Template, Template1),
 	copy_term(Template, Template2),
 
-	announce('Loading Google''s Golden Wirestream...', Test1a),
+	announce('Loading Google''s Golden Wirestream (2.5.0)...', Test1a),
 
-	  (    read_file_to_codes('./golden_message', Wirestream, [type(binary)])
+	  (    read_file_to_codes('./golden_message.2.5.0', Wirestream, [type(binary)])
 	  -> Test1a = ok), !,
 
 	announce('Unifying canned Golden Message with canned Golden Template...', Test1),
@@ -252,4 +265,3 @@ test_protobufs :-
 	(   (Message == Template1) -> Test6 = ok), !,
 
 	writeln('All tests passed.').
-
