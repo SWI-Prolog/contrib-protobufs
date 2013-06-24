@@ -1,6 +1,6 @@
----+ Google's Protocol Buffers
+# Google's Protocol Buffers {#protobufs}
 
----++ Overview
+## Overview {#protobufs-overview}
 
 Protocol  buffers  are  Google's    language-neutral,  platform-neutral,
 extensible mechanism for serializing structured data   -- think XML, but
@@ -23,7 +23,7 @@ compile and build  this  interpreter   into  your  application  program.
 Depending on the platform, the underlying runtime support is provided by
 a Google supplied library that is also bound into your program.
 
----++ The SWI-Prolog Implementation
+## The SWI-Prolog Implementation {#protobufs-swipl}
 
 In SWI-Prolog, the wire stream interpreter is  embodied in the form of a
 Definite Clause Grammar (DCG).  It  has   a  small  underlying C-support
@@ -41,7 +41,7 @@ template,  =X=,  along   with   a    grounded   wire-stream,   =Y=,   to
 protobuf_message/2. The interpreter will unify  the unbound variables in
 the template with values decoded from the wire-stream.
 
----++ Wiretypes
+## Wiretypes {#protobufs-wire-types}
 
 The wire-stream consists of six primitive   payload  types, two of which
 have been deprecated. A primitive  in   the  wire-stream is a multi-byte
@@ -83,7 +83,7 @@ Notes:
        is not portable across languages.
     4. Encoded as UTF8 in the wire-stream.
 
----++ Tags
+## Tags {#protobufs-tags}
 
 A tag is a small integer that is present in every wire-stream primitive.
 The tag is the only means that  the interpreter has to synchronize the
@@ -91,7 +91,7 @@ wire-stream with its template. Tags are user   defined  for each term in
 each message of the wire-stream. It is important therefore, that they be
 chosen carefully and in such a way as to not introduce ambiguity.
 
----++ Basic Usage
+## Basic Usage {#protobufs-basic-usage}
 
 A protobuf wire-stream is a byte  string   that  is comprised of zero or
 more of the above multi-byte wire-stream primitives. Templates are lists
@@ -137,9 +137,9 @@ systems and languages, then the protobuf   templates  that you supply to
 protobuf_message/2  must  be  equivalent  to   those  described  in  the
 =|.proto|= file that is used on the other side.
 
----++ Alternation, Aggregation, Encapsulation, and Enumeration
+## Alternation, Aggregation, Encapsulation, and Enumeration {#protobufs-aaee}
 
----+++ Alternation
+### Alternation {#protobufs-alternation}
 
 The  protobuf  grammar  provides  a   reserved  word,  =optional=,  that
 indicates that the production rule that it  refers to may appear once or
@@ -148,7 +148,7 @@ alternation, this reserved word is not supported  on the Prolog side. It
 is anticipated that customary Prolog mechanisms for nondeterminism (e.g.
 backtracking) will be used to generate and test alternatives.
 
----+++ Aggregation
+### Aggregation {#protobufs-aggregation}
 
 It is possible to specify homogeneous vectors   of things (e.g. lists of
 numbers) using the =repeated= attribute. You specify a repeated field as
@@ -180,7 +180,7 @@ with tag 23.
  interpreter.
 
 
----+++ Encapsulation and Enumeration
+### Encapsulation and Enumeration {#protobufs-encapsulation}
 
 It is possible to embed one protocol buffer specification inside another
 using the =embedded= term.  The  following   example  shows  a vector of
@@ -245,7 +245,7 @@ as integers cannot properly parse the Golden Message. So it's probably a
 good idea to avoid negative values   in enumerations. Our parser forbids
 it anyway.
 
----+++ Heterogeneous Collections
+### Heterogeneous Collections {#protobufs-heterogeneous}
 
 Using Protocol Buffers, it is quite an easy matter to specify fixed data
 structures and homogeneous vectors like one might find in languages like
@@ -261,7 +261,7 @@ message. You do this by supplying the  _structure_. Tell the parser what
 is possible and let the parser figure it  out on its own, one production
 at a time. An example may be found in the appendix.
 
----++ Groups (deprecated)
+## Groups (deprecated) {#protobufs-groups}
 
 Protocol Buffer Groups provide a means for constructing unitary messages
 consisting of ad-hoc lists of  terms.   The  following protobuf fragment
@@ -274,9 +274,9 @@ shows the definition of a group carrying a complex number.
 Groups have been replaced by _embedded_ messages, which are slightly
 less expensive to encode.
 
----++ Advanced Topics
+## Advanced Topics {#protobufs-advanced}
 
----+++ Precompiled Messages
+### Precompiled Messages {#protobufs-precompiled}
 
 Performance  can  be  significantly  improved    using   a  strategy  of
 precompiling the constant portions  of   your  message. Enumerations for
@@ -314,7 +314,7 @@ precompile_commands :-
      precompile_commands.
 ==
 
----+++ Supplying Your Own Host Type Message Sequences
+### Supplying Your Own Host Type Message Sequences {#protobufs-user-types}
 
 You can extend the parser to support your own compound host types. These
 are treated as first class entities by the   parser. That is they can be
@@ -326,9 +326,9 @@ which is then embedded in the wire   stream. Recursive structures can be
 defined this way. A simple example of  a recursive XML like structure is
 shown in the appendix.
 
----+ Appendix
+# Appendix {#protobufs-appendix}
 
----++ Example: A Simple XML Like Structure
+## Example: A Simple XML Like Structure {#protobufs-ex-xml}
 
 In this example we demonstrate managing  a recursive structure like XML.
 The structure shown in xml_proto/1 below,   is  similar to the structure
@@ -517,7 +517,7 @@ elements {
 
 ==
 
----++ Example: Vectors of Numbers
+## Example: Vectors of Numbers {#protobufs-ex-vector-of-numbers}
 
 In the Prolog client:
 
@@ -615,7 +615,7 @@ double_values: 2.5400000000000002e+222
 
 ==
 
----++ Example: Heterogeneous Collections
+## Example: Heterogeneous Collections {#protobufs-ex-heterogeneous}
 
 The following example shows  how  one   can  specify  a  Protocol Buffer
 message  that  can  deal  with  variable-length,  unstructured  bags  of
