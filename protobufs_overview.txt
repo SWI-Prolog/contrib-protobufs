@@ -1,4 +1,4 @@
-# Google's Protocol Buffers {#protobufs}
+# Google's Protocol Buffers {#protobufs-main}
 
 ## Overview {#protobufs-overview}
 
