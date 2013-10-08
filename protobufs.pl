@@ -77,7 +77,7 @@ Examples of usage may also be found by inspecting test_protobufs.pl.
 	   , int32_codes/2
 	   , int64_codes/2
 	   , integer_zigzag/2
-	   , string_to_list/2
+	   , string_codes/2
 	   , succ/2
 	   , between/3
 	   ]).
@@ -255,11 +255,11 @@ payload(boolean, false) -->
 	payload(unsigned, 0).
 
 payload(string, A) -->
-	{ nonvar(A) -> string_to_list(A, Codes); true },
+	{ nonvar(A) -> string_codes(A, Codes); true },
 
 	payload(codes, Codes),
 
-	{ string_to_list(A, Codes) }.
+	{ string_codes(A, Codes) }.
 
 payload(embedded, protobuf(A)) -->
 	{ ground(A), phrase(protobuf(A), Codes) },
