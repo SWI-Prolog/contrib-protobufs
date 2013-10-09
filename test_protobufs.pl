@@ -38,8 +38,6 @@
 
 :- use_module(eventually_implies).   % ~> operator
 
-:- set_prolog_flag(backquoted_string, true).
-
 protobufs:nested_enum(Key, Value) :-
 	nested_enum(Key, Value).
 
@@ -62,6 +60,12 @@ import_enum(bar, 8).
 import_enum(baz, 9).
 
 golden_message(Proto) :-
+	string_codes(String124, "124"),
+	string_codes(String125, "125"),
+	string_codes(String224, "224"),
+	string_codes(String324, "324"),
+	string_codes(String415, "415"),
+
 	Proto = protobuf([ unsigned(1 , 101),
 			   unsigned(2, 102),
 			   unsigned(3, 103),
@@ -84,8 +88,8 @@ golden_message(Proto) :-
 			   enum(21, nested_enum(baz)),    % nested_enum  BAZ
 			   enum(22, foreign_enum(baz)),     % nested_enum  FOREIGN_BAZ
 			   enum(23, import_enum(baz)),     %  nested_enum IMPORT_BAZ
-			   string(24, `124`),   % string_piece
-			   string(25, `125`),   % cord
+			   string(24, String124),   % string_piece
+			   string(25, String125),   % cord
 			   codes(26, [8, 126]),        % public_import_message
 			   codes(27, [8, 127]),        % lazy message
 			   repeated(31, unsigned([201, 301])),
@@ -113,7 +117,7 @@ golden_message(Proto) :-
 			   repeated(51, enum(nested_enum([bar, baz]))),
 			   repeated(52, enum(foreign_enum([bar, baz]))),
 			   repeated(53, enum(import_enum([bar, baz]))),
-			   repeated(54, string([`224`, `324`])),   % string_piece
+			   repeated(54, string([String224, String324])),   % string_piece
 			   repeated(55, codes(["225", "325"])),    % cord
 			   repeated(57, embedded([protobuf([unsigned(1,227)]), % lazy msg
 						  protobuf([unsigned(1,327)])])),
@@ -130,7 +134,7 @@ golden_message(Proto) :-
 			   float(71, 411.0),
 			   double(72, 412.0),
 			   boolean(73, false),
-			   string(74, `415`),
+			   string(74, String415),
 			   codes(75, "416"),
 			   enum(81, nested_enum(foo)),
 			   enum(82, foreign_enum(foo)),
