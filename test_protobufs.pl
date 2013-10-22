@@ -60,6 +60,14 @@ import_enum(bar, 8).
 import_enum(baz, 9).
 
 golden_message(Proto) :-
+	string_codes("116", Codes116),
+	string_codes("216", Codes216),
+	string_codes("316", Codes316),
+	string_codes("225", Codes225),
+	string_codes("325", Codes325),
+	string_codes("416", Codes416),
+	string_codes("424", Codes424),
+	string_codes("425", Codes425),
 	string_codes(String124, "124"),
 	string_codes(String125, "125"),
 	string_codes(String224, "224"),
@@ -80,7 +88,7 @@ golden_message(Proto) :-
 			   double(12, 112.0),
 			   boolean(13, true),
 			   atom(14, '115'),
-			   codes(15, "116"),
+			   codes(15, Codes116),
 			   group(16, [unsigned(17, 117)]),
 			   embedded(18, protobuf([unsigned(1, 118)])), % nested_message
 			   embedded(19, protobuf([unsigned(1, 119)])), % foreign_message
@@ -106,7 +114,7 @@ golden_message(Proto) :-
 			   repeated(42, double([212.0, 312.0])),
 			   repeated(43, boolean([true, false])),
 			   repeated(44, atom(['215', '315'])),
-			   repeated(45, codes(["216", "316"])),
+			   repeated(45, codes([Codes216, Codes316])),
 			   repeated(46, group([[unsigned(47, 217)], [unsigned(47, 317)]])),
 			   repeated(48, embedded([protobuf([unsigned(1, 218)]),
 						  protobuf([unsigned(1,318)])])),  % nested
@@ -118,7 +126,7 @@ golden_message(Proto) :-
 			   repeated(52, enum(foreign_enum([bar, baz]))),
 			   repeated(53, enum(import_enum([bar, baz]))),
 			   repeated(54, string([String224, String324])),   % string_piece
-			   repeated(55, codes(["225", "325"])),    % cord
+			   repeated(55, codes([Codes225, Codes325])),    % cord
 			   repeated(57, embedded([protobuf([unsigned(1,227)]), % lazy msg
 						  protobuf([unsigned(1,327)])])),
 			   unsigned(61, 401),  % default_int32
@@ -135,12 +143,12 @@ golden_message(Proto) :-
 			   double(72, 412.0),
 			   boolean(73, false),
 			   string(74, String415),
-			   codes(75, "416"),
+			   codes(75, Codes416),
 			   enum(81, nested_enum(foo)),
 			   enum(82, foreign_enum(foo)),
                            enum(83, import_enum(foo)),
-			   codes(84, "424"),
-			   codes(85, "425")
+			   codes(84, Codes424),
+			   codes(85, Codes425)
 			 ]).
 
 golden_message_template(Proto) :-
