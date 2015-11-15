@@ -24,10 +24,7 @@
 
 #define O_DEBUG 1
 
-#ifdef HAVE_CONFIG_H
 #include <config.h>
-#endif
-
 #include <SWI-Prolog.h>
 #ifdef _MSC_VER
 #define inline __inline
@@ -52,7 +49,7 @@ instantiation_error()
 
 static inline
 void cp_net_order(char * to, char * from, int size)  /* must be a power of 2 */
-{ 	register int i = 0, j = 0;
+{	register int i = 0, j = 0;
 
 #ifdef WORDS_BIGENDIAN
 	j = size - 1;
@@ -64,7 +61,7 @@ void cp_net_order(char * to, char * from, int size)  /* must be a power of 2 */
 
 static
 foreign_t integer_zigzag(term_t Integer, term_t ZigZag)
-{ 	int64_t val, val1;
+{	int64_t val, val1;
 
 	if(PL_get_int64(Integer, &val))
 		{
