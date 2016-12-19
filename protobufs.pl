@@ -33,10 +33,10 @@
 */
 
 :- module(protobufs,
-	  [
-	   protobuf_message/2,   % ?Template ?Codes
-	   protobuf_message/3	 % ?Template ?Codes ?Rest
-	  ]).
+          [
+           protobuf_message/2,   % ?Template ?Codes
+           protobuf_message/3    % ?Template ?Codes ?Rest
+          ]).
 
 /** <module> Google's Protocol Buffers
 
@@ -70,25 +70,26 @@ Examples of usage may also be found by inspecting test_protobufs.pl.
 
 @see http://code.google.com/apis/protocolbuffers
 @author: Jeffrey Rosenwald (JeffRose@acm.org)
-@license: LGPL2 (w/SWIPL library exception)
 @compat: SWI-Prolog
 */
 
 :- require([ use_foreign_library/1
-	   , atom_codes/2
-	   , call/2
-	   , float32_codes/2
-	   , float64_codes/2
-	   , int32_codes/2
-	   , int64_codes/2
-	   , integer_zigzag/2
-	   , string_codes/2
-	   , succ/2
-	   , between/3
-	   ]).
+           , atom_codes/2
+           , call/2
+           , float32_codes/2
+           , float64_codes/2
+           , int32_codes/2
+           , int64_codes/2
+           , integer_zigzag/2
+           , string_codes/2
+           , succ/2
+           , between/3
+           ]).
 
 :- use_foreign_library(foreign(protobufs)).
 :- use_module(library(utf8)).
+:- use_module(library(error)).
+:- use_module(library(lists)).
 
 wire_type(varint, 0).
 wire_type(fixed64, 1).
@@ -104,41 +105,42 @@ wire_type(fixed32, 5).
 %
 :- if(false).  % now done in the C-support code
 zig_zag(Int, X) :-
-	integer(Int), !,
-	X is (Int << 1) xor (Int >> 63).
-
+    integer(Int),
+    !,
+    X is (Int << 1) xor (Int >> 63).
 zig_zag(Int, X) :-
-	integer(X),
-	Y is -1 * (X /\ 1),
-	Int is (X >> 1) xor Y.
+    integer(X),
+    Y is -1 * (X /\ 1),
+    Int is (X >> 1) xor Y.
 :- endif.
 %
 %  basic wire-type processing handled by C-support code
 %
 
 fixed_int32(X, [A0, A1, A2, A3 | Rest], Rest) :-
-	int32_codes(X, [A0, A1, A2, A3]).
+    int32_codes(X, [A0, A1, A2, A3]).
 
 fixed_int64(X, [A0, A1, A2, A3, A4, A5, A6, A7 | Rest], Rest) :-
-	int64_codes(X, [A0, A1, A2, A3, A4, A5, A6, A7]).
+    int64_codes(X, [A0, A1, A2, A3, A4, A5, A6, A7]).
 
 fixed_float64(X, [A0, A1, A2, A3, A4, A5, A6, A7 | Rest], Rest) :-
-	float64_codes(X, [A0, A1, A2, A3, A4, A5, A6, A7]).
+    float64_codes(X, [A0, A1, A2, A3, A4, A5, A6, A7]).
 
 fixed_float32(X, [A0, A1, A2, A3 | Rest], Rest) :-
-	float32_codes(X, [A0, A1, A2, A3]).
+    float32_codes(X, [A0, A1, A2, A3]).
 
 %
 %   Start of the DCG
 %
 
 code_string(N, Codes, Rest, Rest1) :-
-	length(Codes, N),
-	append(Codes, Rest1, Rest), !.
+    length(Codes, N),
+    append(Codes, Rest1, Rest),
+    !.
 /*
 code_string(N, Codes) -->
-	{ length(Codes, N)},
-	Codes, !.
+        { length(Codes, N)},
+        Codes, !.
 */
 %
 % deal with Google's method of packing unsigned integers in variable
@@ -149,38 +151,39 @@ code_string(N, Codes) -->
 %
 
 var_int(A, [A | Rest], Rest) :-
-	A < 128, !.
-
+    A < 128,
+    !.
 var_int(X, [A | Rest], Rest1) :-
-	nonvar(X),
-	X1 is X >> 7,
-	A is 128 + (X /\ 0x7f),
-	var_int(X1, Rest, Rest1), !.
-
+    nonvar(X),
+    X1 is X >> 7,
+    A is 128 + (X /\ 0x7f),
+    var_int(X1, Rest, Rest1),
+    !.
 var_int(X, [A | Rest], Rest1) :-
-	var_int(X1, Rest, Rest1),
-	X is (X1 << 7) + A - 128, !.
+    var_int(X1, Rest, Rest1),
+    X is (X1 << 7) + A - 128,
+    !.
 %
 %
 
 tag_type(Tag, Type, Rest, Rest1) :-
-	nonvar(Tag), nonvar(Type),
-	wire_type(Type, X),
-	A is Tag << 3 \/ X,
-	var_int(A, Rest, Rest1), !.
-
+    nonvar(Tag), nonvar(Type),
+    wire_type(Type, X),
+    A is Tag << 3 \/ X,
+    var_int(A, Rest, Rest1),
+    !.
 tag_type(Tag, Type, Rest, Rest1) :-
-	var_int(A, Rest, Rest1),
-	X is A /\ 0x07,
-	wire_type(Type, X),
-	Tag is A >> 3.
+    var_int(A, Rest, Rest1),
+    X is A /\ 0x07,
+    wire_type(Type, X),
+    Tag is A >> 3.
 %
 prolog_type(Tag, double) -->     tag_type(Tag, fixed64).
-prolog_type(Tag, integer64) -->	 tag_type(Tag, fixed64).
+prolog_type(Tag, integer64) -->  tag_type(Tag, fixed64).
 prolog_type(Tag, float) -->      tag_type(Tag, fixed32).
 prolog_type(Tag, integer32) -->  tag_type(Tag, fixed32).
 prolog_type(Tag, integer) -->    tag_type(Tag, varint).
-prolog_type(Tag, unsigned) -->	 tag_type(Tag, varint).
+prolog_type(Tag, unsigned) -->   tag_type(Tag, varint).
 prolog_type(Tag, boolean) -->    tag_type(Tag, varint).
 prolog_type(Tag, enum) -->       tag_type(Tag, varint).
 prolog_type(Tag, atom) -->       tag_type(Tag, length_delimited).
@@ -196,151 +199,145 @@ prolog_type(Tag, embedded) -->   tag_type(Tag, length_delimited).
 :- meta_predicate enumeration(1,*,*).
 
 enumeration(Type) -->
-	{ call(Type, Value) },
-	payload(unsigned, Value).
+    { call(Type, Value) },
+    payload(unsigned, Value).
 
 payload(enum, A) -->
-	enumeration(A).
-
+    enumeration(A).
 payload(double,  A) -->
-	fixed_float64(A).
-
+    fixed_float64(A).
 payload(integer64, A) -->
-	fixed_int64(A).
-
+    fixed_int64(A).
 payload(float, A) -->
-	fixed_float32(A).
-
+    fixed_float32(A).
 payload(integer32, A) -->
-	fixed_int32(A).
-
+    fixed_int32(A).
 payload(integer, A) -->
-	{ nonvar(A), integer_zigzag(A,X) }, !,
-	var_int(X).
-
+    { nonvar(A), integer_zigzag(A,X) },
+    !,
+    var_int(X).
 payload(integer, A) -->
-	var_int(X),
-	{ integer_zigzag(A, X) }.
-
+    var_int(X),
+    { integer_zigzag(A, X) }.
 payload(unsigned, A) -->
-	{ nonvar(A) -> A >= 0; true },
-	var_int(A).
-
+    {   nonvar(A)
+    ->  A >= 0
+    ;   true
+    },
+    var_int(A).
 payload(codes, A) -->
-	{ nonvar(A), !, length(A, Len)},
-	var_int(Len),
-	code_string(Len, A).
-
+    { nonvar(A), !, length(A, Len)},
+    var_int(Len),
+    code_string(Len, A).
 payload(codes, A) -->
-	var_int(Len),
-	code_string(Len, A).
-
+    var_int(Len),
+    code_string(Len, A).
 payload(utf8_codes, A) -->
-	{ nonvar(A), !,
-	  phrase(utf8_codes(A), B)
-	},
-	payload(codes, B).
-
+    { nonvar(A),
+      !,
+      phrase(utf8_codes(A), B)
+    },
+    payload(codes, B).
 payload(utf8_codes, A) -->
-	payload(codes, B),
-	{ phrase(utf8_codes(A), B) }.
-
+    payload(codes, B),
+    { phrase(utf8_codes(A), B) }.
 payload(atom, A) -->
-	{ nonvar(A), atom_codes(A, Codes) },
-	payload(utf8_codes, Codes), !.
-
+    { nonvar(A),
+      atom_codes(A, Codes)
+    },
+    payload(utf8_codes, Codes),
+    !.
 payload(atom, A) -->
-	payload(utf8_codes, Codes),
-	{ atom_codes(A, Codes) }.
-
+    payload(utf8_codes, Codes),
+    { atom_codes(A, Codes) }.
 payload(boolean, true) -->
-	payload(unsigned, 1).
-
+    payload(unsigned, 1).
 payload(boolean, false) -->
-	payload(unsigned, 0).
-
+    payload(unsigned, 0).
 payload(string, A) -->
-	{ nonvar(A) -> string_codes(A, Codes); true },
-
-	payload(codes, Codes),
-
-	{ string_codes(A, Codes) }.
-
+    {   nonvar(A)
+    ->  string_codes(A, Codes)
+    ;   true
+    },
+    payload(codes, Codes),
+    { string_codes(A, Codes) }.
 payload(embedded, protobuf(A)) -->
-	{ ground(A), phrase(protobuf(A), Codes) },
-	payload(codes, Codes), !.
-
+    { ground(A),
+      phrase(protobuf(A), Codes)
+    },
+    payload(codes, Codes),
+    !.
 payload(embedded, protobuf(A)) -->
-	payload(codes, Codes),
-	{ phrase(protobuf(A), Codes) }.
+    payload(codes, Codes),
+    { phrase(protobuf(A), Codes) }.
 
-start_group(Tag) -->		tag_type(Tag, start_group).
+start_group(Tag) -->            tag_type(Tag, start_group).
 
-end_group(Tag) -->		tag_type(Tag, end_group).
+end_group(Tag) -->              tag_type(Tag, end_group).
 %
 %
 nothing([]) --> [], !.
 
 protobuf([A | B]) -->
-	{ A =.. [ Type, Tag, Payload] },
-	message_sequence(Type, Tag, Payload), !,
-	(   protobuf(B); nothing(B)).
+    { A =.. [ Type, Tag, Payload] },
+    message_sequence(Type, Tag, Payload),
+    !,
+    (   protobuf(B)
+    ;   nothing(B)
+    ).
 
 
 repeated_message_sequence(repeated_enum, Tag, Type, [A | B]) -->
-	{ Compound =.. [Type, A] },
-	message_sequence(enum, Tag, Compound),
-	(   repeated_message_sequence(repeated_enum, Tag, Type, B);
-	    nothing(B)).
-
+    { Compound =.. [Type, A] },
+    message_sequence(enum, Tag, Compound),
+    (   repeated_message_sequence(repeated_enum, Tag, Type, B)
+    ;   nothing(B)
+    ).
 repeated_message_sequence(Type, Tag, [A | B]) -->
-	message_sequence(Type, Tag, A),
-	repeated_message_sequence(Type, Tag, B).
-
+    message_sequence(Type, Tag, A),
+    repeated_message_sequence(Type, Tag, B).
 repeated_message_sequence(_Type, _Tag, A) -->
-	nothing(A).
-%
-%
+    nothing(A).
+
 
 message_sequence(repeated, Tag, enum(Compound)) -->
-	{ Compound =.. [ Type, List] },
-	repeated_message_sequence(repeated_enum, Tag, Type, List).
-
+    { Compound =.. [ Type, List] },
+    repeated_message_sequence(repeated_enum, Tag, Type, List).
 message_sequence(repeated, Tag, Compound) -->
-	{ Compound =.. [Type, A] },
-	repeated_message_sequence(Type, Tag, A).
-
+    { Compound =.. [Type, A] },
+    repeated_message_sequence(Type, Tag, A).
 message_sequence(group, Tag, A) -->
-	start_group(Tag),
-	protobuf(A),
-	end_group(Tag), !.
-
+    start_group(Tag),
+    protobuf(A),
+    end_group(Tag),
+    !.
 message_sequence(PrologType, Tag, Payload) -->
-	prolog_type(Tag, PrologType),
-        payload(PrologType, Payload).
+    prolog_type(Tag, PrologType),
+    payload(PrologType, Payload).
 
 
-%%	protobuf_message(?Template, ?Wire_stream) is semidet.
-%%	protobuf_message(?Template, ?Wire_stream, ?Rest) is nondet.
+%!  protobuf_message(?Template, ?Wire_stream) is semidet.
+%!  protobuf_message(?Template, ?Wire_stream, ?Rest) is nondet.
 %
-%  marshalls  and  unmarshalls  byte  streams   encoded  using  Google's
-%  Protobuf  grammars.  protobuf_message/2  provides   a  bi-directional
-%  parser that marshalls a Prolog structure to Wire_stream, according to
-%  rules specified by Template. It can  also unmarshall Wire_stream into
-%  a Prolog structure according to  the same grammar. protobuf_message/3
-%  provides a difference list version.
+%   Marshalls  and  unmarshalls  byte  streams  encoded  using  Google's
+%   Protobuf  grammars.  protobuf_message/2  provides  a  bi-directional
+%   parser that marshalls a Prolog   structure to Wire_stream, according
+%   to rules specified by Template. It   can also unmarshall Wire_stream
+%   into  a  Prolog   structure   according    to   the   same  grammar.
+%   protobuf_message/3 provides a difference list version.
 %
-%  @param Template is  a  protobuf   grammar  specification.  On decode,
-%  unbound variables in the Template are   unified with their respective
-%  values in the Wire_stream. On encode, Template must be ground.
+%   @param Template is a  protobuf   grammar  specification.  On decode,
+%   unbound variables in the Template are  unified with their respective
+%   values in the Wire_stream. On encode, Template must be ground.
 %
-%  @param Wire_stream is a code list that was generated by a protobuf
-%  encoder using an equivalent template.
-%
+%   @param Wire_stream is a code list that   was generated by a protobuf
+%   encoder using an equivalent template.
+
 protobuf_message(protobuf(Template), Wirestream) :-
-	must_be(list, Template),
-	phrase(protobuf(Template), Wirestream), !.
+    must_be(list, Template),
+    phrase(protobuf(Template), Wirestream),
+    !.
 
 protobuf_message(protobuf(Template), Wirestream, Residue) :-
-	must_be(list, Template),
-	phrase(protobuf(Template), Wirestream, Residue).
+    must_be(list, Template),
+    phrase(protobuf(Template), Wirestream, Residue).
