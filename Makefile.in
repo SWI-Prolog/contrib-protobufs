@@ -67,7 +67,7 @@ uninstall::
 ################################################################
 
 check::
-	$(PL) -q -s test_protobufs.pl -g test_protobufs,halt -t 'halt(1)'
+	$(PL) -q -s test_protobufs.pl -g test_protobufs -t halt
 
 ################################################################
 # Documentation
