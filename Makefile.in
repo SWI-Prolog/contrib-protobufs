@@ -76,7 +76,7 @@ check::
 TEXEXTRA=	protobufsoverview.tex protobufspl.tex
 $(TEX):		$(TEXEXTRA)
 
-protobufsoverview.tex:	protobufs_overview.txt
+protobufsoverview.tex:	protobufs_overview.md
 		$(PLTOTEX) --section $<
 protobufspl.tex:	protobufs.pl
 		$(PLTOTEX) --section --out=protobufspl $<
