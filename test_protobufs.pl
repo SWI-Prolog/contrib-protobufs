@@ -3,7 +3,7 @@
     Author:        Jeffrey Rosenwald
     E-mail:        jeffrose@acm.org
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2010-2013, Jeffrey Rosenwald
+    Copyright (c)  2010-2018, Jeffrey Rosenwald
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -244,8 +244,9 @@ test_protobufs :-
     copy_term(Template, Template1),
     copy_term(Template, Template2),
 
+    test_input('./golden_message.2.5.0', Gold250),
     announce('Loading Google''s Golden Wirestream (2.5.0)...', Test1a),
-    (   read_file_to_codes('./golden_message.2.5.0', Wirestream, [type(binary)])
+    (   read_file_to_codes(Gold250, Wirestream, [type(binary)])
     ->  Test1a = ok
     ),
     !,
@@ -303,3 +304,8 @@ test_protobufs :-
     !,
 
     writeln('All tests passed.').
+
+test_input(Name, Path) :-
+    source_file(test_protobufs, MyFile),
+    file_directory_name(MyFile, MyDir),
+    atomic_list_concat([MyDir, Name], /, Path).
