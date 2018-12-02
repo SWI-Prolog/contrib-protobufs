@@ -16,8 +16,9 @@ swipl_examples(demo/foo.cpp demo/Makefile demo/pb-vector.proto
 	       demo/vector_demo.pl)
 
 test_libs(protobufs
-          TEST_FILES_REGEX
-          "golden_message\\..*$|eventually_implies\\.pl$")
+          TEST_FILES
+	      golden_message.2.3.0 golden_message.2.5.0
+	      eventually_implies.pl)
 
 pkg_doc(protobufs
 	SECTION
