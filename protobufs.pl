@@ -33,10 +33,12 @@
 */
 
 :- module(protobufs,
-          [
-           protobuf_message/2,   % ?Template ?Codes
-           protobuf_message/3    % ?Template ?Codes ?Rest
+          [ protobuf_message/2,   % ?Template ?Codes
+            protobuf_message/3    % ?Template ?Codes ?Rest
           ]).
+:- autoload(library(error),[must_be/2]).
+:- autoload(library(lists),[append/3]).
+:- autoload(library(utf8),[utf8_codes/3]).
 
 /** <module> Google's Protocol Buffers
 
@@ -73,23 +75,7 @@ Examples of usage may also be found by inspecting test_protobufs.pl.
 @compat: SWI-Prolog
 */
 
-:- require([ use_foreign_library/1
-           , atom_codes/2
-           , call/2
-           , float32_codes/2
-           , float64_codes/2
-           , int32_codes/2
-           , int64_codes/2
-           , integer_zigzag/2
-           , string_codes/2
-           , succ/2
-           , between/3
-           ]).
-
 :- use_foreign_library(foreign(protobufs)).
-:- use_module(library(utf8)).
-:- use_module(library(error)).
-:- use_module(library(lists)).
 
 wire_type(varint, 0).
 wire_type(fixed64, 1).
@@ -98,21 +84,6 @@ wire_type(start_group, 3).
 wire_type(end_group, 4).
 wire_type(fixed32, 5).
 
-%
-% deal with Google's method of encoding 2's complement integers
-% such that packed length is proportional to magnitude. We can handle up
-% to 63 bits, plus sign. Essentially moves sign-bit from MSB to LSB.
-%
-:- if(false).  % now done in the C-support code
-zig_zag(Int, X) :-
-    integer(Int),
-    !,
-    X is (Int << 1) xor (Int >> 63).
-zig_zag(Int, X) :-
-    integer(X),
-    Y is -1 * (X /\ 1),
-    Int is (X >> 1) xor Y.
-:- endif.
 %
 %  basic wire-type processing handled by C-support code
 %
