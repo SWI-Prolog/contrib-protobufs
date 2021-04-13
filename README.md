@@ -11,7 +11,7 @@ used to interwork with a variety of  languages and systems regardless of
 word size or endianness. 
 
 This document was produced using PlDoc, with sources found in protobufs.pl
-and protobufs_overview.txt.
+and protobufs_overview.md.
 
 @see http://code.google.com/apis/protocolbuffers
 @author: Jeffrey Rosenwald (JeffRose@acm.org)
