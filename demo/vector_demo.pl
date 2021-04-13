@@ -13,12 +13,7 @@
 
 :- use_module(library(protobufs)).
 :- use_module(library(error)).
-
-:- meta_predicate ~>(0,0).
-:- op(950, xfy, ~>).
-
-(P ~> Q) :-
-    setup_call_cleanup(P, (true; fail), assertion(Q)).
+:- use_module('../eventually_implies').
 
 %
 %    See protobufs_overview.md for discussion

@@ -72,7 +72,7 @@ foo: pb-vector.pb.o foo.o
 	@# -static might not be needed, but you might require setting LD_LIBRARY_PATH
 	$(CXX) -o $@ $^ $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS)
 
-tmp99.tmp: vector_demo.pl
+tmp99.tmp: vector_demo.pl ../eventually_implies.pl
 	$(SWIPL) -s vector_demo.pl -g make_tmp99 --
 
 check: foo tmp99.tmp FORCE
