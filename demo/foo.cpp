@@ -75,7 +75,7 @@ public:
 	friend PBVector & operator << (PBVector & a, istream & cin)
 		{
 		int ret = a.parseFromStream(cin);
-		
+
 		if(!ret)
 			throw Exception("error while parsing input stream!");
 
@@ -85,7 +85,7 @@ public:
 	friend PBVector & operator << (PBVector & a, string & cin)
 		{
 		int ret = a.parseFromString(cin);
-		
+
 		if(!ret)
 			throw Exception("error while parsing input string!");
 
@@ -100,8 +100,8 @@ public:
 class DoublePBVector : public PBVector
 {
 
-public: 
-	void add_value(double value) 
+public:
+	void add_value(double value)
 		{
 		numberList.add_double_values(value);
 		}
@@ -120,12 +120,12 @@ public:
 		{
 		return numberList.double_values_size();
 		}
-}; 
+};
 
 class FloatPBVector : public PBVector
 {
-public: 
-	void add_value(float value) 
+public:
+	void add_value(float value)
 		{
 		numberList.add_float_values(value);
 		}
@@ -148,8 +148,8 @@ public:
 
 class IntegerPBVector : public PBVector
 {
-public: 
-	void add_value(int value) 
+public:
+	void add_value(int value)
 		{
 		numberList.add_integer_values(value);
 		}
@@ -172,8 +172,8 @@ public:
 
 class Integer32PBVector : public PBVector
 {
-public: 
-	void add_value(int32_t value) 
+public:
+	void add_value(int32_t value)
 		{
 		numberList.add_integer32_values(value);
 		}
@@ -196,8 +196,8 @@ public:
 
 class Integer64PBVector : public PBVector
 {
-public: 
-	void add_value(int64_t value) 
+public:
+	void add_value(int64_t value)
 		{
 		numberList.add_integer64_values(value);
 		}
@@ -220,8 +220,8 @@ public:
 
 class UnsignedPBVector : public PBVector
 {
-public: 
-	void add_value(unsigned value) 
+public:
+	void add_value(unsigned value)
 		{
 		numberList.add_unsigned_values(value);
 		}
@@ -245,8 +245,8 @@ public:
 
 class AtomPBVector : public PBVector
 {
-public: 
-	void add_value(string value) 
+public:
+	void add_value(string value)
 		{
 		numberList.add_atom_values(value);
 		}
@@ -269,8 +269,8 @@ public:
 
 class StringPBVector : public PBVector
 {
-public: 
-	void add_value(string value) 
+public:
+	void add_value(string value)
 		{
 		numberList.add_string_values(value);
 		}
@@ -302,12 +302,12 @@ int main(int argc, char *argv[])
 
 	register int i;
 
-	try 
+	try
 		{
 		buffer << cin;
-		} 
+		}
 
-	catch (Exception e) 
+	catch (Exception e)
 		{
 		cerr << "exception: " << e.reason() << "\n";
 
