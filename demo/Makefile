@@ -77,6 +77,7 @@ tmp99.tmp: vector_demo.pl
 
 check: foo tmp99.tmp FORCE
 	./foo <tmp99.tmp
+	protoc --decode=Vector pb-vector.proto <tmp99.tmp 
 
 clean:
 	$(RM) foo *.o *.pb.cc *.pb.h *.tmp *_pb2.py *.proto.msg
