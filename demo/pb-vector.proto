@@ -1,3 +1,7 @@
+// Example protobuf definition for testing
+// See Makefile for how to use it
+
+syntax = "proto2";
 
 enum VectorType {
 	DOUBLE 	= 2;

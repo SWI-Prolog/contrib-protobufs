@@ -1,0 +1,6 @@
+*.proto.msg
+foo
+*.pb.cc
+*.pb.h
+*_pb2.py
+tmp99.tmp
