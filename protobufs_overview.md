@@ -16,7 +16,7 @@ the "old" format.
 
 The idea behind Google's  Protocol  Buffers   is  that  you  define your
 structured messages using a  domain-specific   language.  This takes the
-form of a =|.proto|= source file. You   pass  this file through a Google
+form of a `.proto` source file. You   pass  this file through a Google
 provided tool that generates source code for a target language, creating
 an interpreter that can encode/decode  your   structured  data. You then
 compile and build  this  interpreter   into  your  application  program.
@@ -34,11 +34,11 @@ bound by its license terms.
 On the Prolog side, you  define  your   message  template  as  a list of
 predefined Prolog terms that correspond to  production rules in the DCG.
 The  process  is  not  unlike  specifiying   the  format  of  a  regular
-expression. To encode a message, =X=, to   wire-stream,  =Y=, you pass a
-grounded template, =X=, and a variable,   =Y=, to protobuf_message/2. To
-decode a wire-stream, =Y=, to  template,   =X=,  you  pass an ungrounded
-template,  =X=,  along   with   a    grounded   wire-stream,   =Y=,   to
-protobuf_message/2. The interpreter will unify  the unbound variables in
+expression. To encode a message, `X`, to   wire-stream,  `Y`, you pass a
+grounded template, `X`, and a variable,   `Y`, to protobuf\_message/2. To
+decode a wire-stream, `Y`, to  template,   `X`,  you  pass an ungrounded
+template,  `X`,  along   with   a    grounded   wire-stream,   `Y`,   to
+protobuf\_message/2. The interpreter will unify  the unbound variables in
 the template with values decoded from the wire-stream.
 
 ## Wiretypes {#protobufs-wire-types}
@@ -59,19 +59,20 @@ The following table shows the association   between various "host types"
 used  by  several  peer  languages,  and  the  primitives  used  in  the
 wire-stream:
 
-  |  *Prolog*    | *Wirestream*     | C++       | *Java*     | *Notes*|
-  |  double      | fixed64          | double    | double     |        |
-  |  integer64   | fixed64          | int64     | long       |        |
-  |  float       | fixed32          | float     | float      |        |
-  |  integer32   | fixed32          | int32     | int        |        |
-  |  integer     | varint           | int32/64  | int/long   | 1, 2   |
-  |  unsigned    | varint           | uint32/64 | int/long   | 2, 3   |
-  |  boolean     | varint           | bool      | boolean    | 2      |
-  |  enum        | varint           | int       | int        | 2      |
-  |  atom        | length delimited | string    | String     | 4      |
-  |  codes       | length delimited | string    | ByteString |        |
-  |  utf8_codes  | length delimited | string    | ByteString | 4      |
-  |  string      | length delimited | string    | String     | 4      |
+| *Prolog*   | *Wirestream*     | C++       | *Java*     | *Notes*|
+| ---------- | ---------------- | --------- | ---------- | -------|
+| double     | fixed64          | double    | double     |        |
+| integer64  | fixed64          | int64     | long       |        |
+| float      | fixed32          | float     | float      |        |
+| integer32  | fixed32          | int32     | int        |        |
+| integer    | varint           | int32/64  | int/long   | 1, 2   |
+| unsigned   | varint           | uint32/64 | int/long   | 2, 3   |
+| boolean    | varint           | bool      | boolean    | 2      |
+| enum       | varint           | int       | int        | 2      |
+| atom       | length delimited | string    | String     | 4      |
+| codes      | length delimited | string    | ByteString |        |
+| utf8_codes | length delimited | string    | ByteString | 4      |
+| string     | length delimited | string    | String     | 4      |
 
 Notes:
 
@@ -109,7 +110,7 @@ corresponding values in the wire-stream.
 
 Map a Prolog structure to a Protocol Buffer:
 
-==
+```prolog
 command(add(X,Y), Proto) :-
 
    Proto = protobuf([atom(1, command),
@@ -117,11 +118,11 @@ command(add(X,Y), Proto) :-
 		     integer(3, X),
 		     integer(4, Y)
 		    ]).
-==
+```
 
 Later on:
 
-==
+```prolog
    ... prepare X, Y for command ...
 
    command(add(X,Y), Proto),
@@ -129,19 +130,19 @@ Later on:
    protobuf_message(Proto, Msg),
 
    ... send the message ...
-==
+```
 
 Proto is the protobuf template.  Each   template  describes  exactly one
 message. Msg is the wire-stream.  If   you  are  interworking with other
 systems and languages, then the protobuf   templates  that you supply to
-protobuf_message/2  must  be  equivalent  to   those  described  in  the
-=|.proto|= file that is used on the other side.
+protobuf\_message/2  must  be  equivalent  to   those  described  in  the
+`.proto` file that is used on the other side.
 
 ## Alternation, Aggregation, Encapsulation, and Enumeration {#protobufs-aaee}
 
 ### Alternation {#protobufs-alternation}
 
-The  protobuf  grammar  provides  a   reserved  word,  =optional=,  that
+The  protobuf  grammar  provides  a   reserved  word,  `optional`,  that
 indicates that the production rule that it  refers to may appear once or
 not at all in a protobuf message.  Since   Prolog  has  its own means of
 alternation, this reserved word is not supported  on the Prolog side. It
@@ -151,31 +152,31 @@ backtracking) will be used to generate and test alternatives.
 ### Aggregation {#protobufs-aggregation}
 
 It is possible to specify homogeneous vectors   of things (e.g. lists of
-numbers) using the =repeated= attribute. You specify a repeated field as
+numbers) using the `repeated` attribute. You specify a repeated field as
 follows:
 
-==
+```prolog
     repeated(22, float([1,2,3,4])),
     repeated(23, enum(tank_state([empty, half_full, full]))).
-==
+```
 
 The first clause above, will cause all  four   items  in  the list to be
 encoded in the wire-stream as IEEE-754   32-bit  floating point numbers,
 all with tag 22. The decoder will aggregate all items in the wire-stream
 with tag 22 into a list as above.  Likewise, the all items listed in the
 second clause will be  encoded  in   the  wire-stream  according  to the
-mapping defined in an enumeration   (described below) tank_state/2, each
+mapping defined in an enumeration   (described below) tank\_state/2, each
 with tag 23.
 
 *|Notes:|*
 
  Beware that there is no explicit means  to encode an empty set. The
- protobuf specification provides that a =repeated= field may match a
+ protobuf specification provides that a `repeated` field may match a
  tag zero or more times. The empty set, while legal, produces no output
- on encode. While decoding a =repeated= term, failure to match the
+ on encode. While decoding a `repeated` term, failure to match the
  specified tag will yield an empty set of the specified host type.
 
- The protobuf grammar provides a variant   of the =repeated= field known
+ The protobuf grammar provides a variant   of the `repeated` field known
  as "packed." Packed, repeated fields are currently not supported by our
  interpreter.
 
@@ -183,7 +184,7 @@ with tag 23.
 ### Encapsulation and Enumeration {#protobufs-encapsulation}
 
 It is possible to embed one protocol buffer specification inside another
-using the =embedded= term.  The  following   example  shows  a vector of
+using the `embedded` term.  The  following   example  shows  a vector of
 numbers being placed in an envelope that contains a command enumeration.
 
 Enumerations are a compact method of sending   tokens from one system to
@@ -192,13 +193,12 @@ requires that you specify a callable   predicate like commands/2, below.
 The first argument is an atom  specifying   the  name  of token, and the
 second is an non-negative integer  that   specifies  the  token's value.
 These  must  of  course,  match  a   corresponding  enumeration  in  the
-=|.proto|= file.
+`.proto` file.
 
 *|Note:|* You must expose this predicate to the protobufs module
 by assigning it explicitly.
 
-==
-
+```prolog
 protobufs:commands(Key, Value) :-
 	commands(Key, Value).
 
@@ -220,12 +220,11 @@ send_command(Command, Vector, Msg) :-
 			  embedded(2, Proto1)]),
 
 	protobuf_message(Proto, Msg).
-
-==
+```
 
 Use it as follows:
 
-==
+```prolog
 ?- send_command(square, double([1,22,3,4]), Msg).
 Msg = [8, 1, 18, 36, 17, 0, 0, 0, 0, 0, 0, 240, 63, 17, 0, 0, 0, 0, 0,
 0, 54, 64, 17, 0, 0, 0, 0, 0, 0, 8, 64, 17, 0, 0, 0, 0, 0, 0, 16, 64].
@@ -233,9 +232,7 @@ Msg = [8, 1, 18, 36, 17, 0, 0, 0, 0, 0, 0, 240, 63, 17, 0, 0, 0, 0, 0,
 ?- send_command(Cmd, V, $Msg).
 Cmd = square,
 V = double([1.0, 22.0, 3.0, 4.0]) .
-
-
-==
+```
 
 *|Compatibility Note:|* The protobuf   grammar  (protobuf-2.1.0) permits
 enumerations to assume negative values. This requires them to be encoded
@@ -267,9 +264,9 @@ Protocol Buffer Groups provide a means for constructing unitary messages
 consisting of ad-hoc lists of  terms.   The  following protobuf fragment
 shows the definition of a group carrying a complex number.
 
-==
+```prolog
      Proto = group(2, [ double(1, Real_part), double(2, Img_part) ]).
-==
+```
 
 Groups have been replaced by _embedded_ messages, which are slightly
 less expensive to encode.
@@ -281,13 +278,12 @@ less expensive to encode.
 Performance  can  be  significantly  improved    using   a  strategy  of
 precompiling the constant portions  of   your  message. Enumerations for
 example,   are   excellent   candidates    for   precompilation.   Using
-protobuf_message/3, the precompiled portion of   the message is inserted
+protobuf\_message/3, the precompiled portion of   the message is inserted
 directly in the wire-stream on encode, and   is unified with, and removed
 from the wire-stream on decode. The  following  shows how the
-"send_command" example above, can be converted to precompiled form:
+"send\_command" example above, can be converted to precompiled form:
 
-==
-
+```prolog
 :- dynamic precompiled_message/3.
 
 send_precompiled_command(Command, Vector, Msg) :-
@@ -312,15 +308,15 @@ precompile_commands :-
 *
 :- initialization
      precompile_commands.
-==
+```
 
 ### Supplying Your Own Host Type Message Sequences {#protobufs-user-types}
 
 You can extend the parser to support your own compound host types. These
 are treated as first class entities by the   parser. That is they can be
-used either by themselves, or in  =repeated= and =embedded= clauses just
+used either by themselves, or in  `repeated` and `embedded` clauses just
 as any other host type would be. You  do this by hooking into the parser
-and adding your own =message_sequence= productions. Your hook eventually
+and adding your own `message\_sequence` productions. Your hook eventually
 calls back into the parser   with  your substitution/expansion protobuf,
 which is then embedded in the wire   stream. Recursive structures can be
 defined this way. A simple example of  a recursive XML like structure is
@@ -331,12 +327,12 @@ shown in the appendix.
 ## Example: A Simple XML Like Structure {#protobufs-ex-xml}
 
 In this example we demonstrate managing  a recursive structure like XML.
-The structure shown in xml_proto/1 below,   is  similar to the structure
-returned by load_xml_file/2, which  is  part   of  the  SGML library. We
-supply three =message_sequence= decorators: =kv_pair=, =xml_element=,
-and =aux_xml_element=. These are treated as first class host types.
+The structure shown in xml\_proto/1 below,   is  similar to the structure
+returned by load\_xml\_file/2, which  is  part   of  the  SGML library. We
+supply three `message\_sequence` decorators: `kv\_pair`, `xml\_element`,
+and `aux\_xml\_element`. These are treated as first class host types.
 
-==
+```prolog
 :- multifile protobufs:message_sequence/5.
 
 protobufs:message_sequence(Type, Tag, Value)  -->
@@ -423,13 +419,12 @@ Z = [element(space1,
                     ),
              to,
              you])]
-
-==
+```
 
 A protobuf description that is compatible with the above wire stream
 follows:
 
-==
+```prolog
 message kv_pair {
   required string key = 30;
   optional sint64  int_value = 31;
@@ -451,12 +446,11 @@ message xml_element {
 message XMLFile {
   repeated xml_element elements = 20;
 }
-
-==
+```
 
 Verify the wire stream using the protobuf compiler's decoder:
 
-==
+```prolog
 $ protoc --decode=XMLFile pb-vector.proto <tmp98.tmp
 elements {
   name: "space1"
@@ -514,14 +508,13 @@ elements {
     atom: "you"
   }
 }
-
-==
+```
 
 ## Example: Vectors of Numbers {#protobufs-ex-vector-of-numbers}
 
 In the Prolog client:
 
-==
+```prolog
 vector_type(double(_List), 2).
 vector_type(float(_List), 3).
 vector_type(integer(_List), 4).
@@ -538,13 +531,12 @@ vector(Type, B):-
 	Proto = protobuf([ repeated(Tag, Type) ]),
 
 	protobuf_message(Proto, B).
-==
+```
 
 A protobuf description that is compatible with the above wire stream
 follows:
 
-==
-
+```prolog
   message Vector {
   repeated double double_values     = 2;
   repeated float float_values	    = 3;
@@ -556,7 +548,7 @@ follows:
   repeated string atom_values	    = 9;
   repeated string string_values     = 10;
   }
-==
+```
 
 A typical application might consist of   an abstract adapter class along
 with a collection  of  concrete  subclasses   that  refine  an  abstract
@@ -566,7 +558,7 @@ the demos.
 
 On the Prolog side:
 
-==
+```prolog
   :- meta_predicate ~>(0,0).
   :- op(950, xfy, ~>).
 
@@ -585,11 +577,11 @@ On the Prolog side:
 	read_file_to_codes('tmp99.tmp', Codes, [type(binary)]),
 
 	vector(V, Codes).
-==
+```
 
 Run the Prolog side:
 
-==
+```prolog
 ?- X is pi,
    write_as_proto(double([-2.2212, -7.6675, X, 0,
 			  1.77e-9, 2.54e222])).
@@ -599,12 +591,11 @@ X = 3.14159.
 Vector = double([-2.2212, -7.6675, 3.14159, 0.0,
 		 1.77e-09, 2.54e+222])
 ?-
-==
+```
 
 Verify using the protobuf compiler:
 
-==
-
+```
 $ protoc --decode=Vector pb-vector.proto <tmp99.tmp
 double_values: -2.2212
 double_values: -7.6675
@@ -612,8 +603,7 @@ double_values: 3.1415926535897931
 double_values: 0
 double_values: 1.77e-09
 double_values: 2.5400000000000002e+222
-
-==
+```
 
 ## Example: Heterogeneous Collections {#protobufs-ex-heterogeneous}
 
@@ -621,7 +611,7 @@ The following example shows  how  one   can  specify  a  Protocol Buffer
 message  that  can  deal  with  variable-length,  unstructured  bags  of
 numbers:
 
-==
+```prolog
 compound_protobuf(complex(Real, Img), group(12, [double(1, Real), double(2, Img)])).
 compound_protobuf(float(Val), float(13, Val)).
 compound_protobuf(double(Val), double(14, Val)).
@@ -640,11 +630,11 @@ protobuf_bag([ Type | More], Msg) :-
 
 	protobuf_bag(More, Msg1), !.
 
-==
+```
 
 Use it as follows:
 
-==
+```prolog
 ?- protobuf_bag([complex(2,3), complex(4,5),
                  complex(6,7), 355 rdiv -113, integer(11)], X).
 
@@ -653,13 +643,13 @@ X = [10, 20, 99, 9, 0, 0, 0, 0, 0|...].
 ?- protobuf_bag(Y, $X).
 Y = [complex(2.0, 3.0), complex(4.0, 5.0),
      complex(6.0, 7.0), 355 rdiv -113, integer(11)].
-==
+```
 
 
 A protobuf description that is compatible with the above wire stream
 follows:
 
-==
+```prolog
 message compound_protobuf {
 optional group Complex = 12 {
     required double real = 1;
@@ -676,12 +666,11 @@ optional sint32 integer = 16;
 
 message protobuf_bag {
     repeated compound_protobuf bag = 1;
-
-==
+```
 
 Verify using the protobuf compiler's decoder:
 
-==
+```
 $ protoc --decode=protobuf_bag pb-vector.proto <tmp96.tmp
 bag {
   Complex {
@@ -710,14 +699,4 @@ bag {
 bag {
   integer: 11
 }
-
-==
-
-
-
-
-
-
-
-
-
+```
