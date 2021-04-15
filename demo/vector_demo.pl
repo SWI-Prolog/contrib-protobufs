@@ -1,5 +1,9 @@
+% Sample code.
+% FOr more explanation of this code, see ../protobufs_overview.md
+
 :- module(vector_demo,
-          [
+          [test_basic_usage/0,
+           test_basic_usage/1,
            write_as_proto/1,
            read_from_proto/1,
            vector/2,
@@ -8,17 +12,95 @@
            protobuf_bag/2,
            make_tmp99/0,
            xml_proto/1,
+           test_xml/0,
+           test_xml/1,
            test_xml/2
           ]).
 
-:- use_module(library(protobufs)).
+% :- use_module(library(protobufs)).
+:- use_module('../protobufs'). % DO NOT SUBMIT
 :- use_module(library(error)).
-:- use_module('../eventually_implies').
+:- use_module('../eventually_implies'). % For ~>
 
-%
-%    See protobufs_overview.md for discussion
-%
 
+% Example: "Basic Usage"
+
+% (There is no associated .proto for this example)
+
+%! command(+Term, -Proto) is det.
+% Map a Prolog term to a corresponding protobuf term.
+command(add(X,Y), Proto) :-
+    freeze(X, must_be(integer, X)),
+    freeze(Y, must_be(integer, Y)),
+    Proto = protobuf([atom(1, command),
+                      atom(2, add),
+                      integer(3, X),
+                      integer(4, Y)
+                     ]).
+command2(Command, Op, X, Y, Extra, Proto) :-
+    command2_item(Command, atom, Commands),
+    command2_item(Op, atom, Ops),
+    command2_item(X, integer, Xs),
+    command2_item(Y, integer, Ys),
+    command2_item(Extra, atom, Extras),
+    Proto = protobuf([repeated(1, atom(Commands)),
+                      repeated(2, atom(Ops)),
+                      repeated(3, integer(Xs)),
+                      repeated(4, integer(Ys)),
+                      repeated(5, atom(Extras))
+                     ]).
+
+command2_item(Item, MustBe, Items) :-
+    freeze(Item, must_be(MustBe, Item)),
+    (   var(Item)
+    ->  freeze(Items, ( Items = [] ; Items = [Item] ) ) % or: last(Items, Item)
+    ;   Items = [Item]
+    ).
+
+test_basic_usage :-
+    forall(test_basic_usage(Term),
+           print_term(Term, [])).
+
+test_basic_usage(['X'=X,
+                  'X2'=X2,
+                  'Y'=Y,
+                  'Y2'=Y2,
+                  'Command2'=Command2,
+                  'Op2'=Op2,
+                  'Extra2'=Extra2,
+                  'Proto'=Proto,
+                  'Msg'=Msg,
+                  'Segments'=Segments,
+                  'CommandSeg'=Tag1:CommandSeg,
+                  'OpSeg'=Tag2:OpSeg,
+                  'Xseg'=Tag3:Xseg,
+                  'Yseg'=Tag4:Yseg,
+                  'Proto2'=Proto2,
+                  'Msg4'=Msg4]) :-
+    X = 666, Y = 123,
+    command(add(X,Y), Proto),
+    protobuf_message(Proto, Msg),
+    % and read it back again:
+    command(add(X2,Y2), Proto2),
+    protobuf_message(Proto2, Msg),
+    command2(Command2, Op2, X2, Y2, Extra2, Proto3),
+    protobuf_message(Proto3, Msg),
+    protobuf_segment_message(Segments, Msg),
+    Segments = [length_delimited(Tag1,_,CommandCodes),
+                length_delimited(Tag2,_,OpCodes),
+                varint(Tag3,Xzig),
+                varint(Tag4,Yzig)],
+    % The following conversions are based on our knowledge
+    % of the Proto template:
+    atom_codes(CommandSeg, CommandCodes),
+    atom_codes(OpSeg, OpCodes),
+    protobufs:integer_zigzag(Xseg, Xzig),
+    protobufs:integer_zigzag(Yseg, Yzig),
+    protobuf_segment_message(Segments, Msg4).
+
+% ======================
+
+% vector_type/2 corresponds to pb-vector.proto enum VectorType
 vector_type(double(_List),    2).
 vector_type(float(_List),     3).
 vector_type(integer(_List),   4).
@@ -29,20 +111,25 @@ vector_type(codes(_List),     8).
 vector_type(atom(_List),      9).
 vector_type(string(_List),    10).
 
+% basic_vector/2 corresponds to pb-vector.proto message Vector
+basic_vector(TypedList, Template) :-
+    vector_type(TypedList, Tag),
+    Template = protobuf([ repeated(Tag, TypedList) ]).
 
-basic_vector(Type, Template) :-
-    vector_type(Type, Tag),
-    Template = protobuf([ repeated(Tag, Type) ]).
+%! vector(+TypedList, -WireCodes:list(int)) is det.
+% TypedList is of the form Type(List) - see vector_type/2
+% WireCodes is a list of codes to be output
+vector(TypedList, WireCodes):-
+    basic_vector(TypedList, Proto),
+    protobuf_message(Proto, WireCodes).
 
-vector(Type, B):-
-    basic_vector(Type, Proto),
-    protobuf_message(Proto, B).
-
-write_as_proto(List) :-
-    vector(List, Z),
+%! write_as_proto(+TypedList) is det.
+% TypedList is of the form Type(List) - see vector_type/2
+write_as_proto(TypedList) :-
+    vector(TypedList, Z),
     open('tmp99.tmp', write, S, [type(binary)])
-    ~> close(S),
-    format(S, '~s', [Z]),
+      ~> close(S),
+    format(S, '~s', [Z]), % ~s: list of character codes
     !.
 
 read_from_proto(V) :-
@@ -174,6 +261,20 @@ xml_proto([element(space1,
 test_xml(X, Y) :-
     Proto = protobuf([repeated(20, xml_element(X))]),
     protobuf_message(Proto, Y).
+
+%! test_xml(-WireCodes:list(int)) is det.
+% tests outputting the data defined by xml_proto/1.
+% WireCodes is a list of codes to be output
+test_xml(['XmlProto'=XmlProto, 'WireCodes'=WireCodes]) :-
+    xml_proto(XmlProto),
+    test_xml(XmlProto, WireCodes),
+    test_xml(XmlProto2, WireCodes),
+    XmlProto == XmlProto2.
+
+test_xml :-
+    test_xml(['XmlProto'=XmlProto, 'WireCodes'=WireCodes]),
+    print_term('XmlProto'=XmlProto, []), nl,
+    format('~q~n', ['WireCodes'=WireCodes]).
 
 :- initialization
       precompile_commands.
