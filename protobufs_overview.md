@@ -46,7 +46,8 @@ the template with values decoded from the wire-stream.
 The wire-stream consists of six primitive   payload  types, two of which
 have been deprecated. A primitive  in   the  wire-stream is a multi-byte
 string that provides  three  pieces  of   information:  a  wire-type,  a
-user-specified tag, and the raw payload.  Except   for  the  tag and its
+user-specified tag (field number), and the raw payload.   Except for the
+tag and its
 wire-type,  protobuf  payloads  are   not  instantaneously  recognizable
 because the wire-stream  contains  no   payload  type  information.  The
 interpreter uses the tag to associate the  raw payload with a local host
@@ -100,36 +101,48 @@ of Prolog terms. Each term corresponds to  a production rule in the DCG.
 The purpose of the template is to  provide   a  recipe and value set for
 encoding and decoding a particular message.   Each  term in the template
 has an arity of two.  The  term's   functor  is  the  local "host type".
-Argument 1 is its tag, which must always   be  ground, and argument 2 is
-its associated value, which may or may not be ground.
+Argument 1 is its tag (field number), which must always  be  ground, and
+argument 2 is its associated value, which may or may not be ground.
 
-*|Note:|* It is an error to attempt to encode a message using a template
+*_Note:_* It is an error to attempt to encode a message using a template
 that is not ground. Decoding a message  into a template that has unbound
 variables  has  the  effect  of  unifying    the  variables  with  their
 corresponding values in the wire-stream.
 
+Assume a `.proto` definition:
+```
+message Command {
+  optional string msg_type = 1;
+  optional string command  = 2;
+  optional int32  x        = 3;
+  optional int32  y        = 4;
+}
+```
+
 Map a Prolog structure to a Protocol Buffer:
-
 ```prolog
+%! command(+Term, -Proto) is det.
+% Map a Prolog term to a corresponding protobuf term.
 command(add(X,Y), Proto) :-
-
+   freeze(X, must_be(integer, X)),
+   freeze(Y, must_be(integer, Y)),
    Proto = protobuf([atom(1, command),
-		     atom(2, add),
-		     integer(3, X),
-		     integer(4, Y)
-		    ]).
+                     atom(2, add),
+                     integer(3, X),
+                     integer(4, Y)
+                    ]).
 ```
 
 Later on:
 
 ```prolog
-   ... prepare X, Y for command ...
+   ... prepare X, Y for command/2 ...
 
    command(add(X,Y), Proto),
-
    protobuf_message(Proto, Msg),
 
    ... send the message ...
+   e.g.: format(Stream, '~s', [Msg])
 ```
 
 Proto is the protobuf template.  Each   template  describes  exactly one
@@ -168,7 +181,7 @@ second clause will be  encoded  in   the  wire-stream  according  to the
 mapping defined in an enumeration   (described below) tank\_state/2, each
 with tag 23.
 
-*|Notes:|*
+*_Notes:_*
 
  Beware that there is no explicit means  to encode an empty set. The
  protobuf specification provides that a `repeated` field may match a
@@ -195,12 +208,12 @@ second is an non-negative integer  that   specifies  the  token's value.
 These  must  of  course,  match  a   corresponding  enumeration  in  the
 `.proto` file.
 
-*|Note:|* You must expose this predicate to the protobufs module
+*_Note:_* You must expose this predicate to the protobufs module
 by assigning it explicitly.
 
 ```prolog
 protobufs:commands(Key, Value) :-
-	commands(Key, Value).
+    commands(Key, Value).
 
 commands(square, 1).
 commands(decimate, 2).
@@ -208,22 +221,17 @@ commands(transform, 3).
 commands(inverse_transform, 4).
 
 basic_vector(Type, Proto) :-
-	vector_type(Type, Tag),
-
-	Proto = protobuf([ repeated(Tag, Type) ]).
+    vector_type(Type, Tag),
+    Proto = protobuf([ repeated(Tag, Type) ]).
 
 send_command(Command, Vector, Msg) :-
-
-	basic_vector(Vector, Proto1),
-
-	Proto = protobuf([enum(1, commands(Command)),
-			  embedded(2, Proto1)]),
-
-	protobuf_message(Proto, Msg).
+    basic_vector(Vector, Proto1),
+    Proto = protobuf([enum(1, commands(Command)),
+                      embedded(2, Proto1)]),
+    protobuf_message(Proto, Msg).
 ```
 
 Use it as follows:
-
 ```prolog
 ?- send_command(square, double([1,22,3,4]), Msg).
 Msg = [8, 1, 18, 36, 17, 0, 0, 0, 0, 0, 0, 240, 63, 17, 0, 0, 0, 0, 0,
@@ -231,10 +239,10 @@ Msg = [8, 1, 18, 36, 17, 0, 0, 0, 0, 0, 0, 240, 63, 17, 0, 0, 0, 0, 0,
 
 ?- send_command(Cmd, V, $Msg).
 Cmd = square,
-V = double([1.0, 22.0, 3.0, 4.0]) .
+V = double([1.0, 22.0, 3.0, 4.0]).
 ```
 
-*|Compatibility Note:|* The protobuf   grammar  (protobuf-2.1.0) permits
+*_Compatibility Note:_* The protobuf   grammar  (protobuf-2.1.0) permits
 enumerations to assume negative values. This requires them to be encoded
 as integers. But Google's own  Golden   Message  unit-test framework has
 enumerations encoded as unsigned. Consequently, parsers that encode them
@@ -287,21 +295,19 @@ from the wire-stream on decode. The  following  shows how the
 :- dynamic precompiled_message/3.
 
 send_precompiled_command(Command, Vector, Msg) :-
-	basic_vector(Vector, Proto1),
-
-	precompiled_message(commands(Command), Msg, Tail),
-
-	protobuf_message(protobuf([embedded(3, Proto1)]), Tail).
+    basic_vector(Vector, Proto1),
+    precompiled_message(commands(Command), Msg, Tail),
+    protobuf_message(protobuf([embedded(3, Proto1)]), Tail).
 
 precompile_commands :-
-	abolish(precompiled_message/3),
-	forall(protobufs:commands(Key, _),
-	      ( Proto = protobuf([atom(1, command),
-				  enum(2, commands(Key))]),
-		protobuf_message(Proto, Msg, Tail),
-		assert(precompiled_message(commands(Key), Msg, Tail))
-	      )),
-	compile_predicates([precompiled_message/3]).
+    abolish(precompiled_message/3),
+    forall(protobufs:commands(Key, _),
+           (   Proto = protobuf([atom(1, command),
+                                 enum(2, commands(Key))]),
+               protobuf_message(Proto, Msg, Tail),
+               assert(precompiled_message(commands(Key), Msg, Tail))
+           )),
+    compile_predicates([precompiled_message/3]).
 
 *
 *
@@ -336,89 +342,72 @@ and `aux\_xml\_element`. These are treated as first class host types.
 :- multifile protobufs:message_sequence/5.
 
 protobufs:message_sequence(Type, Tag, Value)  -->
-	{ my_message_sequence(Type, Value, Proto) },
-	protobufs:message_sequence(embedded, Tag, Proto), !.
+    { my_message_sequence(Type, Value, Proto) },
+    protobufs:message_sequence(embedded, Tag, Proto), !.
 %
 % On encode, the value type determines the tag. And on decode
 % the tag to determines the value type.
 %
 
 guard(Type, Value) :-
-       (   nonvar(Value) -> is_of_type(Type, Value); true).
+    ( nonvar(Value) -> is_of_type(Type, Value); true ).
 
 my_message_sequence(kv_pair, Key=Value, Proto) :-
-       Proto = protobuf([ atom(30, Key), X]),
-       (   (   guard(integer, Value), X = integer(31, Value));
-           (   guard(float, Value),   X = double(32, Value));
-           (   guard(atom, Value),    X = atom(33, Value))).
+    Proto = protobuf([atom(30, Key), X]),
+    ( ( guard(integer, Value), X = integer(31, Value) )
+    ; ( guard(float, Value),   X = double(32,  Value) )
+    ; ( guard(atom, Value),    X = atom(33,    Value)) ).
 
 my_message_sequence(xml_element,
                     element(Name, Attributes, Contents), Proto) :-
-
-       Proto = protobuf([ atom(21, Name),
-			  repeated(22, kv_pair(Attributes)),
-			  repeated(23, aux_xml_element(Contents))]).
+    Proto = protobuf([ atom(21, Name),
+                       repeated(22, kv_pair(Attributes)),
+                       repeated(23, aux_xml_element(Contents))]).
 
 my_message_sequence(aux_xml_element,  Contents, Proto) :-
-	functor(Contents, element, 3),
-	Proto = protobuf([xml_element(40, Contents)]).
+    functor(Contents, element, 3),
+    Proto = protobuf([xml_element(40, Contents)]).
 
 my_message_sequence(aux_xml_element, Contents, Proto) :-
-	Proto = protobuf([atom(43, Contents)]).
-
+    Proto = protobuf([atom(43, Contents)]).
 
 xml_proto([element(space1,
-		  [foo='1', bar='2'],
-		  [fum,
-		   bar,
-		   element(space2,
-			[fum=3.1415, bum= -14],
-				['more stuff for you']),
-		   element(space2b,
-			[],
-			[this, is, embedded, also]),
-		   to,
-		   you])]).
+                   [foo='1', bar='2'],
+                   [fum,
+                    bar,
+                    element(space2,
+                            [fum=3.1415, bum= -14],
+                            ['more stuff for you']),
+                    element(space2b,
+                            [],
+                            [this, is, embedded, also]),
+                    to,
+                    you])]).
 
 test_xml(X, Y) :-
-	Proto = protobuf([repeated(20, xml_element(X))]),
+    Proto = protobuf([repeated(20, xml_element(X))]),
 
-	protobuf_message(Proto, Y).
+    protobuf_message(Proto, Y).
 
 % And test it:
 
 ?- xml_proto(X), test_xml(X,Y), test_xml(Z,Y), Z == X.
-X = [element(space1,
-            [foo='1', bar='2'],
-            [fum,
-             bar,
-             element(space2,
-                       [fum=3.1415, bum= -14],
-                       ['more stuff for you']
-                    ),
-             element(space2b,
-                       [],
-                       [this, is|...]
-                    ),
-             to,
-             you])],
-
-Y = [162, 1, 193, 1, 170, 1, 6, 115, 112|...],
-
+X = Z,
 Z = [element(space1,
-            [foo='1', bar='2'],
-            [fum,
-             bar,
-             element(space2,
-                       [fum=3.1415, bum= -14],
-                       ['more stuff for you']
+             [foo='1', bar='2'],
+             [fum,
+              bar,
+              element(space2,
+                      [fum=3.1415, bum= -14],
+                      ['more stuff for you']
                     ),
-             element(space2b,
-                       [],
-                       [this, is|...]
-                    ),
-             to,
-             you])]
+              element(space2b,
+                      [],
+                      [this, is|...]
+                     ),
+              to,
+              you])],
+Y = [162, 1, 193, 1, 170, 1, 6, 115, 112|...],
 ```
 
 A protobuf description that is compatible with the above wire stream
@@ -449,7 +438,6 @@ message XMLFile {
 ```
 
 Verify the wire stream using the protobuf compiler's decoder:
-
 ```prolog
 $ protoc --decode=XMLFile pb-vector.proto <tmp98.tmp
 elements {
@@ -526,11 +514,9 @@ vector_type(atom(_List), 9).
 vector_type(string(_List), 10).
 
 vector(Type, B):-
-	vector_type(Type, Tag),
-
-	Proto = protobuf([ repeated(Tag, Type) ]),
-
-	protobuf_message(Proto, B).
+    vector_type(Type, Tag),
+    Proto = protobuf([ repeated(Tag, Type) ]),
+    protobuf_message(Proto, B).
 ```
 
 A protobuf description that is compatible with the above wire stream
@@ -539,13 +525,13 @@ follows:
 ```prolog
   message Vector {
   repeated double double_values     = 2;
-  repeated float float_values	    = 3;
+  repeated float float_values       = 3;
   repeated sint32 integer_values    = 4;
   repeated fixed64 integer64_values = 5;
   repeated fixed32 integer32_values = 6;
   repeated uint32 unsigned_values   = 7;
   repeated bytes bytes_values       = 8;
-  repeated string atom_values	    = 9;
+  repeated string atom_values       = 9;
   repeated string string_values     = 10;
   }
 ```
@@ -563,38 +549,32 @@ On the Prolog side:
   :- op(950, xfy, ~>).
 
   ~>(P, Q) :-
-	setup_call_cleanup(P, (true; fail), assertion(Q)).
+    setup_call_cleanup(P, (true; fail), assertion(Q)).
 
   write_as_proto(Vector) :-
-	vector(Vector, Wirestream),
-
-	open('tmp99.tmp', write, S, [type(binary)])
-	  ~> close(S),
-
-	format(S, '~s', [Wirestream]), !.
+    vector(Vector, Wirestream),
+    open('tmp99.tmp', write, S, [type(binary)])
+      ~> close(S),
+    format(S, '~s', [Wirestream]), !.
 
   testv1(V) :-
-	read_file_to_codes('tmp99.tmp', Codes, [type(binary)]),
-
-	vector(V, Codes).
+    read_file_to_codes('tmp99.tmp', Codes, [type(binary)]),
+    vector(V, Codes).
 ```
 
 Run the Prolog side:
 
 ```prolog
 ?- X is pi,
-   write_as_proto(double([-2.2212, -7.6675, X, 0,
-			  1.77e-9, 2.54e222])).
+   write_as_proto(double([-2.2212, -7.6675, X, 0, 1.77e-9, 2.54e222])).
 X = 3.14159.
 
 ?- testv1(Vector).
-Vector = double([-2.2212, -7.6675, 3.14159, 0.0,
-		 1.77e-09, 2.54e+222])
+Vector = double([-2.2212, -7.6675, 3.14159, 0.0, 1.77e-09, 2.54e+222])
 ?-
 ```
 
-Verify using the protobuf compiler:
-
+Verify the wire stream using the protobuf compiler's decoder:
 ```
 $ protoc --decode=Vector pb-vector.proto <tmp99.tmp
 double_values: -2.2212
@@ -621,19 +601,13 @@ compound_protobuf(integer(Val), integer(16, Val)).
 protobuf_bag([], []).
 
 protobuf_bag([ Type | More], Msg) :-
-
-	compound_protobuf(Type, X),
-
-	Proto = protobuf([embedded(1, protobuf([X]))]),
-
-	protobuf_message(Proto, Msg, Msg1),
-
-	protobuf_bag(More, Msg1), !.
-
+    compound_protobuf(Type, X),
+    Proto = protobuf([embedded(1, protobuf([X]))]),
+    protobuf_message(Proto, Msg, Msg1),
+    protobuf_bag(More, Msg1), !.
 ```
 
 Use it as follows:
-
 ```prolog
 ?- protobuf_bag([complex(2,3), complex(4,5),
                  complex(6,7), 355 rdiv -113, integer(11)], X).
@@ -645,11 +619,10 @@ Y = [complex(2.0, 3.0), complex(4.0, 5.0),
      complex(6.0, 7.0), 355 rdiv -113, integer(11)].
 ```
 
-
 A protobuf description that is compatible with the above wire stream
 follows:
 
-```prolog
+```
 message compound_protobuf {
 optional group Complex = 12 {
     required double real = 1;
@@ -668,8 +641,7 @@ message protobuf_bag {
     repeated compound_protobuf bag = 1;
 ```
 
-Verify using the protobuf compiler's decoder:
-
+Verify the wire stream using the protobuf compiler's decoder:
 ```
 $ protoc --decode=protobuf_bag pb-vector.proto <tmp96.tmp
 bag {
