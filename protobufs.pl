@@ -385,36 +385,6 @@ protobuf_message(protobuf(Template), Wirestream, Residue) :-
 %
 %  @see https://developers.google.com/protocol-buffers/docs/encoding
 
-%! int32_codes(?Value, ?Codes) is det.
-% Convert between a 32-bit integer value and its wirestream codes.
-%
-% @param Value an integer
-% @param Codes a list of 4 integers
-
-%! float32_codes(?Value, ?Codes) is det.
-% Convert between a 32-bit floating point value and its wirestream codes.
-%
-% @param Value a floating point number
-% @param Codes a list of 4 integers
-
-%! int64_codes(?Value, ?Codes) is det.
-% Convert between a 64-bit integer value and its wirestream codes.
-%
-% @param Value an integer
-% @param Codes a list of 8 integers
-
-%! float64_codes(?Value, ?Codes) is det.
-% Convert between a 64-bit floating point value and its wirestream codes.
-%
-% @param Value a floating point number
-% @param Codes a list of 8 integers
-
-%! integer_zigzag(?Original, ?Encoded) is det.
-% Convert between an integer value and its zigzag encoding
-%
-% @param Original an integer in the original form
-% @param Encoded the zigzag encoding of =Original=
-
 
 protobuf_segment_message(Segments, WireStream) :-
     phrase(segment_message(Segments), WireStream),
@@ -449,3 +419,36 @@ segment_type_tag(start_group(Tag),                  start_group, Tag).
 segment_type_tag(end_group(Tag),                    end_group, Tag).
 segment_type_tag(fixed32(Tag,_Codes),               fixed32, Tag).
 
+
+%%%%%%%%%%%%%%%%%%%%%%%%5
+% Documention of the foreign predicates, which are re-exported
+
+%! int32_codes(?Value, ?Codes) is det.
+% Convert between a 32-bit integer value and its wirestream codes.
+%
+% @param Value an integer
+% @param Codes a list of 4 integers
+
+%! float32_codes(?Value, ?Codes) is det.
+% Convert between a 32-bit floating point value and its wirestream codes.
+%
+% @param Value a floating point number
+% @param Codes a list of 4 integers
+
+%! int64_codes(?Value, ?Codes) is det.
+% Convert between a 64-bit integer value and its wirestream codes.
+%
+% @param Value an integer
+% @param Codes a list of 8 integers
+
+%! float64_codes(?Value, ?Codes) is det.
+% Convert between a 64-bit floating point value and its wirestream codes.
+%
+% @param Value a floating point number
+% @param Codes a list of 8 integers
+
+%! integer_zigzag(?Original, ?Encoded) is det.
+% Convert between an integer value and its zigzag encoding
+%
+% @param Original an integer in the original form
+% @param Encoded the zigzag encoding of =Original=
