@@ -1,9 +1,12 @@
 % Sample code.
-% FOr more explanation of this code, see ../protobufs_overview.md
+% For more explanation of this code, see ../protobufs_overview.md
+
+% TODO: separate out some tests and use plunit for them.
 
 :- module(vector_demo,
           [test_basic_usage/0,
            test_basic_usage/1,
+           test_segment_messages/0,
            write_as_proto/1,
            read_from_proto/1,
            vector/2,
@@ -19,6 +22,7 @@
 
 % :- use_module(library(protobufs)).
 :- use_module('../protobufs'). % DO NOT SUBMIT
+:- use_module(library(debug)).
 :- use_module(library(error)).
 :- use_module('../eventually_implies'). % For ~>
 
@@ -263,8 +267,8 @@ test_xml(X, Y) :-
     protobuf_message(Proto, Y).
 
 %! test_xml(-WireCodes:list(int)) is det.
-% tests outputting the data defined by xml_proto/1.
-% WireCodes is a list of codes to be output
+% Tests outputting the data defined by xml_proto/1.
+% =WireCodes= is a list of codes to be output
 test_xml(['XmlProto'=XmlProto, 'WireCodes'=WireCodes]) :-
     xml_proto(XmlProto),
     test_xml(XmlProto, WireCodes),
@@ -275,6 +279,30 @@ test_xml :-
     test_xml(['XmlProto'=XmlProto, 'WireCodes'=WireCodes]),
     print_term('XmlProto'=XmlProto, []), nl,
     format('~q~n', ['WireCodes'=WireCodes]).
+
+%! test_segment_messages is det.
+% Tests round-trip of segment_protobuf_segment_message/2,
+% using the protobuf wire form of descriptor.proto.
+% You may wish to compare the contents of =Segments= with
+% the output from protoc --decode_raw
+test_segment_messages :-
+    assertion(test_segment_assertions),
+    read_file_to_codes('descriptor.proto.msg', WireStream, [type(binary)]),
+    protobuf_segment_message(Segments, WireStream),
+    % Check that it reverses:
+    protobuf_segment_message(Segments, WireStream2),
+    assertion(WireStream == WireStream2),
+    % And print it out in all its glory:
+    true. % print_term(Segments, [tab_width(0), right_margin(88)]), nl.
+
+test_segment_assertions :-
+    % Check that we can reinterpret a segment:
+    protobuf_segment_convert(message(10, [fixed64(13,[110,112,117,116,84,121,112,101])]), S1),
+    S1 == string(10, "inputType"),
+    protobuf_segment_convert(string(10, "inputType"), S2),
+    S2 == length_delimited(10,[105,110,112,117,116,84,121,112,101]),
+    !.
+
 
 :- initialization
       precompile_commands.
