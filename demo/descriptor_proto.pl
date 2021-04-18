@@ -9,13 +9,17 @@
 %     descriptor.proto \
 %     <descriptor.proto.msg >descriptor.proto.dump
 %
-% And then run through parse_proto_dump.pl (
+% And then run through parse_descriptor_proto_dump.pl
+% (parse_descriptor/0).
 
 descriptor_proto(Proto) :-
   Proto = file{
+    name:'descriptor.proto',
+    package:'google.protobuf',
     message_type:
     [
-     message_type{ enum_type:[],
+     message_type{ name:'FileDescriptorSet',
+                   enum_type:[],
                    extension_range:[],
                    field:[ field{ default_value:'',
                                   json_name:file,
@@ -27,11 +31,11 @@ descriptor_proto(Proto) :-
                                   type_name:'.google.protobuf.FileDescriptorProto'
                                 }
                          ],
-                   name:'FileDescriptorSet',
                    nested_type:[],
                    reserved_range:[]
                  },
-     message_type{ enum_type:[],
+     message_type{ name:'FileDescriptorProto',
+                   enum_type:[],
                    extension_range:[],
                    field:[ field{ default_value:'',
                                   json_name:name,
@@ -142,11 +146,11 @@ descriptor_proto(Proto) :-
                                   type_name:''
                                 }
                          ],
-                   name:'FileDescriptorProto',
                    nested_type:[],
                    reserved_range:[]
                  },
-     message_type{ enum_type:[],
+     message_type{ name:'DescriptorProto',
+                   enum_type:[],
                    extension_range:[],
                    field:[ field{ default_value:'',
                                   json_name:name,
@@ -239,9 +243,9 @@ descriptor_proto(Proto) :-
                                   type_name:''
                                 }
                          ],
-                   name:'DescriptorProto',
-                   nested_type:[ nested_type{ field:[ field{ default_value:'',
-                                                             json_name:start,
+                   nested_type:[ nested_type{ name:'ExtensionRange',
+                                              field:[ field{ default_value:'',
+                                                           json_name:start,
                                                              label:'LABEL_OPTIONAL',
                                                              name:start,
                                                              number:1,
@@ -267,10 +271,10 @@ descriptor_proto(Proto) :-
                                                              type:'TYPE_MESSAGE',
                                                              type_name:'.google.protobuf.ExtensionRangeOptions'
                                                            }
-                                                    ],
-                                              name:'ExtensionRange'
+                                                    ]
                                             },
-                                 nested_type{ field:[ field{ default_value:'',
+                                 nested_type{ name:'ReservedRange',
+                                              field:[ field{ default_value:'',
                                                              json_name:start,
                                                              label:'LABEL_OPTIONAL',
                                                              name:start,
@@ -288,13 +292,13 @@ descriptor_proto(Proto) :-
                                                              type:'TYPE_INT32',
                                                              type_name:''
                                                            }
-                                                    ],
-                                              name:'ReservedRange'
+                                                    ]
                                             }
                                ],
                    reserved_range:[]
                  },
-     message_type{ enum_type:[],
+     message_type{ name:'ExtensionRangeOptions',
+                   enum_type:[],
                    extension_range:[ extension_range{ end:536870912,
                                                       start:1000
                                                     }
@@ -309,11 +313,11 @@ descriptor_proto(Proto) :-
                                   type_name:'.google.protobuf.UninterpretedOption'
                                 }
                          ],
-                   name:'ExtensionRangeOptions',
                    nested_type:[],
                    reserved_range:[]
                  },
-     message_type{ enum_type:[ enum_type{ name:'Type',
+     message_type{ name:'FieldDescriptorProto',
+                   enum_type:[ enum_type{ name:'Type',
                                           value:[ value{ name:'TYPE_DOUBLE',
                                                          number:1
                                                        },
@@ -484,11 +488,11 @@ descriptor_proto(Proto) :-
                                   type_name:''
                                 }
                          ],
-                   name:'FieldDescriptorProto',
                    nested_type:[],
                    reserved_range:[]
                  },
-     message_type{ enum_type:[],
+     message_type{ name:'OneofDescriptorProto',
+                   enum_type:[],
                    extension_range:[],
                    field:[ field{ default_value:'',
                                   json_name:name,
@@ -509,11 +513,11 @@ descriptor_proto(Proto) :-
                                   type_name:'.google.protobuf.OneofOptions'
                                 }
                          ],
-                   name:'OneofDescriptorProto',
                    nested_type:[],
                    reserved_range:[]
                  },
-     message_type{ enum_type:[],
+     message_type{ name:'EnumDescriptorProto',
+                   enum_type:[],
                    extension_range:[],
                    field:[ field{ default_value:'',
                                   json_name:name,
@@ -561,8 +565,8 @@ descriptor_proto(Proto) :-
                                   type_name:''
                                 }
                          ],
-                   name:'EnumDescriptorProto',
-                   nested_type:[ nested_type{ field:[ field{ default_value:'',
+                   nested_type:[ nested_type{ name:'EnumReservedRange',
+                                              field:[ field{ default_value:'',
                                                              json_name:start,
                                                              label:'LABEL_OPTIONAL',
                                                              name:start,
@@ -580,13 +584,13 @@ descriptor_proto(Proto) :-
                                                              type:'TYPE_INT32',
                                                              type_name:''
                                                            }
-                                                    ],
-                                              name:'EnumReservedRange'
+                                                    ]
                                             }
                                ],
                    reserved_range:[]
                  },
-     message_type{ enum_type:[],
+     message_type{ name:'EnumValueDescriptorProto',
+                   enum_type:[],
                    extension_range:[],
                    field:[ field{ default_value:'',
                                   json_name:name,
@@ -616,11 +620,11 @@ descriptor_proto(Proto) :-
                                   type_name:'.google.protobuf.EnumValueOptions'
                                 }
                          ],
-                   name:'EnumValueDescriptorProto',
                    nested_type:[],
                    reserved_range:[]
                  },
-     message_type{ enum_type:[],
+     message_type{ name:'ServiceDescriptorProto',
+                   enum_type:[],
                    extension_range:[],
                    field:[ field{ default_value:'',
                                   json_name:name,
@@ -650,11 +654,11 @@ descriptor_proto(Proto) :-
                                   type_name:'.google.protobuf.ServiceOptions'
                                 }
                          ],
-                   name:'ServiceDescriptorProto',
                    nested_type:[],
                    reserved_range:[]
                  },
-     message_type{ enum_type:[],
+     message_type{ name:'MethodDescriptorProto',
+                   enum_type:[],
                    extension_range:[],
                    field:[ field{ default_value:'',
                                   json_name:name,
@@ -711,11 +715,11 @@ descriptor_proto(Proto) :-
                                   type_name:''
                                 }
                          ],
-                   name:'MethodDescriptorProto',
                    nested_type:[],
                    reserved_range:[]
                  },
-     message_type{ enum_type:[ enum_type{ name:'OptimizeMode',
+     message_type{ name:'FileOptions',
+                   enum_type:[ enum_type{ name:'OptimizeMode',
                                           value:[ value{ name:'SPEED',
                                                          number:1
                                                        },
@@ -924,14 +928,14 @@ descriptor_proto(Proto) :-
                                   type_name:'.google.protobuf.UninterpretedOption'
                                 }
                          ],
-                   name:'FileOptions',
                    nested_type:[],
                    reserved_range:[ reserved_range{ end:39,
                                                     start:38
                                                   }
                                   ]
                  },
-     message_type{ enum_type:[],
+     message_type{ name:'MessageOptions',
+                   enum_type:[],
                    extension_range:[ extension_range{ end:536870912,
                                                       start:1000
                                                     }
@@ -982,7 +986,6 @@ descriptor_proto(Proto) :-
                                   type_name:'.google.protobuf.UninterpretedOption'
                                 }
                          ],
-                   name:'MessageOptions',
                    nested_type:[],
                    reserved_range:[ reserved_range{ end:5,
                                                     start:4
@@ -1001,7 +1004,8 @@ descriptor_proto(Proto) :-
                                                   }
                                   ]
                  },
-     message_type{ enum_type:[ enum_type{ name:'CType',
+     message_type{ name:'FieldOptions',
+                   enum_type:[ enum_type{ name:'CType',
                                           value:[ value{ name:'STRING',
                                                          number:0
                                                        },
@@ -1094,14 +1098,14 @@ descriptor_proto(Proto) :-
                                   type_name:'.google.protobuf.UninterpretedOption'
                                 }
                          ],
-                   name:'FieldOptions',
                    nested_type:[],
                    reserved_range:[ reserved_range{ end:5,
                                                     start:4
                                                   }
                                   ]
                  },
-     message_type{ enum_type:[],
+     message_type{ name:'OneofOptions',
+                   enum_type:[],
                    extension_range:[ extension_range{ end:536870912,
                                                       start:1000
                                                     }
@@ -1116,11 +1120,11 @@ descriptor_proto(Proto) :-
                                   type_name:'.google.protobuf.UninterpretedOption'
                                 }
                          ],
-                   name:'OneofOptions',
                    nested_type:[],
                    reserved_range:[]
                  },
-     message_type{ enum_type:[],
+     message_type{ name:'EnumOptions',
+                   enum_type:[],
                    extension_range:[ extension_range{ end:536870912,
                                                       start:1000
                                                     }
@@ -1153,14 +1157,14 @@ descriptor_proto(Proto) :-
                                   type_name:'.google.protobuf.UninterpretedOption'
                                 }
                          ],
-                   name:'EnumOptions',
                    nested_type:[],
                    reserved_range:[ reserved_range{ end:6,
                                                     start:5
                                                   }
                                   ]
                  },
-     message_type{ enum_type:[],
+     message_type{ name:'EnumValueOptions',
+                   enum_type:[],
                    extension_range:[ extension_range{ end:536870912,
                                                       start:1000
                                                     }
@@ -1184,11 +1188,11 @@ descriptor_proto(Proto) :-
                                   type_name:'.google.protobuf.UninterpretedOption'
                                 }
                          ],
-                   name:'EnumValueOptions',
                    nested_type:[],
                    reserved_range:[]
                  },
-     message_type{ enum_type:[],
+     message_type{ name:'ServiceOptions',
+                   enum_type:[],
                    extension_range:[ extension_range{ end:536870912,
                                                       start:1000
                                                     }
@@ -1212,11 +1216,11 @@ descriptor_proto(Proto) :-
                                   type_name:'.google.protobuf.UninterpretedOption'
                                 }
                          ],
-                   name:'ServiceOptions',
                    nested_type:[],
                    reserved_range:[]
                  },
-     message_type{ enum_type:[ enum_type{ name:'IdempotencyLevel',
+     message_type{ name:'MethodOptions',
+                   enum_type:[ enum_type{ name:'IdempotencyLevel',
                                           value:[ value{ name:'IDEMPOTENCY_UNKNOWN',
                                                          number:0
                                                        },
@@ -1261,11 +1265,11 @@ descriptor_proto(Proto) :-
                                   type_name:'.google.protobuf.UninterpretedOption'
                                 }
                          ],
-                   name:'MethodOptions',
                    nested_type:[],
                    reserved_range:[]
                  },
-     message_type{ enum_type:[],
+     message_type{ name:'UninterpretedOption',
+                   enum_type:[],
                    extension_range:[],
                    field:[ field{ default_value:'',
                                   json_name:name,
@@ -1331,8 +1335,8 @@ descriptor_proto(Proto) :-
                                   type_name:''
                                 }
                          ],
-                   name:'UninterpretedOption',
-                   nested_type:[ nested_type{ field:[ field{ default_value:'',
+                   nested_type:[ nested_type{ name:'NamePart',
+                                              field:[ field{ default_value:'',
                                                              json_name:namePart,
                                                              label:'LABEL_REQUIRED',
                                                              name:name_part,
@@ -1350,13 +1354,13 @@ descriptor_proto(Proto) :-
                                                              type:'TYPE_BOOL',
                                                              type_name:''
                                                            }
-                                                    ],
-                                              name:'NamePart'
+                                                    ]
                                             }
                                ],
                    reserved_range:[]
                  },
-     message_type{ enum_type:[],
+     message_type{ name:'SourceCodeInfo',
+                   enum_type:[],
                    extension_range:[],
                    field:[ field{ default_value:'',
                                   json_name:location,
@@ -1368,8 +1372,8 @@ descriptor_proto(Proto) :-
                                   type_name:'.google.protobuf.SourceCodeInfo.Location'
                                 }
                          ],
-                   name:'SourceCodeInfo',
-                   nested_type:[ nested_type{ field:[ field{ default_value:'',
+                   nested_type:[ nested_type{ name:'Location',
+                                              field:[ field{ default_value:'',
                                                              json_name:path,
                                                              label:'LABEL_REPEATED',
                                                              name:path,
@@ -1418,13 +1422,13 @@ descriptor_proto(Proto) :-
                                                              type:'TYPE_STRING',
                                                              type_name:''
                                                            }
-                                                    ],
-                                              name:'Location'
+                                                    ]
                                             }
                                ],
                    reserved_range:[]
                  },
-     message_type{ enum_type:[],
+     message_type{ name:'GeneratedCodeInfo',
+                   enum_type:[],
                    extension_range:[],
                    field:[ field{ default_value:'',
                                   json_name:annotation,
@@ -1436,8 +1440,8 @@ descriptor_proto(Proto) :-
                                   type_name:'.google.protobuf.GeneratedCodeInfo.Annotation'
                                 }
                          ],
-                   name:'GeneratedCodeInfo',
-                   nested_type:[ nested_type{ field:[ field{ default_value:'',
+                   nested_type:[ nested_type{ name:'Annotation',
+                                              field:[ field{ default_value:'',
                                                              json_name:path,
                                                              label:'LABEL_REPEATED',
                                                              name:path,
@@ -1475,14 +1479,12 @@ descriptor_proto(Proto) :-
                                                              type:'TYPE_INT32',
                                                              type_name:''
                                                            }
-                                                    ],
-                                              name:'Annotation'
+                                                    ]
                                             }
                                ],
                    reserved_range:[]
                  }
     ],
-    name:'descriptor.proto',
     options:options_file{ cc_enable_arenas:true,
                           csharp_namespace:'Google.Protobuf.Reflection',
                           go_package:'google.golang.org/protobuf/types/descriptorpb',
@@ -1490,8 +1492,7 @@ descriptor_proto(Proto) :-
                           java_package:'com.google.protobuf',
                           objc_class_prefix:'GPB',
                           optimize_for:'SPEED'
-                        },
-    package:'google.protobuf'
+                        }
   }.
 
 end_of_file.
