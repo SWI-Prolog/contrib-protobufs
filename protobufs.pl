@@ -461,11 +461,11 @@ segment_length_delimited(Tag, Result) -->
 length_delimited_segment(message(Tag,Segments), Tag, Codes) :-
     (   var(Segments)
     ->  protobuf_segment_message(Segments, Codes),
-        % heuristic: start_group, end_group are deprecated,
-        % so a message shouldn't contain them.
-        % A more precise check would be that any appearance
-        % of start_group(Tag) is followed by an appearance
-        % of end_group(Tag) - see message_sequence//3.
+        % heuristic: start_group, end_group are deprecated, so a
+        % message shouldn't contain them.
+        % TODO: A more precise check would be that
+        % start_group(Tag)/end_group(Tag) appear properly nested, as
+        % in message_sequence(group, Tag, A).
         \+ memberchk(start_group(_), Segments),
         \+ memberchk(end_group(_), Segments)
     ;   protobuf_segment_message(Segments, Codes)
