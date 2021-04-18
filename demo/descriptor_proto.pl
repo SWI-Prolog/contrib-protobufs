@@ -9,7 +9,8 @@
 %     descriptor.proto \
 %     <descriptor.proto.msg >descriptor.proto.dump
 %
-% And then run through parse_proto_dump.pl (
+% And then run through parse_descriptor_proto_dump.pl
+% (parse_descriptor/0).
 
 descriptor_proto(Proto) :-
   Proto = file{
@@ -242,8 +243,9 @@ descriptor_proto(Proto) :-
                                   type_name:''
                                 }
                          ],
-                   nested_type:[ nested_type{ field:[ field{ default_value:'',
-                                                             json_name:start,
+                   nested_type:[ nested_type{ name:'ExtensionRange',
+                                              field:[ field{ default_value:'',
+                                                           json_name:start,
                                                              label:'LABEL_OPTIONAL',
                                                              name:start,
                                                              number:1,
@@ -269,10 +271,10 @@ descriptor_proto(Proto) :-
                                                              type:'TYPE_MESSAGE',
                                                              type_name:'.google.protobuf.ExtensionRangeOptions'
                                                            }
-                                                    ],
-                                              name:'ExtensionRange'
+                                                    ]
                                             },
-                                 nested_type{ field:[ field{ default_value:'',
+                                 nested_type{ name:'ReservedRange',
+                                              field:[ field{ default_value:'',
                                                              json_name:start,
                                                              label:'LABEL_OPTIONAL',
                                                              name:start,
@@ -290,8 +292,7 @@ descriptor_proto(Proto) :-
                                                              type:'TYPE_INT32',
                                                              type_name:''
                                                            }
-                                                    ],
-                                              name:'ReservedRange'
+                                                    ]
                                             }
                                ],
                    reserved_range:[]
@@ -564,7 +565,8 @@ descriptor_proto(Proto) :-
                                   type_name:''
                                 }
                          ],
-                   nested_type:[ nested_type{ field:[ field{ default_value:'',
+                   nested_type:[ nested_type{ name:'EnumReservedRange',
+                                              field:[ field{ default_value:'',
                                                              json_name:start,
                                                              label:'LABEL_OPTIONAL',
                                                              name:start,
@@ -582,8 +584,7 @@ descriptor_proto(Proto) :-
                                                              type:'TYPE_INT32',
                                                              type_name:''
                                                            }
-                                                    ],
-                                              name:'EnumReservedRange'
+                                                    ]
                                             }
                                ],
                    reserved_range:[]
@@ -1334,7 +1335,8 @@ descriptor_proto(Proto) :-
                                   type_name:''
                                 }
                          ],
-                   nested_type:[ nested_type{ field:[ field{ default_value:'',
+                   nested_type:[ nested_type{ name:'NamePart',
+                                              field:[ field{ default_value:'',
                                                              json_name:namePart,
                                                              label:'LABEL_REQUIRED',
                                                              name:name_part,
@@ -1352,8 +1354,7 @@ descriptor_proto(Proto) :-
                                                              type:'TYPE_BOOL',
                                                              type_name:''
                                                            }
-                                                    ],
-                                              name:'NamePart'
+                                                    ]
                                             }
                                ],
                    reserved_range:[]
@@ -1371,7 +1372,8 @@ descriptor_proto(Proto) :-
                                   type_name:'.google.protobuf.SourceCodeInfo.Location'
                                 }
                          ],
-                   nested_type:[ nested_type{ field:[ field{ default_value:'',
+                   nested_type:[ nested_type{ name:'Location',
+                                              field:[ field{ default_value:'',
                                                              json_name:path,
                                                              label:'LABEL_REPEATED',
                                                              name:path,
@@ -1420,8 +1422,7 @@ descriptor_proto(Proto) :-
                                                              type:'TYPE_STRING',
                                                              type_name:''
                                                            }
-                                                    ],
-                                              name:'Location'
+                                                    ]
                                             }
                                ],
                    reserved_range:[]
@@ -1439,7 +1440,8 @@ descriptor_proto(Proto) :-
                                   type_name:'.google.protobuf.GeneratedCodeInfo.Annotation'
                                 }
                          ],
-                   nested_type:[ nested_type{ field:[ field{ default_value:'',
+                   nested_type:[ nested_type{ name:'Annotation',
+                                              field:[ field{ default_value:'',
                                                              json_name:path,
                                                              label:'LABEL_REPEATED',
                                                              name:path,
@@ -1477,8 +1479,7 @@ descriptor_proto(Proto) :-
                                                              type:'TYPE_INT32',
                                                              type_name:''
                                                            }
-                                                    ],
-                                              name:'Annotation'
+                                                    ]
                                             }
                                ],
                    reserved_range:[]
