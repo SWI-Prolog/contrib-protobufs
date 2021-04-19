@@ -99,7 +99,8 @@ test_segment_messages: descriptor.proto.msg vector_demo.pl FORCE
 	$(SWIPL) -g test_segment_messages -g halt vector_demo.pl
 
 clean:
-	$(RM) -r foo *.o *.pb.cc *.pb.h *.tmp *_pb2.py *.proto.msg doc/ *.proto.dump *.proto.rawdump
+	@# TODO: special handling for descriptor.* files
+	$(RM) -r foo *.o *.pb.cc *.pb.h *.tmp *_pb2.py *.proto.msg doc/ *.proto.rawdump
 
 # Generate the documentation from ../protobufs.pl
 # The result is in ../doc/protobufs.html
