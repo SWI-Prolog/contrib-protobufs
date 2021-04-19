@@ -96,13 +96,13 @@ options(options{deprecated:Deprecated, packed:Packed}) -->
     optional_tag_colon_id("packed", Packed),
     right_brace, !.
 
-options_file(options_file{java_package: V_java_package,
-                          java_outer_classname: V_java_outer_classname,
-                          optimize_for: V_optimize_for,
-                          go_package: V_go_package,
-                          cc_enable_arenas: V_cc_enable_arenas,
-                          objc_class_prefix: V_objc_class_prefix,
-                          csharp_namespace: V_csharp_namespace}) -->
+options_file(options{java_package: V_java_package,
+                     java_outer_classname: V_java_outer_classname,
+                     optimize_for: V_optimize_for,
+                     go_package: V_go_package,
+                     cc_enable_arenas: V_cc_enable_arenas,
+                     objc_class_prefix: V_objc_class_prefix,
+                     csharp_namespace: V_csharp_namespace}) -->
     left_brace("options"), !,
     optional_tag_colon_string("java_package", V_java_package),
     optional_tag_colon_string("java_outer_classname", V_java_outer_classname),

@@ -12,8 +12,32 @@
 % And then run through parse_descriptor_proto_dump.pl
 % (parse_descriptor/0).
 
-descriptor_proto(Proto) :-
-  Proto = file{
+:- use_module(descriptor_proto_expand, [x_file//1]).
+
+% Term expansion creates the following facts:
+%   proto_package(Package, FileName, Options)
+%   proto_message_type(Fqn, Package, Name)
+%   proto_field_name(FqnName, Name)
+%   proto_field_number(FqnName, Number)
+%   proto_field_json_name(FqnName, JsonName)
+%   proto_field_label(FqnName, Label)
+%   proto_field_type(FqnName, Type)
+%   proto_field_type_name(FqnName, TypeName)
+%   proto_field_default_value(FqnName, DefaultValue)
+%   proto_field_option_deprecated(FqnName)
+%   proto_field_option_packed(FqnName)
+%   proto_nested_type(FqnName, Fqn, Name)
+%   proto_enum_type(FqnName, Fqn, Name)
+%   proto_enum_value(Fqn, Name, Number)
+%   proto_extension_range(Fqn, Start, End)
+%   proto_reserved_range(Fqn, Start, End)
+
+term_expansion(descriptor_proto(Proto), Expansion) :-
+    phrase(x_file(Proto), ExpansionRaw),
+    sort(ExpansionRaw, Expansion). % prevent warning messages about discontiguous messages
+
+descriptor_proto(
+  file{
     name:'descriptor.proto',
     package:'google.protobuf',
     message_type:
@@ -1485,14 +1509,14 @@ descriptor_proto(Proto) :-
                    reserved_range:[]
                  }
     ],
-    options:options_file{ cc_enable_arenas:true,
-                          csharp_namespace:'Google.Protobuf.Reflection',
-                          go_package:'google.golang.org/protobuf/types/descriptorpb',
-                          java_outer_classname:'DescriptorProtos',
-                          java_package:'com.google.protobuf',
-                          objc_class_prefix:'GPB',
-                          optimize_for:'SPEED'
-                        }
-  }.
+    options:options{ cc_enable_arenas:true,
+                     csharp_namespace:'Google.Protobuf.Reflection',
+                     go_package:'google.golang.org/protobuf/types/descriptorpb',
+                     java_outer_classname:'DescriptorProtos',
+                     java_package:'com.google.protobuf',
+                     objc_class_prefix:'GPB',
+                     optimize_for:'SPEED'
+                   }
+  }).
 
 end_of_file.
