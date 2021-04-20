@@ -176,10 +176,6 @@ test_send_precompiled_command :-
 test_send_precompiled_command(Msg) :-
     send_precompiled_command(square, double([1,22,3,4]), Msg).
 
-%
-%
-:- dynamic precompiled_message/3.
-
 send_precompiled_command(Command, Vector, Msg) :-
     basic_vector(Vector, Proto1),
     precompiled_message(commands(Command), Msg, Msg1),
@@ -194,15 +190,14 @@ send_precompiled_command(Command, Vector, Msg) :-
     protobuf_message(Proto2, Msg2),
     assertion(Msg2 == Msg).
 
-precompile_commands :-
-    abolish(precompiled_message/3),
-    forall(protobufs:commands(Key, _),
-           (   Proto = protobuf([atom(1, command),
-                                 enum(2, commands(Key))]),
-               protobuf_message(Proto, Msg, Tail),
-               assert(precompiled_message(commands(Key), Msg, Tail))
-           )),
-    compile_predicates([precompiled_message/3]).
+term_expansion(precompile_commands, Clauses) :-
+    findall(precompiled_message(commands(Key), Msg, Tail),
+            (   protobufs:commands(Key, _),
+                Proto = protobuf([atom(1, command),
+                                  enum(2, commands(Key))]),
+                protobuf_message(Proto, Msg, Tail)
+            ),
+            Clauses).
 
 %
 %
@@ -335,5 +330,4 @@ test_segment_assertions :-
     !.
 
 
-:- initialization
-      precompile_commands.
+precompile_commands.  % Trigger the term-expansion precompilation
