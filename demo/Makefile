@@ -23,7 +23,8 @@
 
 .SUFFIXES: .proto .cpp .cc .o .proto.msg .py
 
-.PHONY: check basic_usage test_segment_messages FORCE clean docs
+.PHONY: FORCE check clean docs
+.PHONY: test_basic_usage test_segment_messages test_send_command test_send_precompiled_command
 
 .DEFAULT_GOAL=check
 
@@ -89,7 +90,7 @@ check: foo tmp99.tmp FORCE
 	$(PROTOC) --decode=Vector pb-vector.proto <tmp99.tmp
 
 # Run the basic_usage example
-basic_usage: vector_demo.pl FORCE
+test_basic_usage: vector_demo.pl FORCE
 	$(SWIPL) -g test_basic_usage -g halt vector_demo.pl
 
 # Run the protobuf_segment_messages test.

@@ -4,9 +4,7 @@
 % TODO: separate out some tests and use plunit for them.
 
 :- module(vector_demo,
-          [test_basic_usage/0,
-           test_basic_usage/1,
-           test_segment_messages/0,
+          [
            write_as_proto/1,
            read_from_proto/1,
            vector/2,
@@ -15,6 +13,9 @@
            protobuf_bag/2,
            make_tmp99/0,
            xml_proto/1,
+           test_basic_usage/0,
+           test_basic_usage/1,
+           test_segment_messages/0,
            test_send_command/0,
            test_send_command/1,
            test_send_precompiled_command/0,
@@ -24,12 +25,11 @@
            test_xml/2
           ]).
 
-% :- use_module(library(protobufs)).
-:- use_module('../protobufs'). % DO NOT SUBMIT
-:- use_module(library(debug)).
+:- use_module(library(protobufs)).
 :- use_module(library(error)).
 :- use_module('../eventually_implies'). % For ~>
 
+:- use_module(library(debug)).
 :- set_prolog_flag(optimise_debug, false). % assertion/1 always on
 
 
@@ -69,7 +69,7 @@ command2_item(Item, MustBe, Items) :-
 
 test_basic_usage :-
     forall(test_basic_usage(Term),
-           print_term(Term, [])).
+           ( print_term(Term, []), nl )).
 
 test_basic_usage(['X'=X,
                   'X2'=X2,
@@ -80,33 +80,31 @@ test_basic_usage(['X'=X,
                   'Extra2'=Extra2,
                   'Proto'=Proto,
                   'Msg'=Msg,
-                  'Segments'=Segments,
-                  'CommandSeg'=Tag1:CommandSeg,
-                  'OpSeg'=Tag2:OpSeg,
-                  'Xseg'=Tag3:Xseg,
-                  'Yseg'=Tag4:Yseg,
-                  'Proto2'=Proto2,
-                  'Msg4'=Msg4]) :-
+                  'Segments-raw'=Segments,
+                  'CommandCode'=CommandCode,
+                  'OpCode'=OpCode,
+                  'Xseg'=Xseg,
+                  'Yseg'=Yseg]) :-
     X = 666, Y = 123,
     command(add(X,Y), Proto),
     protobuf_message(Proto, Msg),
     % and read it back again:
     command(add(X2,Y2), Proto2),
     protobuf_message(Proto2, Msg),
+    assertion(Proto == Proto2),
     command2(Command2, Op2, X2, Y2, Extra2, Proto3),
     protobuf_message(Proto3, Msg),
     protobuf_segment_message(Segments, Msg),
-    Segments = [length_delimited(Tag1,_,CommandCodes),
-                length_delimited(Tag2,_,OpCodes),
-                varint(Tag3,Xzig),
-                varint(Tag4,Yzig)],
+    Segments = [string(1,CommandCode),
+                string(2,OpCode),
+                varint(3,Xzig),
+                varint(4,Yzig)],
     % The following conversions are based on our knowledge
     % of the Proto template:
-    atom_codes(CommandSeg, CommandCodes),
-    atom_codes(OpSeg, OpCodes),
-    protobufs:integer_zigzag(Xseg, Xzig),
-    protobufs:integer_zigzag(Yseg, Yzig),
-    protobuf_segment_message(Segments, Msg4).
+    integer_zigzag(Xseg, Xzig),
+    integer_zigzag(Yseg, Yzig),
+    protobuf_segment_message(Segments, Msg4),
+    assertion(Msg == Msg4).
 
 % ======================
 
@@ -148,11 +146,11 @@ read_from_proto(V) :-
 
 protobufs:commands(Key, Value) :-
     nth1(Value,
-         [ square,
-           decimate,
-           transform,
-           inverse_transform
-         ],
+            [ square,
+              decimate,
+              transform,
+              inverse_transform
+            ],
          Key).
 
 send_command(Command, Vector, Msg) :-
@@ -319,15 +317,14 @@ test_segment_messages :-
     protobuf_segment_message(Segments, WireStream2),
     assertion(WireStream == WireStream2),
     % And print it out in all its glory:
-    true. % print_term(Segments, [tab_width(0), right_margin(88)]), nl.
+    print_term(Segments, [tab_width(0), right_margin(88)]), nl.
 
 test_segment_assertions :-
-    % Check that we can reinterpret a segment:
-    protobuf_segment_convert(message(10, [fixed64(13,[110,112,117,116,84,121,112,101])]), S1),
-    S1 == string(10, "inputType"),
-    protobuf_segment_convert(string(10, "inputType"), S2),
-    S2 == length_delimited(10,[105,110,112,117,116,84,121,112,101]),
-    !.
-
+    % Check that we can reinterpret a segment that comes out
+    % in an unexpected form:
+    forall(
+           protobuf_segment_convert(message(10, [fixed64(13,[110,112,117,116,84,121,112,101])]), S1),
+           assertion(( S1 == string(10, "inputType")
+                     ; S1 == length_delimited(10,[105,110,112,117,116,84,121,112,101]) ))).
 
 precompile_commands.  % Trigger the term-expansion precompilation
