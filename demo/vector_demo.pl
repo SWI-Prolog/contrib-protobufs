@@ -15,6 +15,10 @@
            protobuf_bag/2,
            make_tmp99/0,
            xml_proto/1,
+           test_send_command/0,
+           test_send_command/1,
+           test_send_precompiled_command/0,
+           test_send_precompiled_command/1,
            test_xml/0,
            test_xml/1,
            test_xml/2
@@ -25,6 +29,8 @@
 :- use_module(library(debug)).
 :- use_module(library(error)).
 :- use_module('../eventually_implies'). % For ~>
+
+:- set_prolog_flag(optimise_debug, false). % assertion/1 always on
 
 
 % Example: "Basic Usage"
@@ -154,6 +160,22 @@ send_command(Command, Vector, Msg) :-
     Proto = protobuf([enum(1, commands(Command)), embedded(2, Proto1)]),
     protobuf_message(Proto, Msg).
 
+test_send_command :-
+    test_send_command(Msg),
+    protobuf_segment_message(Seg, Msg),
+    print_term(Seg, []), nl.
+
+test_send_command(Msg) :-
+    send_command(square, double([1,22,3,4]), Msg).
+
+test_send_precompiled_command :-
+    test_send_precompiled_command(Msg),
+    protobuf_segment_message(Seg, Msg),
+    print_term(Seg, []), nl.
+
+test_send_precompiled_command(Msg) :-
+    send_precompiled_command(square, double([1,22,3,4]), Msg).
+
 %
 %
 :- dynamic precompiled_message/3.
@@ -161,7 +183,16 @@ send_command(Command, Vector, Msg) :-
 send_precompiled_command(Command, Vector, Msg) :-
     basic_vector(Vector, Proto1),
     precompiled_message(commands(Command), Msg, Msg1),
-    protobuf_message(protobuf([embedded(3, Proto1)]), Msg1).
+    protobuf_message(protobuf([embedded(3, Proto1)]), Msg1),
+
+    % Do it again, but without the precompiled message.
+    % Above, precompile_commands added
+    % [atom(1,command), enum(2,commands(Command)].
+    Proto2 = protobuf([atom(1, command),
+                       enum(2, commands(Command)),
+                       embedded(3, Proto1)]),
+    protobuf_message(Proto2, Msg2),
+    assertion(Msg2 == Msg).
 
 precompile_commands :-
     abolish(precompiled_message/3),
