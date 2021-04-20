@@ -98,6 +98,12 @@ basic_usage: vector_demo.pl FORCE
 test_segment_messages: descriptor.proto.msg vector_demo.pl FORCE
 	$(SWIPL) -g test_segment_messages -g halt vector_demo.pl
 
+test_send_command: vector_demo.pl FORCE
+	$(SWIPL) -g test_send_command -g halt vector_demo.pl
+
+test_send_precompiled_command: vector_demo.pl FORCE
+	$(SWIPL) -g test_send_precompiled_command -g halt vector_demo.pl
+
 clean:
 	@# TODO: special handling for descriptor.* files
 	$(RM) -r foo *.o *.pb.cc *.pb.h *.tmp *_pb2.py *.proto.msg doc/ *.proto.rawdump
