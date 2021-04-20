@@ -292,28 +292,24 @@ from the wire-stream on decode. The  following  shows how the
 "send\_command" example above, can be converted to precompiled form:
 
 ```prolog
-:- dynamic precompiled_message/3.
-
 send_precompiled_command(Command, Vector, Msg) :-
     basic_vector(Vector, Proto1),
     precompiled_message(commands(Command), Msg, Tail),
     protobuf_message(protobuf([embedded(3, Proto1)]), Tail).
 
-precompile_commands :-
-    abolish(precompiled_message/3),
-    forall(protobufs:commands(Key, _),
-           (   Proto = protobuf([atom(1, command),
-                                 enum(2, commands(Key))]),
-               protobuf_message(Proto, Msg, Tail),
-               assert(precompiled_message(commands(Key), Msg, Tail))
-           )),
-    compile_predicates([precompiled_message/3]).
+term_expansion(precompile_commands, Clauses) :-
+    findall(precompiled_message(commands(Key), Msg, Tail),
+            (   protobufs:commands(Key, _),
+                Proto = protobuf([atom(1, command),
+                                  enum(2, commands(Key))]),
+                protobuf_message(Proto, Msg, Tail)
+            ),
+            Clauses).
 
 *
 *
 *
-:- initialization
-     precompile_commands.
+precompile_commands.  % Trigger the term-expansion precompilation
 ```
 
 ### Supplying Your Own Host Type Message Sequences {#protobufs-user-types}
