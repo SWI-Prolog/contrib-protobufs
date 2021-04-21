@@ -5,8 +5,35 @@
 %% that, use protoc --descriptor_set_out [--include_imports] and
 %% process that protobuf.
 
-:- use_module(library(dcg/basics)).
-:- use_module(library(dcg/high_order)).
+% This code is reversible -- that is, you can do this, where
+% `Term` is ground but `Codes` isn't, e.g., to round-trip descriptor.proto.dump:
+%     parse_descriptor(_Term),
+%     phrase(file(_Term), _Codes),
+%     string_codes(_String, _Codes),
+%     write(_String), nl.
+% However, it doesn't do nice indentation.
+% TODO: pass around an indentation level (optional) for pretty-printing.
+
+:- module(parse_descriptor_proto_dump,
+          [parse_descriptor/0,
+           parse_descriptor/1,
+           parse_file/2,
+           file//1]).
+
+:- use_module(library(dcg/basics),
+              [whites//0,
+               digits//1,
+               nonblanks//1,
+               string_without//2,
+               blanks_to_nl//0]).
+:- use_module(library(dcg/high_order),
+              [sequence//2,
+               optional//2]).
+:- use_module(library(debug), [debug/3, debug/1]).
+
+:- meta_predicate bidi(3, 2, ?, ?, ?).
+
+% :- debug(dcg_trace).
 
 % Use one of these to process the file:
 
@@ -115,23 +142,31 @@ options_file(options{java_package: V_java_package,
 
 
 left_brace(Type) -->
-    whites, atom(Type), whites, "{", blanks_to_nl, !,
-    { trace_format('~q {~n', [Type]) }.
+    whites,
+    bidi(nonblanks, atom_codes, Type),
+    whites, "{", blanks_to_nl, !,
+    { debug(dcg_trace, '~q {~n', [Type]) }.
 
 right_brace -->
     whites, "}", blanks_to_nl, !.
 
 tag_colon_string(Tag, StringAsAtom) -->
-    whites, atom(Tag), colon_string(StringAsAtom),
-    { trace_format('  ~q : ~q~n', [Tag, StringAsAtom]) }.
+    whites,
+    bidi(nonblanks, atom_codes, Tag),
+    colon_string(StringAsAtom),
+    { debug(dcg_trace, '  ~q : ~q~n', [Tag, StringAsAtom]) }.
 
 tag_colon_number(Tag, Number) -->
-    whites, atom(Tag), colon_number(Number),
-    { trace_format('  ~q : ~q~n', [Tag, Number]) }.
+    whites,
+    bidi(nonblanks, atom_codes, Tag),
+    colon_number(Number),
+    { debug(dcg_trace, '  ~q : ~q~n', [Tag, Number]) }.
 
 tag_colon_id(Tag, IdAsAtom) -->
-    whites, atom(Tag), colon_id(IdAsAtom),
-    { trace_format('  ~q : ~q~n', [Tag, IdAsAtom]) }.
+    whites,
+    bidi(nonblanks, atom_codes, Tag),
+    colon_id(IdAsAtom),
+    { debug(dcg_trace, '  ~q : ~q~n', [Tag, IdAsAtom]) }.
 
 optional_tag_colon_string(Tag, StringAsAtom) -->
     optional(tag_colon_string(Tag, StringAsAtom), {StringAsAtom=''}).
@@ -145,25 +180,34 @@ optional_tag_colon_id(Tag, IdAsAtom) -->
 colon_string(StringAsAtom) -->
     whites, ":", whites,
     "\"",
-    string_without("\"", StringCodes),
+    bidi(string_without("\""), atom_codes, StringAsAtom),
     "\"",
-    blanks_to_nl, !,
-    { atom_codes(StringAsAtom, StringCodes) }.
+    blanks_to_nl, !.
 
 colon_number(Number) -->
     whites, ":", whites,
-    digits(Digits),
-    blanks_to_nl, !,
-    { number_codes(Number, Digits) }.
+    bidi(digits, number_codes, Number),
+    blanks_to_nl, !.
 
 colon_id(IdAsAtom) -->
     whites, ":", whites,
-    nonblanks(IdCodes),
-    blanks_to_nl, !,
-    { atom_codes(IdAsAtom, IdCodes) }.
+    bidi(nonblanks, atom_codes, IdAsAtom),
+    blanks_to_nl, !.
 
-% For figuring out where a parse fails:
-% trace_format(Format, Args) :- format(Format, Args).
-trace_format(_Format, _Args).
+%! bidi(Element, Conversion, Converted)//2 is det.
+% Does call(Element, Codes), { call(Conversion, Converted, Codes) }
+% in appropriate order, depending on how the arguments are instantiated.
+% ("bidi" for "bidrectional")
+bidi(Element, Conversion, Converted) -->
+    % Could also be done:
+    %    { when( (ground(Converted) ; ground(Codes) ),
+    %        call(Convert, Converted, Codes) ) },
+    %    call(Element, Codes)
+    (   { var(Converted) }
+    ->  call(Element, Codes),
+        { call(Conversion, Converted, Codes) }
+    ;   { call(Conversion, Converted, Codes) },
+        call(Element, Codes)
+    ).
 
 end_of_file.
