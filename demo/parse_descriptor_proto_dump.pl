@@ -5,6 +5,12 @@
 %% that, use protoc --descriptor_set_out [--include_imports] and
 %% process that protobuf.
 
+% This code is reversible -- that is, you can do this, where
+% `Term` is ground but `Codes` isn't:
+%    `phrase(file(Term), Codes), string_codes(String, Codes)`
+% However, it doesn't do nice indentation.
+% TODO: pass around an indentation level (optional) for pretty-printing.
+
 :- use_module(library(dcg/basics)).
 :- use_module(library(dcg/high_order)).
 
@@ -115,22 +121,30 @@ options_file(options{java_package: V_java_package,
 
 
 left_brace(Type) -->
-    whites, atom(Type), whites, "{", blanks_to_nl, !,
+    whites,
+    bidi_nonblanks(Type),
+    whites, "{", blanks_to_nl, !,
     { trace_format('~q {~n', [Type]) }.
 
 right_brace -->
     whites, "}", blanks_to_nl, !.
 
 tag_colon_string(Tag, StringAsAtom) -->
-    whites, atom(Tag), colon_string(StringAsAtom),
+    whites,
+    bidi_nonblanks(Tag),
+    colon_string(StringAsAtom),
     { trace_format('  ~q : ~q~n', [Tag, StringAsAtom]) }.
 
 tag_colon_number(Tag, Number) -->
-    whites, atom(Tag), colon_number(Number),
+    whites,
+    bidi_nonblanks(Tag),
+    colon_number(Number),
     { trace_format('  ~q : ~q~n', [Tag, Number]) }.
 
 tag_colon_id(Tag, IdAsAtom) -->
-    whites, atom(Tag), colon_id(IdAsAtom),
+    whites,
+    bidi_nonblanks(Tag),
+    colon_id(IdAsAtom),
     { trace_format('  ~q : ~q~n', [Tag, IdAsAtom]) }.
 
 optional_tag_colon_string(Tag, StringAsAtom) -->
@@ -142,25 +156,33 @@ optional_tag_colon_number(Tag, Number) -->
 optional_tag_colon_id(Tag, IdAsAtom) -->
     optional(tag_colon_id(Tag, IdAsAtom), {IdAsAtom=''}).
 
+bidi_nonblanks(Atom) -->
+    { when( (ground(Atom) ; ground(AtomCodes) ),
+            atom_codes(Atom, AtomCodes) ) },
+    nonblanks(AtomCodes).
+
 colon_string(StringAsAtom) -->
+    { when(( ground(StringAsAtom) ; ground(StringCodes) ),
+           atom_codes(StringAsAtom, StringCodes) ) },
     whites, ":", whites,
     "\"",
     string_without("\"", StringCodes),
     "\"",
-    blanks_to_nl, !,
-    { atom_codes(StringAsAtom, StringCodes) }.
+    blanks_to_nl, !.
 
 colon_number(Number) -->
+    { when( (ground(Number) ; ground(Digits) ),
+            number_codes(Number, Digits) ) },
     whites, ":", whites,
     digits(Digits),
-    blanks_to_nl, !,
-    { number_codes(Number, Digits) }.
+    blanks_to_nl, !.
 
 colon_id(IdAsAtom) -->
+    { when( (ground(IdAsAtom) ; ground(IdCodes) ),
+            atom_codes(IdAsAtom, IdCodes) ) },
     whites, ":", whites,
     nonblanks(IdCodes),
-    blanks_to_nl, !,
-    { atom_codes(IdAsAtom, IdCodes) }.
+    blanks_to_nl, !.
 
 % For figuring out where a parse fails:
 % trace_format(Format, Args) :- format(Format, Args).
