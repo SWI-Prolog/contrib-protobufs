@@ -11,8 +11,21 @@
 % However, it doesn't do nice indentation.
 % TODO: pass around an indentation level (optional) for pretty-printing.
 
-:- use_module(library(dcg/basics)).
-:- use_module(library(dcg/high_order)).
+:- module(parse_descriptor_proto_dump,
+          [parse_descriptor/0,
+           parse_descriptor/1,
+           parse_file/2,
+           file//1]).
+
+:- use_module(library(dcg/basics),
+              [whites//0,
+               digits//1,
+               nonblanks//1,
+               string_without//2,
+               blanks_to_nl//0]).
+:- use_module(library(dcg/high_order),
+              [sequence//2,
+               optional//2]).
 
 % Use one of these to process the file:
 
@@ -178,10 +191,8 @@ colon_number(Number) -->
     blanks_to_nl, !.
 
 colon_id(IdAsAtom) -->
-    { when( (ground(IdAsAtom) ; ground(IdCodes) ),
-            atom_codes(IdAsAtom, IdCodes) ) },
     whites, ":", whites,
-    nonblanks(IdCodes),
+    bidi_nonblanks(IdAsAtom),
     blanks_to_nl, !.
 
 % For figuring out where a parse fails:
