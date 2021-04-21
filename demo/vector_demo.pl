@@ -316,8 +316,11 @@ test_segment_messages :-
     % Check that it reverses:
     protobuf_segment_message(Segments, WireStream2),
     assertion(WireStream == WireStream2),
-    % And print it out in all its glory:
-    print_term(Segments, [tab_width(0), right_margin(88)]), nl.
+    Segments = [message(1, MessageSegments)],
+    length(MessageSegments, MessageSegmentsLen),
+    format('test_segment_messages succeeded with ~d segment(s) in the message.~n', [MessageSegmentsLen]),
+    % And print it out in all its glory (but it's rather long, so don't, for now)
+    true. % print_term(Segments, [tab_width(0), right_margin(88)]), nl.
 
 test_segment_assertions :-
     % Check that we can reinterpret a segment that comes out

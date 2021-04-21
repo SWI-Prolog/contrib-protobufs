@@ -24,9 +24,11 @@
 .SUFFIXES: .proto .cpp .cc .o .proto.msg .py
 
 .PHONY: FORCE check clean docs
-.PHONY: test_basic_usage test_segment_messages test_send_command test_send_precompiled_command
+.PHONY: test_all test_basic_usage test_segment_messages test_send_command test_send_precompiled_command
 
-.DEFAULT_GOAL=check
+.DEFAULT_GOAL=test_all
+
+test_all: check test_basic_usage test_segment_messages test_send_command test_send_precompiled_command
 
 # SHELL:=/bin/bash
 # PROTOC=$(shell type -p protoc)
