@@ -135,7 +135,7 @@ options_file(options{java_package: V_java_package,
 
 left_brace(Type) -->
     whites,
-    bidi_nonblanks(Type),
+    bidi_atom(Type),
     whites, "{", blanks_to_nl, !,
     { trace_format('~q {~n', [Type]) }.
 
@@ -144,19 +144,19 @@ right_brace -->
 
 tag_colon_string(Tag, StringAsAtom) -->
     whites,
-    bidi_nonblanks(Tag),
+    bidi_atom(Tag),
     colon_string(StringAsAtom),
     { trace_format('  ~q : ~q~n', [Tag, StringAsAtom]) }.
 
 tag_colon_number(Tag, Number) -->
     whites,
-    bidi_nonblanks(Tag),
+    bidi_atom(Tag),
     colon_number(Number),
     { trace_format('  ~q : ~q~n', [Tag, Number]) }.
 
 tag_colon_id(Tag, IdAsAtom) -->
     whites,
-    bidi_nonblanks(Tag),
+    bidi_atom(Tag),
     colon_id(IdAsAtom),
     { trace_format('  ~q : ~q~n', [Tag, IdAsAtom]) }.
 
@@ -168,11 +168,6 @@ optional_tag_colon_number(Tag, Number) -->
 
 optional_tag_colon_id(Tag, IdAsAtom) -->
     optional(tag_colon_id(Tag, IdAsAtom), {IdAsAtom=''}).
-
-bidi_nonblanks(Atom) -->
-    { when( (ground(Atom) ; ground(AtomCodes) ),
-            atom_codes(Atom, AtomCodes) ) },
-    nonblanks(AtomCodes).
 
 colon_string(StringAsAtom) -->
     { when(( ground(StringAsAtom) ; ground(StringCodes) ),
@@ -192,8 +187,13 @@ colon_number(Number) -->
 
 colon_id(IdAsAtom) -->
     whites, ":", whites,
-    bidi_nonblanks(IdAsAtom),
+    bidi_atom(IdAsAtom),
     blanks_to_nl, !.
+
+bidi_atom(Atom) -->
+    { when( (ground(Atom) ; ground(AtomCodes) ),
+            atom_codes(Atom, AtomCodes) ) },
+    nonblanks(AtomCodes).
 
 % For figuring out where a parse fails:
 % trace_format(Format, Args) :- format(Format, Args).
