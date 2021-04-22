@@ -21,7 +21,7 @@
 # This demo was tested with protoc versions 3.6.1 and 3.15.8
 # on Ubuntu 20.04.2.
 
-.SUFFIXES: .proto .cpp .cc .o .proto.msg .py
+.SUFFIXES: .proto .cpp .cc .o .proto.msg .py .proto.rawdump .proto.dump .proto.rawdump
 
 .PHONY: FORCE check clean docs
 .PHONY: test_all test_basic_usage test_segment_messages test_send_command test_send_precompiled_command
@@ -36,9 +36,13 @@ PROTOC=protoc
 SWIPL=swipl
 
 # The following correspond to the default rules in GNU Make 4.2.1
-# CC=gcc
+# (There are no *.c files, only C++)
 # CXX=g++
 RM=rm -f
+
+# The following is essentially GNU Make's built-in rule::
+# %o: %.cpp
+# 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $^
 
 # -Wall produces warnings from the generated *.pb.cc files
 CFLAGS=-O3
@@ -78,9 +82,11 @@ descriptor.proto.msg: $(SRC_PROTOBUF)/src/google/protobuf/descriptor.proto
 		-I$(SRC_PROTOBUF)/src/google/protobuf \
 		descriptor.proto
 
+foo.o: pb-vector.pb.h foo.cpp
+
 # foo: foo.cpp pb-vector.pb.cc pb-vector.pb.h
 foo: pb-vector.pb.o foo.o
-	@# -static might not be needed, but you might require setting LD_LIBRARY_PATH
+	@# To run, you might require setting LD_LIBRARY_PATH or specify -static
 	$(CXX) -o $@ $^ $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS)
 
 tmp99.tmp: vector_demo.pl ../eventually_implies.pl
