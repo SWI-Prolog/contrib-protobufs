@@ -39,7 +39,8 @@
 :- asserta(user:file_search_path(library, .)).
 :- asserta(user:file_search_path(foreign, .)).
 
-:- use_module(library(protobufs)).
+% :- use_module(library(protobufs)). %% DO NOT SUBMIT
+:- use_module(protobufs). %% DO NOT SUBMIT
 
 :- use_module(eventually_implies).   % ~> operator
 
@@ -95,16 +96,16 @@ golden_message(Proto) :-
                        atom(14, '115'),
                        codes(15, Codes116),
                        group(16, [unsigned(17, 117)]),
-                       embedded(18, protobuf([unsigned(1, 118)])), % nested_message
-                       embedded(19, protobuf([unsigned(1, 119)])), % foreign_message
-                       embedded(20, protobuf([unsigned(1, 120)])),  % import message
-                       enum(21, nested_enum(baz)),    % nested_enum  BAZ
-                       enum(22, foreign_enum(baz)),     % nested_enum  FOREIGN_BAZ
-                       enum(23, import_enum(baz)),     %  nested_enum IMPORT_BAZ
-                       string(24, String124),   % string_piece
-                       string(25, String125),   % cord
-                       codes(26, [8, 126]),        % public_import_message
-                       codes(27, [8, 127]),        % lazy message
+                       embedded(18, protobuf([unsigned(1, 118)])),             % nested_message
+                       embedded(19, protobuf([unsigned(1, 119)])),             % foreign_message
+                       embedded(20, protobuf([unsigned(1, 120)])),             % import message
+                       enum(21, nested_enum(baz)),                             % nested_enum  BAZ
+                       enum(22, foreign_enum(baz)),                            % nested_enum  FOREIGN_BAZ
+                       enum(23, import_enum(baz)),                             %  nested_enum IMPORT_BAZ
+                       string(24, String124),                                  % string_piece
+                       string(25, String125),                                  % cord
+                       codes(26, [8, 126]),                                    % public_import_message
+                       codes(27, [8, 127]),                                    % lazy message
                        repeated(31, unsigned([201, 301])),
                        repeated(32, unsigned([202, 302])),
                        repeated(33, unsigned([203, 303])),
@@ -126,15 +127,15 @@ golden_message(Proto) :-
                        repeated(49, embedded([protobuf([unsigned(1, 219)]),
                                               protobuf([unsigned(1, 319)])])), % foreign
                        repeated(50, embedded([protobuf([unsigned(1, 220)]),
-                                              protobuf([unsigned(1, 320)])])),  % import
+                                              protobuf([unsigned(1, 320)])])), % import
                        repeated(51, enum(nested_enum([bar, baz]))),
                        repeated(52, enum(foreign_enum([bar, baz]))),
                        repeated(53, enum(import_enum([bar, baz]))),
-                       repeated(54, string([String224, String324])),   % string_piece
-                       repeated(55, codes([Codes225, Codes325])),    % cord
-                       repeated(57, embedded([protobuf([unsigned(1,227)]), % lazy msg
+                       repeated(54, string([String224, String324])),           % string_piece
+                       repeated(55, codes([Codes225, Codes325])),              % cord
+                       repeated(57, embedded([protobuf([unsigned(1,227)]),     % lazy msg
                                               protobuf([unsigned(1,327)])])),
-                       unsigned(61, 401),  % default_int32
+                       unsigned(61, 401),                                      % default_int32
                        unsigned(62, 402),
                        unsigned(63, 403),
                        unsigned(64, 404),
@@ -173,16 +174,16 @@ golden_message_template(Proto) :-
                        atom(_, _),
                        codes(_, _),
                        group(_, [unsigned(_, _)]),
-                       embedded(_, protobuf([unsigned(_, _)])), % nested_message
-                       embedded(_, protobuf([unsigned(_, _)])), % foreign_message
-                       embedded(_, protobuf([unsigned(_, _)])),  % import message
-                       enum(_, nested_enum(_)),    % nested_enum  BAZ
-                       enum(_, foreign_enum(_)),     % nested_enum  FOREIGN_BAZ
-                       enum(_, import_enum(_)),     %  nested_enum IMPORT_BAZ
-                       string(_, _),   % string_piece
-                       string(_, _),   % cord
-                       codes(_, _),        % public_import_message
-                       codes(_, _), %lazy message
+                       embedded(_, protobuf([unsigned(_, _)])),             % nested_message
+                       embedded(_, protobuf([unsigned(_, _)])),             % foreign_message
+                       embedded(_, protobuf([unsigned(_, _)])),             % import message
+                       enum(_, nested_enum(_)),                             % nested_enum  BAZ
+                       enum(_, foreign_enum(_)),                            % nested_enum  FOREIGN_BAZ
+                       enum(_, import_enum(_)),                             %  nested_enum IMPORT_BAZ
+                       string(_, _),                                        % string_piece
+                       string(_, _),                                        % cord
+                       codes(_, _),                                         % public_import_message
+                       codes(_, _),                                         %lazy message
                        repeated(_, unsigned(_)),
                        repeated(_, unsigned(_)),
                        repeated(_, unsigned(_)),
@@ -204,15 +205,15 @@ golden_message_template(Proto) :-
                        repeated(_, embedded([protobuf([unsigned(_, _)]),
                                              protobuf([unsigned(_, _)])])), % foreign
                        repeated(_, embedded([protobuf([unsigned(_, _)]),
-                                             protobuf([unsigned(_, _)])])),  % import
+                                             protobuf([unsigned(_, _)])])), % import
                        repeated(_, enum(nested_enum(_))),
                        repeated(_, enum(foreign_enum(_))),
                        repeated(_, enum(import_enum(_))),
-                       repeated(_, string(_)),   % string_piece
-                       repeated(_, codes(_)),    % cord
+                       repeated(_, string(_)),                              % string_piece
+                       repeated(_, codes(_)),                               % cord
                        repeated(_, embedded([protobuf([unsigned(_,_)]),
                                              protobuf([unsigned(_,_)])])),
-                       unsigned(_, _),  % default_int_
+                       unsigned(_, _),                                      % default_int_
                        unsigned(_, _),
                        unsigned(_, _),
                        unsigned(_, _),
