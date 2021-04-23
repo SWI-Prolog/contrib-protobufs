@@ -156,6 +156,10 @@ protobufs:commands(Key, Value) :-
 send_command(Command, Vector, Msg) :-
     basic_vector(Vector, Proto1),
     Proto = protobuf([enum(1, commands(Command)), embedded(2, Proto1)]),
+    % e.g., if Command=square, Proto1=protobuf([repeated(2,double([1,22,3,4]))])
+    %       Proto=protobuf([ enum(1,commands(square)),
+    %                        embedded(2,protobuf([repeated(2,double([1,22,3,4]))]))
+    %                      ])
     protobuf_message(Proto, Msg).
 
 test_send_command :-
