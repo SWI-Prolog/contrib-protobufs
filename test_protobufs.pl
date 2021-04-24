@@ -247,7 +247,7 @@ test_protobufs :-
 
     test_input('./golden_message.2.5.0', Gold250),
     announce('Loading Google''s Golden Wirestream (2.5.0)...', Test1a),
-    (   read_file_to_codes(Gold250, Wirestream, [type(binary)])
+    (   read_file_to_codes(Gold250, Wirestream, [encoding(octet),type(binary)])
     ->  Test1a = ok
     ),
     !,

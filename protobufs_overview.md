@@ -549,12 +549,12 @@ On the Prolog side:
 
   write_as_proto(Vector) :-
     vector(Vector, Wirestream),
-    open('tmp99.tmp', write, S, [type(binary)])
+    open('tmp99.tmp', write, S, [encoding(octet),type(binary)])
       ~> close(S),
     format(S, '~s', [Wirestream]), !.
 
   testv1(V) :-
-    read_file_to_codes('tmp99.tmp', Codes, [type(binary)]),
+    read_file_to_codes('tmp99.tmp', Codes, [encoding(octet),type(binary)]),
     vector(V, Codes).
 ```
 

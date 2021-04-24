@@ -41,7 +41,7 @@ parse_descriptor(Term) :-
     parse_file('descriptor.proto.dump', Term).
 
 parse_file(File, Term) :-
-    read_file_to_codes(File, Codes, [type(binary)]),
+    read_file_to_codes(File, Codes, [encoding(octet),type(binary)]),
     phrase(file(Term), Codes).
 
 test_parse_round_trip :-

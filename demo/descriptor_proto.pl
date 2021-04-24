@@ -12,25 +12,27 @@
 % And then run through parse_descriptor_proto_dump.pl
 % (parse_descriptor/0).
 
-:- use_module(descriptor_proto_expand, [x_file//1]).
+:- module(descriptor_proto,
+          [                                 % Term expansion creates the following facts:
+           proto_package/3,                 %   proto_package(Package, FileName, Options)
+           proto_message_type/3,            %   proto_message_type(            Fqn, Package, Name)
+           proto_field_name/3,              %   proto_field_name(              FqnName, Fqn, Name)
+           proto_field_number/2,            %   proto_field_number(            FqnName, Number)
+           proto_field_json_name/2,         %   proto_field_json_name(         FqnName, JsonName)
+           proto_field_label/2,             %   proto_field_label(             FqnName, Label)
+           proto_field_type/2,              %   proto_field_type(              FqnName, Type)
+           proto_field_type_name/2,         %   proto_field_type_name(         FqnName, TypeName)
+           proto_field_default_value/2,     %   proto_field_default_value(     FqnName, DefaultValue)
+           proto_field_option_deprecated/1, %   proto_field_option_deprecated( FqnName)
+           proto_field_option_packed/1,     %   proto_field_option_packed(     FqnName)
+           proto_nested_type/3,             %   proto_nested_type(             FqnName, Fqn, Name)
+           proto_enum_type/3,               %   proto_enum_type(               FqnName, Fqn, Name)
+           proto_enum_value/3,              %   proto_enum_value(              FqnName, Name, Number)
+           proto_extension_range/3,         %   proto_extension_range(         FqnName, Start, End)
+           proto_reserved_range/3           %   proto_reserved_range(          FqnName, Start, End)
+          ]).
 
-% Term expansion creates the following facts:
-%   proto_package(Package, FileName, Options)
-%   proto_message_type(Fqn, Package, Name)
-%   proto_field_name(FqnName, Name)
-%   proto_field_number(FqnName, Number)
-%   proto_field_json_name(FqnName, JsonName)
-%   proto_field_label(FqnName, Label)
-%   proto_field_type(FqnName, Type)
-%   proto_field_type_name(FqnName, TypeName)
-%   proto_field_default_value(FqnName, DefaultValue)
-%   proto_field_option_deprecated(FqnName)
-%   proto_field_option_packed(FqnName)
-%   proto_nested_type(FqnName, Fqn, Name)
-%   proto_enum_type(FqnName, Fqn, Name)
-%   proto_enum_value(Fqn, Name, Number)
-%   proto_extension_range(Fqn, Start, End)
-%   proto_reserved_range(Fqn, Start, End)
+:- use_module(descriptor_proto_expand, [x_file//1]).
 
 term_expansion(descriptor_proto(Proto), Expansion) :-
     phrase(x_file(Proto), ExpansionRaw),

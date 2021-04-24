@@ -32,7 +32,7 @@ x_message_type(Package,
 x_field(Fqn, field{name:Name, number:Number, label:Label, type:Type, type_name:TypeName,
                    default_value:DefaultValue, options:Options, json_name:JsonName}) -->
     { atomic_list_concat([Fqn, Name], '.', FqnName) },
-    [ proto_field_name(FqnName, Name) ],
+    [ proto_field_name(FqnName, Fqn, Name) ],
     [ proto_field_number(FqnName, Number) ],
     [ proto_field_json_name(FqnName, JsonName) ],
     [ proto_field_label(FqnName, Label) ],

@@ -25,7 +25,8 @@
            test_xml/2
           ]).
 
-:- use_module(library(protobufs)).
+% :- use_module(library(protobufs)).  %% DO NOT SUBMIT
+:- use_module('../protobufs'). %% DO NOT SUBMIT
 :- use_module(library(error)).
 :- use_module('../eventually_implies'). % For ~>
 
@@ -135,13 +136,13 @@ vector(TypedList, WireCodes):-
 % TypedList is of the form Type(List) - see vector_type/2
 write_as_proto(TypedList) :-
     vector(TypedList, Z),
-    open('tmp99.tmp', write, S, [type(binary)])
+    open('tmp99.tmp', write, S, [encoding(octet),type(binary)])
       ~> close(S),
     format(S, '~s', [Z]), % ~s: list of character codes
     !.
 
 read_from_proto(V) :-
-    read_file_to_codes('tmp99.tmp', Codes, [type(binary)]),
+    read_file_to_codes('tmp99.tmp', Codes, [encoding(octet),type(binary)]),
     vector(V, Codes).
 
 protobufs:commands(Key, Value) :-
@@ -160,6 +161,10 @@ send_command(Command, Vector, Msg) :-
     %       Proto=protobuf([ enum(1,commands(square)),
     %                        embedded(2,protobuf([repeated(2,double([1,22,3,4]))]))
     %                      ])
+    % protobuf:commands/2 is used to expand an enum: the code in
+    % library(protobufs) expands an` enum(Tag,Type)` by calling `Type`,
+    % so enum(1,commands(square)) gets turned into enum(1,1) by calling
+    % protobufs:commands(square,Value) => Value=1
     protobuf_message(Proto, Msg).
 
 test_send_command :-
@@ -315,7 +320,7 @@ test_xml :-
 % the output from protoc --decode_raw
 test_segment_messages :-
     assertion(test_segment_assertions),
-    read_file_to_codes('descriptor.proto.msg', WireStream, [type(binary)]),
+    read_file_to_codes('descriptor.proto.msg', WireStream, [encoding(octet),type(binary)]),
     protobuf_segment_message(Segments, WireStream),
     % Check that it reverses:
     protobuf_segment_message(Segments, WireStream2),
