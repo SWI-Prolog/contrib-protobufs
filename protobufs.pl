@@ -37,10 +37,13 @@
             protobuf_message/3,   % ?Template ?Codes ?Rest
             protobuf_segment_message/2,  % ?Segment ?Message
             protobuf_segment_convert/2,  % +Form1 ?Form2
+            int32_codes/2,
             float32_codes/2,
             int64_codes/2,
             float64_codes/2,
-            integer_zigzag/2
+            integer_zigzag/2,
+            protobuf_var_int//1,
+            protobuf_tag_type//2
           ]).
 :- autoload(library(error),[must_be/2]).
 :- autoload(library(lists),[append/3]).
@@ -134,43 +137,43 @@ code_string(N, Codes) -->
 % deal with Google's method of packing unsigned integers in variable
 % length, modulo 128 strings.
 %
-% var_int//1 and tag_type//2 productions were rewritten in straight
+% protobuf_var_int//1 and protobuf_tag_type//2 productions were rewritten in straight
 % Prolog for speed's sake.
 %
 
-%! var_int(?A:int, ?Rest:list, ?Rest1:list) is det.
+%! protobuf_var_int(?A:int, ?Rest:list, ?Rest1:list) is det.
 % Conversion between an int A and a list of codes, using the
 % "varint" encoding.
 % Rest, Rest1 are a DCG difference list
-% e.g. var_int(300, S, []) => S = [172,2]
-%      var_int(A, [172,2]) -> A = 300
-var_int(A, [A | Rest], Rest) :-
+% e.g. protobuf_var_int(300, S, []) => S = [172,2]
+%      protobuf_var_int(A, [172,2]) -> A = 300
+protobuf_var_int(A, [A | Rest], Rest) :-
     A < 128,
     !.
-var_int(X, [A | Rest], Rest1) :-
+protobuf_var_int(X, [A | Rest], Rest1) :-
     nonvar(X),
     X1 is X >> 7,
     A is 128 + (X /\ 0x7f),
-    var_int(X1, Rest, Rest1),
+    protobuf_var_int(X1, Rest, Rest1),
     !.
-var_int(X, [A | Rest], Rest1) :-
-    var_int(X1, Rest, Rest1),
+protobuf_var_int(X, [A | Rest], Rest1) :-
+    protobuf_var_int(X1, Rest, Rest1),
     X is (X1 << 7) + A - 128,
     !.
 
-%! tag_type(?Tag:int, ?Type:atom, ?Rest, Rest1) is det.
+%! protobuf_tag_type(?Tag:int, ?Type:atom, ?Rest, Rest1) is det.
 % Conversion between Tag (number) + Type and list of codes.
 % Tag: The item's tag (field number)
 % Type: The item's type (see prolog_type//2)
 % Rest, Rest1 are a DCG difference list
-tag_type(Tag, Type, Rest, Rest1) :-
+protobuf_tag_type(Tag, Type, Rest, Rest1) :-
     nonvar(Tag), nonvar(Type),
     wire_type(Type, X),
     A is Tag << 3 \/ X,
-    var_int(A, Rest, Rest1),
+    protobuf_var_int(A, Rest, Rest1),
     !.
-tag_type(Tag, Type, Rest, Rest1) :-
-    var_int(A, Rest, Rest1),
+protobuf_tag_type(Tag, Type, Rest, Rest1) :-
+    protobuf_var_int(A, Rest, Rest1),
     X is A /\ 0x07,
     wire_type(Type, X),
     Tag is A >> 3.
@@ -179,33 +182,40 @@ tag_type(Tag, Type, Rest, Rest1) :-
 % Convert between Tag (field number) + Type and list of codes.
 % When Type is a variable, backtracks through all the possibilities
 % for a given wire encoding.
-prolog_type(Tag, double) -->     tag_type(Tag, fixed64).
-prolog_type(Tag, integer64) -->  tag_type(Tag, fixed64).
-prolog_type(Tag, float) -->      tag_type(Tag, fixed32).
-prolog_type(Tag, integer32) -->  tag_type(Tag, fixed32).
-prolog_type(Tag, integer) -->    tag_type(Tag, varint).
-prolog_type(Tag, unsigned) -->   tag_type(Tag, varint).
-prolog_type(Tag, boolean) -->    tag_type(Tag, varint).
-prolog_type(Tag, enum) -->       tag_type(Tag, varint).
-prolog_type(Tag, atom) -->       tag_type(Tag, length_delimited).
-prolog_type(Tag, codes) -->      tag_type(Tag, length_delimited).
-prolog_type(Tag, utf8_codes) --> tag_type(Tag, length_delimited).
-prolog_type(Tag, string) -->     tag_type(Tag, length_delimited).
-prolog_type(Tag, embedded) -->   tag_type(Tag, length_delimited).
+prolog_type(Tag, double) -->     protobuf_tag_type(Tag, fixed64).
+prolog_type(Tag, integer64) -->  protobuf_tag_type(Tag, fixed64).
+prolog_type(Tag, float) -->      protobuf_tag_type(Tag, fixed32).
+prolog_type(Tag, integer32) -->  protobuf_tag_type(Tag, fixed32).
+prolog_type(Tag, integer) -->    protobuf_tag_type(Tag, varint).
+prolog_type(Tag, unsigned) -->   protobuf_tag_type(Tag, varint).
+prolog_type(Tag, boolean) -->    protobuf_tag_type(Tag, varint).
+prolog_type(Tag, enum) -->       protobuf_tag_type(Tag, varint).
+prolog_type(Tag, atom) -->       protobuf_tag_type(Tag, length_delimited).
+prolog_type(Tag, codes) -->      protobuf_tag_type(Tag, length_delimited).
+prolog_type(Tag, utf8_codes) --> protobuf_tag_type(Tag, length_delimited).
+prolog_type(Tag, string) -->     protobuf_tag_type(Tag, length_delimited).
+prolog_type(Tag, embedded) -->   protobuf_tag_type(Tag, length_delimited).
 %
 %   The protobuf-2.1.0 grammar allows negative values in enums.
 %   But they are encoded as unsigned in the  golden message.
 %   Encode as integer and lose. Encode as unsigned and win.
 %
-:- meta_predicate enumeration(1,*,*).
+:- meta_predicate enumeration(1,?,?).
 
 enumeration(Type) -->
     { call(Type, Value) },
     payload(unsigned, Value).
 
+% TODO: payload//2 "mode" is sometimes module-sensitive, sometimes not.
+%       payload(enum, A)// has A as a callable
+%       all other uses of payload//2, the 2nd arg is not callable.
+%     - This confuses check/0; it also makes defining an enumeration
+%       more difficult because it has to be defined in module protobufs
+%       (see vector_demo.pl, which defines protobufs:commands/2)
+
 payload(enum, A) -->
     enumeration(A).
-payload(double,  A) -->
+payload(double, A) -->
     fixed_float64(A).
 payload(integer64, A) -->
     fixed_int64(A).
@@ -216,22 +226,22 @@ payload(integer32, A) -->
 payload(integer, A) -->
     { nonvar(A), integer_zigzag(A,X) },
     !,
-    var_int(X).
+    protobuf_var_int(X).
 payload(integer, A) -->
-    var_int(X),
+    protobuf_var_int(X),
     { integer_zigzag(A, X) }.
 payload(unsigned, A) -->
     {   nonvar(A)
     ->  A >= 0
     ;   true
     },
-    var_int(A).
+    protobuf_var_int(A).
 payload(codes, A) -->
     { nonvar(A), !, length(A, Len)},
-    var_int(Len),
+    protobuf_var_int(Len),
     code_string(Len, A).
 payload(codes, A) -->
-    var_int(Len),
+    protobuf_var_int(Len),
     code_string(Len, A).
 payload(utf8_codes, A) -->
     { nonvar(A),
@@ -272,9 +282,9 @@ payload(embedded, protobuf(A)) -->
     payload(codes, Codes),
     { phrase(protobuf(A), Codes) }.
 
-start_group(Tag) -->            tag_type(Tag, start_group).
+start_group(Tag) --> protobuf_tag_type(Tag, start_group).
 
-end_group(Tag) -->              tag_type(Tag, end_group).
+end_group(Tag) -->   protobuf_tag_type(Tag, end_group).
 %
 %
 nothing([]) --> [], !.
@@ -415,13 +425,13 @@ segment_message([]) --> [].
 segment_message([Segment|Segments]) -->
     { var(Segment) },
     !,
-    tag_type(Tag, Type),
+    protobuf_tag_type(Tag, Type),
     segment(Type, Tag, Segment),
     segment_message(Segments).
 segment_message([Segment|Segments]) -->
     % { nonvar(Segment) },
     { segment_type_tag(Segment, Type, Tag) },
-    tag_type(Tag, Type),
+    protobuf_tag_type(Tag, Type),
     segment(Type, Tag, Segment),
     segment_message(Segments).
 
@@ -435,7 +445,7 @@ segment_type_tag(message(Tag,_Segments),       length_delimited, Tag).
 segment_type_tag(string(Tag,_String),          length_delimited, Tag).
 
 segment(varint, Tag, varint(Tag,Value)) -->
-    var_int(Value).
+    protobuf_var_int(Value).
 segment(fixed64, Tag, fixed64(Tag, [A0,A1,A2,A3,A4,A5,A6,A7])) -->
     [A0, A1, A2, A3, A4, A5, A6, A7].
 segment(start_group, Tag, start_group(Tag)) --> [].
@@ -450,11 +460,11 @@ segment_length_delimited(Tag, Result) -->
     !,
     { length_delimited_segment(Result, Tag, Codes) },
     { length(Codes, CodesLen) },
-    var_int(CodesLen),
+    protobuf_var_int(CodesLen),
     code_string(CodesLen, Codes).
 segment_length_delimited(Tag, Result) -->
     % { var(Result) },
-    var_int(CodesLen),
+    protobuf_var_int(CodesLen),
     code_string(CodesLen, Codes),
     { length_delimited_segment(Result, Tag, Codes) }.
 
@@ -518,7 +528,7 @@ protobuf_segment_convert_string(Codes, Tag, string(Tag,String)) :-
 protobuf_segment_convert_string(Codes, Tag, length_delimited(Tag,Codes)).
 
 tag_and_codes(Tag, Codes) -->
-    tag_type(Tag, length_delimited),
+    protobuf_tag_type(Tag, length_delimited),
     payload(codes, Codes).
 
 
