@@ -91,7 +91,7 @@ field(Indent0, field{name:Name, number:Number, label:Label, type:Type, type_name
     optional_tag_colon_id(Indent, "type", Type),
     optional_tag_colon_string(Indent, "type_name", TypeName),
     optional_tag_colon_string(Indent, "default_value", DefaultValue),
-    optional(options(Indent, Options), {Options=[]}),
+    optional(options(Indent, Options), {Options=options{}}),
     optional_tag_colon_string(Indent, "json_name", JsonName),
     right_brace(Indent0), !.
 

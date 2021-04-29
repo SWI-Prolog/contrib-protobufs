@@ -491,11 +491,16 @@ length_delimited_segment(string(Tag,String), Tag, Codes) :-
     !.
 length_delimited_segment(length_delimited(Tag,Codes), Tag, Codes).
 
-%! protobuf_segment_convert(+Form1, -Form2) is multi.
+%! protobuf_segment_convert(+Form1, ?Form2) is multi.
 % A convenience predicate for dealing with the situation where
 % protobuf_segment_message/2 interprets a segment of the wire stream
 % as a form that you don't want (e.g., as a message but it should have
 % been a UTF8 string).
+%
+% The possible conversions are:
+%   message(Tag,Segments) => string(Tag,String)
+%   message(Tag,Segments) => length_delimited(Tag,Codes)
+%   string(Tag,String) => length_delimited(Tag,Codes)
 %
 % For example:
 % ==
@@ -512,8 +517,8 @@ length_delimited_segment(length_delimited(Tag,Codes), Tag, Codes).
 %
 %  @bug This predicate is preliminary and may change as additional
 %       functionality is added.
-%  @tbd Make this bidirectional, so it fits better
-%       with the style of protobuf_meessage/2.
+%  @bug This predicate will sometimes generate unexpected choice points,
+%       Such as from protobuf_segment_convert(message(10,...), string(10,...))`
 %
 % @param Form1 =|message(Tag,Pieces)|= or =|string(Tag,String)|=.
 % @param Form2 =|string(Tag,String)|= or =|length_delimited(Tag,Codes)|=.

@@ -1,4 +1,5 @@
 *.proto.msg
+addressbook.proto.dump
 foo
 *.pb.cc
 *.pb.h

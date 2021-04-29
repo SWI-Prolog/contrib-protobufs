@@ -115,7 +115,7 @@ test_send_precompiled_command: vector_demo.pl FORCE
 
 clean:
 	@# TODO: special handling for descriptor.* files
-	$(RM) -r foo *.o *.pb.cc *.pb.h *.tmp *_pb2.py *.proto.msg doc/ *.proto.rawdump
+	$(RM) -r foo *.o *.pb.cc *.pb.h *.tmp *_pb2.py *.proto.msg doc/ *.proto.rawdump addressbook.proto.dump
 
 # Generate the documentation from ../protobufs.pl
 # The result is in ../doc/protobufs.html
@@ -133,12 +133,22 @@ addressbook.proto.dump: addressbook.proto.msg
 		descriptor.proto \
 		<$? >$@
 
+.PHONY: addressbook.segment
+addressbook.segment: descriptor_proto.pl addressbook.proto.msg FORCE
+	swipl -g "descriptor_segment('addressbook.proto.msg', Msg), print_term(Msg, []), halt." descriptor_proto.pl
+
+.PHONY: descriptor.segment
+descriptor.segment: descriptor_proto.pl descriptor.proto.msg FORCE
+	swipl -g "descriptor_segment('descriptor.proto.msg', Msg), print_term(Msg, []), halt." descriptor_proto.pl
 
 descriptor.proto.dump: descriptor.proto.msg
 	$(PROTOC) -I. -I$(SRC_PROTOBUF)/src/google/protobuf \
 		--decode=google.protobuf.FileDescriptorSet \
 		descriptor.proto \
 		<$? >$@
+
+descriptor.proto.parse: descriptor.proto.dump parse_descriptor_proto_dump.pl FORCE
+	swipl -g parse_descriptor -g halt parse_descriptor_proto_dump.pl
 
 descriptor.proto.rawdump: descriptor.proto.msg
 	$(PROTOC) --decode_raw <descriptor.proto.msg >$@
