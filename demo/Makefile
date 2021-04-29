@@ -127,6 +127,13 @@ docs:
 
 SRC_PROTOBUF=$(HOME)/src/protobuf
 
+addressbook.proto.dump: addressbook.proto.msg
+	$(PROTOC) -I. -I$(SRC_PROTOBUF)/src/google/protobuf \
+		--decode=google.protobuf.FileDescriptorSet \
+		descriptor.proto \
+		<$? >$@
+
+
 descriptor.proto.dump: descriptor.proto.msg
 	$(PROTOC) -I. -I$(SRC_PROTOBUF)/src/google/protobuf \
 		--decode=google.protobuf.FileDescriptorSet \
@@ -135,3 +142,11 @@ descriptor.proto.dump: descriptor.proto.msg
 
 descriptor.proto.rawdump: descriptor.proto.msg
 	$(PROTOC) --decode_raw <descriptor.proto.msg >$@
+
+# Assume you've cloned git@github.com:protocolbuffers/protobuf.git (fetch) to $(HOME)/src.
+# Note that ../golden_message.2.5.0 is the same as $(HOME)/src/protobuf/python/compatibility_tests/v2.5.0/tests/google/protobuf/internal/golden_message
+dump_golden:
+	$(PROTOC) -I$(HOME)/src/protobuf/src \
+		--decode=protobuf_unittest.TestAllTypes \
+		google/protobuf/unittest.proto \
+		<../golden_message.2.5.0

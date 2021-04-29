@@ -32,3 +32,13 @@ the protobuf compiler (`protoc`).
 TODO: use `protobuf\_segment\_message/2` to process
 `descriptor.proto.msg` and any other `descriptor\_set\_out`, and then
 generate Prolog code for easy handling of protobufs.
+
+## addressbook.proto, addressbook2.proto
+
+These are from the [Google protobuf
+tutorial](https://developers.google.com/protocol-buffers/docs/tutorials),
+mainly from the [Python
+tutorial](https://developers.google.com/protocol-buffers/docs/pythontutorial).
+
+They have been slightly modified to put the `TimeStamps` message into
+a second `.proto` file, in order to test a few things.
