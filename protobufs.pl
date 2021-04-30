@@ -497,10 +497,16 @@ length_delimited_segment(length_delimited(Tag,Codes), Tag, Codes).
 % as a form that you don't want (e.g., as a message but it should have
 % been a UTF8 string).
 %
+% =Form1= is converted back to the original wire stream, then the
+% predicate non-deterinisticly attempts to convert the wire stream to
+% a =|string|= or =|length_delimited|= term (or both: the lattter
+% always succeeds).
+%
 % The possible conversions are:
 %   message(Tag,Segments) => string(Tag,String)
 %   message(Tag,Segments) => length_delimited(Tag,Codes)
 %   string(Tag,String) => length_delimited(Tag,Codes)
+%   length_delimited(Tag,Codes) => length_delimited(Tag,Codes)
 %
 % For example:
 % ==
@@ -519,22 +525,23 @@ length_delimited_segment(length_delimited(Tag,Codes), Tag, Codes).
 %       functionality is added.
 %  @bug This predicate will sometimes generate unexpected choice points,
 %       Such as from protobuf_segment_convert(message(10,...), string(10,...))`
+%  @bug When converting from a Form1=string, unnecessarily produces Form2=string
 %
 % @param Form1 =|message(Tag,Pieces)|= or =|string(Tag,String)|=.
 % @param Form2 =|string(Tag,String)|= or =|length_delimited(Tag,Codes)|=.
 protobuf_segment_convert(Form1, Form2) :-
     protobuf_segment_message([Form1], MessageCodes),
     phrase(tag_and_codes(Tag, Codes), MessageCodes),
-    protobuf_segment_convert_string(Codes, Tag, Form2).
-
-protobuf_segment_convert_string(Codes, Tag, string(Tag,String)) :-
-    phrase(utf8_codes(StringCodes), Codes),
-    string_codes(String, StringCodes).
-protobuf_segment_convert_string(Codes, Tag, length_delimited(Tag,Codes)).
+    protobuf_segment_convert_2(Codes, Tag, Form2).
 
 tag_and_codes(Tag, Codes) -->
     protobuf_tag_type(Tag, length_delimited),
     payload(codes, Codes).
+
+protobuf_segment_convert_2(Codes, Tag, string(Tag,String)) :-
+    phrase(utf8_codes(StringCodes), Codes),
+    string_codes(String, StringCodes).
+protobuf_segment_convert_2(Codes, Tag, length_delimited(Tag,Codes)).
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

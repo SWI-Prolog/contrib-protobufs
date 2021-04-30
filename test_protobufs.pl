@@ -36,13 +36,13 @@
         [ test_protobufs/0
         ]).
 
+:- use_module(library(plunit)).
+
 :- asserta(user:file_search_path(library, .)).
 :- asserta(user:file_search_path(foreign, .)).
 
 % :- use_module(library(protobufs)). %% DO NOT SUBMIT
 :- use_module(protobufs). %% DO NOT SUBMIT
-
-:- use_module(eventually_implies).   % ~> operator
 
 protobufs:nested_enum(Key, Value) :-
     nested_enum(Key, Value).
@@ -235,78 +235,129 @@ golden_message_template(Proto) :-
                        codes(_, _)
                      ]).
 
-announce(Announcement, Test) :-
-    write(Announcement)
-      ~> (Test == ok -> writeln('OK'); writeln('FAILED')).
-
-test_protobufs :-
-    golden_message(Message),
-    golden_message_template(Template),
-    copy_term(Template, Template1),
-    copy_term(Template, Template2),
-
-    test_input('./golden_message.2.5.0', Gold250),
-    announce('Loading Google''s Golden Wirestream (2.5.0)...', Test1a),
-    (   read_file_to_codes(Gold250, Wirestream, [encoding(octet),type(binary)])
-    ->  Test1a = ok
-    ),
-    !,
-    announce('Unifying canned Golden Message with canned Golden Template...',
-             Test1),
-    (   (Message = Template, Message == Template)
-    ->  Test1 = ok
-    ),
-    !,
-
-    announce('Unifying canned Golden Message with Google''s Golden Wirestream...',
-             Test2),
-    (   protobuf_message(Message, Wirestream)
-    ->  Test2 = ok
-    ),
-    !,
-
-    announce('Parsing Google''s Golden Wirestream to canned Golden Template...',
-             Test3),
-    (   protobuf_message(Template2, Wirestream)
-    ->  Test3 = ok
-    ),
-    !,
-
-    announce('Comparing canned Golden Message to parsed Golden Template...',
-             Test3a),
-    (   Message == Template2
-    ->  Test3a = ok
-    ),
-    !,
-
-    announce('Serializing canned Golden Message to Codes...', Test4),
-    (   protobuf_message(Message, Codes )
-    ->  Test4 = ok
-    ),
-    !,
-
-    announce('Comparing Google''s Golden Wirestream to Codes...', Test4a),
-    (   (Wirestream == Codes)
-    ->  Test4a = ok
-    ),
-    !,
-
-    announce('Parsing Codes to canned Golden Template...', Test5),
-    (   protobuf_message(Template1, Codes)
-    ->  Test5 = ok
-    ),
-    !,
-
-    announce('Comparing canned Golden Message to parsed Golden Template...',
-             Test6),
-    (   (Message == Template1)
-    ->  Test6 = ok
-    ),
-    !,
-
-    writeln('All tests passed.').
+test_protobufs :- run_tests.
 
 test_input(Name, Path) :-
     source_file(test_protobufs, MyFile),
     file_directory_name(MyFile, MyDir),
     atomic_list_concat([MyDir, Name], /, Path).
+
+golden_message_codes(Wirestream) :-
+    test_input('./golden_message.2.5.0', Gold250),
+    read_file_to_codes(Gold250, Wirestream, [encoding(octet),type(binary)]).
+
+:- begin_tests(protobuf_message).
+
+% The original test suite had a series of tests that built on each
+% other.  The tests below have taken those tests and separated them
+% out, so there's some duplication on setup between tests.
+
+% The "Test...-" at the beginning of a test name references the
+% original test that was written before the tests were converted to
+% use plunit.
+
+test(original) :-
+    % These are the executable parts from the original test. It is
+    % preserved here, in case there was a mistake in defining the
+    % indvidual tests.
+    golden_message(Message),
+    golden_message_template(Template),
+    copy_term(Template, Template1),
+    copy_term(Template, Template2),
+    test_input('./golden_message.2.5.0', Gold250),
+    read_file_to_codes(Gold250, Wirestream, [type(binary)]), % Test1a - Loading Google''s Golden Wirestream (2.5.0)
+    (Message = Template, Message == Template),               % Test1  - Unifying canned Golden Message with canned Golden Template
+    protobuf_message(Message, Wirestream),                   % Test2  - Unifying canned Golden Message with Google''s Golden Wirestream
+    protobuf_message(Template2, Wirestream),                 % Test3  - Parsing Google''s Golden Wirestream to canned Golden Template
+    Message == Template2,                                    % Test3a - Comparing canned Golden Message to parsed Golden Template
+    protobuf_message(Message, Codes ),                       % Test4  - Serializing canned Golden Message to Codes
+    (Wirestream == Codes),                                   % Test4a - Comparing Google''s Golden Wirestream to Codes
+    protobuf_message(Template1, Codes),                      % Test5  - Parsing Codes to canned Golden Template
+    (Message == Template1).                                  % Test6  - Comparing canned Golden Message to parsed Golden Template
+
+test("Test1a,Test1 - test set-up check: Unifying canned Golden Message with canned Golden Template") :-
+    golden_message(Message),
+    golden_message_template(Template),
+    % golden_message_template/1, golden_message/1 have same "shape":
+    assertion(subsumes_term(Template, Message)),
+    Message = Template,
+    % TODO: why the following test? Leaving it here because it was in
+    %       the original test file.
+    Message == Template.
+
+test("Test2 - Unifying canned Golden Message with Google's Golden Wirestream") :-
+    golden_message_codes(Wirestream),
+    golden_message(Message),
+    protobuf_message(Message, Wirestream).
+
+test("Test3,Test3a - Parsing Google's Golden Wirestream to canned Golden Template, Comparing canned Golden Message to parsed Golden Template") :-
+    golden_message_codes(Wirestream),
+    golden_message_template(Template2),
+    protobuf_message(Template2, Wirestream),
+    golden_message(Message),
+    assertion(Message == Template2).
+
+test("Test4,Test4a - Serializing canned Golden Message to Codes, Comparing Google's Golden Wirestream to Codes") :-
+    golden_message(Message),
+    protobuf_message(Message, Codes),
+    golden_message_codes(Wirestream),
+    assertion(Wirestream == Codes).
+
+test("Test5,Test6 - Parsing Codes to canned Golden Template, Comparing canned Golden Message to parsed Golden Template") :-
+    golden_message(Message),
+    golden_message_template(Template1),
+    protobuf_message(Message, Codes),
+    protobuf_message(Template1, Codes),
+    assertion(Message == Template1).
+
+:- end_tests(protobuf_message).
+
+:- begin_tests(protobuf_segment_convert).
+
+test_data(Msg, Str, Ld) :-
+    Msg = message(10,[fixed64(13,[110,112,117,116,84,121,112,101])]),
+    Str = string(10,"inputType"),
+    Ld  = length_delimited(10,[105,110,112,117,116,84,121,112,101]).
+
+test(message_string1,
+     [true(Strs = [Str, Ld])]) :-
+    test_data(Msg, Str, Ld),
+    findall(S, protobuf_segment_convert(Msg, S), Strs).
+
+test(message_string2,
+     [true(Strs == [Str])]) :-
+    test_data(Msg, Str, _),
+    % protobuf_segment_convert/2 leaves a choicepoint - ensure that
+    % there's only one result
+    findall(Str, protobuf_segment_convert(Msg, Str), Strs).
+
+test(message_string3,
+     [true(Strs == [Str])]) :-
+    test_data(Msg, Str, _),
+    % protobuf_segment_convert/2 leaves a choicepoint - ensure that
+    % there's only one result
+    findall(S,
+            ( S = string(_,_), protobuf_segment_convert(Msg, S ) ),
+            Strs).
+
+test(message_length_delimited1) :-
+    test_data(Msg, _, Ld),
+    protobuf_segment_convert(Msg, Ld).
+
+test(message_length_delimited2,
+     [true(Ld == Ld2)]) :-
+    test_data(Msg, _, Ld),
+    Ld2 = length_delimited(_,_),
+    protobuf_segment_convert(Msg, Ld2).
+
+test(string_length_delimited1) :-
+    test_data(_, Str, Ld),
+    protobuf_segment_convert(Str, Ld).
+
+test(string_length_delimited2,
+     [true(Xs = [Str,Ld])]) :-
+    test_data(_, Str, Ld),
+    findall(X, protobuf_segment_convert(Str, X), Xs).
+
+:- end_tests(protobuf_segment_convert).
+

@@ -160,3 +160,9 @@ dump_golden:
 		--decode=protobuf_unittest.TestAllTypes \
 		google/protobuf/unittest.proto \
 		<../golden_message.2.5.0
+
+# For testing: this is what the build does:
+
+.PHONY: test_protobufs
+test_protobufs:
+	$(SWIPL) "-p" "foreign=" "-f" "none" "--no-packs" "-s" ../test_protobufs.pl "-g" "test_protobufs" "-t" "halt"
