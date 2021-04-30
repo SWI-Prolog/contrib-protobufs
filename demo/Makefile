@@ -21,7 +21,7 @@
 # This demo was tested with protoc versions 3.6.1 and 3.15.8
 # on Ubuntu 20.04.2.
 
-.SUFFIXES: .proto .cpp .cc .o .proto.msg .py .proto.rawdump .proto.dump .proto.rawdump
+.SUFFIXES: .proto .cpp .cc .o .proto.wire .py .proto.rawdump .proto.dump .proto.rawdump
 
 .PHONY: FORCE check clean docs
 .PHONY: test_all test_basic_usage test_segment_messages test_send_command test_send_precompiled_command
@@ -74,10 +74,10 @@ pb_vector_pb2.py: pb-vector.proto
 # $(SRC_PROTOBUF)/src/google/protobuf/descriptor.proto) with a
 # FileDescriptorSet message, describing the .proto and all its
 # dependencies:
-%.proto.msg: %.proto
+%.proto.wire: %.proto
 	$(PROTOC) --include_imports --descriptor_set_out=$@ $?
 
-descriptor.proto.msg: $(SRC_PROTOBUF)/src/google/protobuf/descriptor.proto
+descriptor.proto.wire: $(SRC_PROTOBUF)/src/google/protobuf/descriptor.proto
 	$(PROTOC) --include_imports --descriptor_set_out=$@ \
 		-I$(SRC_PROTOBUF)/src/google/protobuf \
 		descriptor.proto
@@ -104,7 +104,7 @@ test_basic_usage: vector_demo.pl FORCE
 # Run the protobuf_segment_messages test.
 # See also rules  descriptor.proto.rawdump, descriptor.proto.dump
 
-test_segment_messages: descriptor.proto.msg vector_demo.pl FORCE
+test_segment_messages: descriptor.proto.wire vector_demo.pl FORCE
 	$(SWIPL) -g test_segment_messages -g halt vector_demo.pl
 
 test_send_command: vector_demo.pl FORCE
@@ -115,7 +115,7 @@ test_send_precompiled_command: vector_demo.pl FORCE
 
 clean:
 	@# TODO: special handling for descriptor.* files
-	$(RM) -r foo *.o *.pb.cc *.pb.h *.tmp *_pb2.py *.proto.msg doc/ *.proto.rawdump addressbook.proto.dump
+	$(RM) -r foo *.o *.pb.cc *.pb.h *.tmp *_pb2.py *.proto.wire doc/ *.proto.rawdump addressbook.proto.dump
 
 # Generate the documentation from ../protobufs.pl
 # The result is in ../doc/protobufs.html
@@ -127,21 +127,21 @@ docs:
 
 SRC_PROTOBUF=$(HOME)/src/protobuf
 
-addressbook.proto.dump: addressbook.proto.msg
+addressbook.proto.dump: addressbook.proto.wire
 	$(PROTOC) -I. -I$(SRC_PROTOBUF)/src/google/protobuf \
 		--decode=google.protobuf.FileDescriptorSet \
 		descriptor.proto \
 		<$? >$@
 
 .PHONY: addressbook.segment
-addressbook.segment: descriptor_proto.pl addressbook.proto.msg FORCE
-	swipl -g "descriptor_segment('addressbook.proto.msg', Msg), print_term(Msg, []), halt." descriptor_proto.pl
+addressbook.segment: descriptor_proto.pl addressbook.proto.wire FORCE
+	swipl -g "descriptor_segment('addressbook.proto.wire', Msg), print_term(Msg, []), halt." descriptor_proto.pl
 
 .PHONY: descriptor.segment
-descriptor.segment: descriptor_proto.pl descriptor.proto.msg FORCE
-	swipl -g "descriptor_segment('descriptor.proto.msg', Msg), print_term(Msg, []), halt." descriptor_proto.pl
+descriptor.segment: descriptor_proto.pl descriptor.proto.wire FORCE
+	swipl -g "descriptor_segment('descriptor.proto.wire', Msg), print_term(Msg, []), halt." descriptor_proto.pl
 
-descriptor.proto.dump: descriptor.proto.msg
+descriptor.proto.dump: descriptor.proto.wire
 	$(PROTOC) -I. -I$(SRC_PROTOBUF)/src/google/protobuf \
 		--decode=google.protobuf.FileDescriptorSet \
 		descriptor.proto \
@@ -150,8 +150,8 @@ descriptor.proto.dump: descriptor.proto.msg
 descriptor.proto.parse: descriptor.proto.dump parse_descriptor_proto_dump.pl FORCE
 	swipl -g parse_descriptor -g halt parse_descriptor_proto_dump.pl
 
-descriptor.proto.rawdump: descriptor.proto.msg
-	$(PROTOC) --decode_raw <descriptor.proto.msg >$@
+descriptor.proto.rawdump: descriptor.proto.wire
+	$(PROTOC) --decode_raw <descriptor.proto.wire >$@
 
 # Assume you've cloned git@github.com:protocolbuffers/protobuf.git (fetch) to $(HOME)/src.
 # Note that ../golden_message.2.5.0 is the same as $(HOME)/src/protobuf/python/compatibility_tests/v2.5.0/tests/google/protobuf/internal/golden_message

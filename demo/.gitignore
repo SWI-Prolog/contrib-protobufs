@@ -1,4 +1,4 @@
-*.proto.msg
+*.proto.wire
 addressbook.proto.dump
 foo
 *.pb.cc

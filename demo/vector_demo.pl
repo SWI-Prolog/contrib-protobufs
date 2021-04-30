@@ -320,7 +320,7 @@ test_xml :-
 % the output from protoc --decode_raw
 test_segment_messages :-
     assertion(test_segment_assertions),
-    read_file_to_codes('descriptor.proto.msg', WireStream, [encoding(octet),type(binary)]),
+    read_file_to_codes('descriptor.proto.wire', WireStream, [encoding(octet),type(binary)]),
     protobuf_segment_message(Segments, WireStream),
     % Check that it reverses:
     protobuf_segment_message(Segments, WireStream2),
