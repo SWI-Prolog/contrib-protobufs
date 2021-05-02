@@ -1,0 +1,14 @@
+syntax = "proto2";
+message SomeMessage {
+  optional int32 first = 1;  // or int64, uint32, uint64
+  optional string second = 2;
+  repeated string third = 3;
+  optional bool fourth = 4;
+  message NestedMessage {
+    optional sint32 value = 1;
+    optional string text = 2;
+  }
+  optional NestedMessage fifth = 5;
+  repeated NestedMessage sixth = 6;
+  repeated sint32 seventh = 7; // TODO: [packed=true];
+}
