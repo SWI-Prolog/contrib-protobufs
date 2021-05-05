@@ -27,6 +27,8 @@ config.log
 configure
 protobufs.html
 protobufs.pdf
-Makefile
 autom4te.cache
 .pl-history
+__pycache__
+some_message.wire
+some_message_pb2.py
