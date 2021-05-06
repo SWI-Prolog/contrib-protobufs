@@ -169,22 +169,23 @@ in some of the interoperability tests.)
 | Prolog     | Wirestream       | .proto file       | C++      | Python3  | Notes   |
 | ---------- | ---------------- | ----------------- | -------- | -------- | ------- |
 | double     | fixed64          | double            | double   | float    |         |
-| integer64  | fixed64          | fixed64           | uint64   | int      |         |
-| integer64  | fixed64          | sfixed64          |          |          |         |
-| float      | fixed32          | float             |          | float    |         |
-| integer32  | fixed32          | fixed32           |          | int      |         |
-| integer32  | fixed32          | sfixed32          |          |          |         |
-| integer    | varint           | sint32            |          | int      | 1, 2, 9 |
-| integer    | varint           | sint64            |          | int      | 1, 2, 9 |
-| signed64   | varint           | int32, int64      |          | int      | 2, 3, 10 |
-| unsigned   | varint           | uint32            |          | int      | 2, 3    |
-| unsigned   | varint           | uint64            |          | int      | 2, 3    |
-| boolean    | varint           | bool              |          | bool     | 2, 8    |
-| enum       | varint           | (enum)            |          | (enum)   |         |
+| integer64  | fixed64          | fixed64           | uint64   | int      | 11      |
+| integer64  | fixed64          | sfixed64          | int64    |          |         |
+| float      | fixed32          | float             | float    | float    |         |
+| integer32  | fixed32          | fixed32           | uint32   | int      | 11      |
+| integer32  | fixed32          | sfixed32          | int32    |          |         |
+| integer    | varint           | sint32            | int32    | int      | 1, 2, 9 |
+| integer    | varint           | sint64            | int64    | int      | 1, 2, 9 |
+| signed64   | varint           | int32             | int32    | int      | 2, 3, 10 |
+| signed64   | varint           | int64             | int64    | int      | 2, 3, 10 |
+| unsigned   | varint           | uint32            | uint32   | int      | 2, 3    |
+| unsigned   | varint           | uint64            | uint64   | int      | 2, 3    |
+| boolean    | varint           | bool              | bool     | bool     | 2, 8    |
+| enum       | varint           | (enum)            | (enum)   | (enum)   |         |
 | atom       | length delimited | string            |          | str (unicode) |    |
 | codes      | length delimited | bytes             |          | bytes    |         |
 | utf8_codes | length delimited | string            |          | str (unicode) |    |
-| string     | length delimited | string            |          | str (unicode) |    |
+| string     | length delimited | string            | string   | str (unicode) |    |
 | embedded   | length delimited | message           |          | (class)  |         |
 | repeated   | length delimited | repeated          |          | (list)   |         |
 | packed     | length delimited | packed repeated   |          | (list)   |         |
@@ -218,8 +219,11 @@ in some of the interoperability tests.)
        In particular, both C++ and Python encode negative numbers as
        10 bytes, and Prolog follows this for wire-stream compatibility
        (note that SWI-Prolog typically uses 64-bit integers anyway).
-       Therefore, signed64 is used for both .proto types int32 and
-       int64.
+       Therefore, signed64 is used for both \.proto types =int32= and
+       =int64=.
+   11. =integer32= and =integer64= are not checked for negative values;
+       if you use a negative value, it will be treated as the 2s complement
+       (this is the same as C++ behavior; Python throws an exception).
 
 ## Tags (field numbers) {#protobufs-tags}
 

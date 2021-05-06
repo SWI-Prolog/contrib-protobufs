@@ -261,6 +261,14 @@ payload(signed32, A) --> % signed32 is not defined by prolog_type//2
 %     % change the "A xor % 0xffffffffffffffff" to "A xor 0xffffffff".)
       payload(signed64, A).
 payload(signed64, A) -->
+    { var(A) },
+    !,
+    protobuf_var_int(X),
+    {   X > 0x7fffffffffffffff
+    ->  A is -(X xor 0xffffffffffffffff + 1) % TODO: -(\ X + 1)
+    ;   A = X
+    }.
+payload(signed64, A) -->
     % protobuf_var_int//1 cannot handle negative numbers (note that
     % zig-zag encoding always results in a positive number), so
     % compute the 64-bit 2s complement, which is what is produced

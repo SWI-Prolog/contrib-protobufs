@@ -1,0 +1,7 @@
+*.pb.cc
+*.pb.h
+*_pb2.py
+*.wire
+# executable:
+scalar_test_write
+scalar_test_read
