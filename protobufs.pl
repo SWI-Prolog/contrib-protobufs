@@ -77,7 +77,7 @@ protobuf_message/2. The interpreter will unify  the unbound variables in
 the template with values decoded from the wire-stream.
 
 For an overview and tutorial with examples, see
-[[protobufs_overview.md][https://github.com/SWI-Prolog/contrib-protobufs/blob/master/protobufs_overview.md]].
+[library(protobufs): Google's Protocol Buffers](#protobufs-main)
 Examples of usage may also be found by inspecting
 [[test_protobufs.pl][https://github.com/SWI-Prolog/contrib-protobufs/blob/master/test_protobufs.pl]]
 and the
@@ -141,12 +141,14 @@ code_string(N, Codes) -->
 % Prolog for speed's sake.
 %
 
-%! protobuf_var_int(?A:int, ?Rest:list, ?Rest1:list) is det.
+%! protobuf_var_int(?A:int)// is det.
 % Conversion between an int A and a list of codes, using the
 % "varint" encoding.
-% Rest, Rest1 are a DCG difference list
-% e.g. protobuf_var_int(300, S, []) => S = [172,2]
-%      protobuf_var_int(A, [172,2]) -> A = 300
+% The behvior is undefined if =A= is negative.
+% This is a low-level predicate; normally, you should use
+% template_message/2 and the appropriate template term.
+% e.g. phrase(protobuf_var_int(300), S) => S = [172,2]
+%      phrase(protobuf_var_int(A), [172,2]) -> A = 300
 protobuf_var_int(A, [A | Rest], Rest) :-
     A < 128,
     !.
@@ -163,9 +165,11 @@ protobuf_var_int(X, [A | Rest], Rest1) :-
 
 %! protobuf_tag_type(?Tag:int, ?Type:atom, ?Rest, Rest1) is det.
 % Conversion between Tag (number) + Type and list of codes.
-% Tag: The item's tag (field number)
-% Type: The item's type (see prolog_type//2)
-% Rest, Rest1 are a DCG difference list
+% This is a low-level predicate; normally, you should use
+% template_message/2 and the appropriate template term.
+% @arg Tag The item's tag (field number)
+% @arg Type The item's type (see prolog_type//2)
+% @arg Rest, @arg Rest1 DCG difference list
 protobuf_tag_type(Tag, Type, Rest, Rest1) :-
     nonvar(Tag), nonvar(Type),
     wire_type(Type, X),
@@ -188,6 +192,9 @@ prolog_type(Tag, float) -->      protobuf_tag_type(Tag, fixed32).
 prolog_type(Tag, integer32) -->  protobuf_tag_type(Tag, fixed32).
 prolog_type(Tag, integer) -->    protobuf_tag_type(Tag, varint).
 prolog_type(Tag, unsigned) -->   protobuf_tag_type(Tag, varint).
+% signed32 is omitted for wire-stream compabitility, even
+% though payload(signed32,_)// is defined, for completeness.
+prolog_type(Tag, signed64) -->   protobuf_tag_type(Tag, varint).
 prolog_type(Tag, boolean) -->    protobuf_tag_type(Tag, varint).
 prolog_type(Tag, enum) -->       protobuf_tag_type(Tag, varint).
 prolog_type(Tag, atom) -->       protobuf_tag_type(Tag, length_delimited).
@@ -236,6 +243,33 @@ payload(unsigned, A) -->
     ;   true
     },
     protobuf_var_int(A).
+% TODO: replace payload(unsigned, A) with this:
+% payload(unsigned, A) -->
+%     protobuf_var_int(A),
+%     { A >= 0 }.
+
+payload(signed32, A) --> % signed32 is not defined by prolog_type//2
+                         % for wire-stream compatibility reasons.
+%     % signed32 ought to write 5 bytes for negative numbers, but both
+%     % the C++ and Python implementations write 10 bytes. For
+%     % wire-stream compatibility, we follow C++ and Python, even though
+%     % protoc decode appears to work just fine with 5 bytes --
+%     % presumably there are some issues with decoding 5 bytes and
+%     % getting the sign extension correct with some 32/64-bit integer
+%     % models.  See CodedOutputStream::WriteVarint32SignExtended(int32
+%     % value) in google/protobuf/io/coded_stream.h.  (To write 5 bytes,
+%     % change the "A xor % 0xffffffffffffffff" to "A xor 0xffffffff".)
+      payload(signed64, A).
+payload(signed64, A) -->
+    % protobuf_var_int//1 cannot handle negative numbers (note that
+    % zig-zag encoding always results in a positive number), so
+    % compute the 64-bit 2s complement, which is what is produced
+    % form C++ and Python.
+    {   nonvar(A), A < 0
+    ->  X is -(A xor 0xffffffffffffffff + 1) % TODO: -(\ A + 1)
+    ;   X = A
+    },
+    protobuf_var_int(X).
 payload(codes, A) -->
     { nonvar(A), !, length(A, Len)},
     protobuf_var_int(Len),
@@ -270,7 +304,10 @@ payload(string, A) -->
     ->  string_codes(A, Codes)
     ;   true
     },
-    payload(codes, Codes),
+    % string_codes produces a list of unicode, not bytes, e.g.
+    % string_codes('écran 網目錦蛇', [233,99,114,97,110,32,32178,30446,37670,34503])
+    % so don't use payload(codes, Codes):
+    payload(utf8_codes, Codes),
     { string_codes(A, Codes) }.
 payload(embedded, protobuf(A)) -->
     { ground(A),
@@ -315,6 +352,13 @@ message_sequence(repeated, Tag, enum(Compound)) -->
 message_sequence(repeated, Tag, Compound) -->
     { Compound =.. [Type, A] },
     repeated_message_sequence(Type, Tag, A).
+% DO NOT SUBMIT - also handle packed enum
+message_sequence(packed, Tag, Compound) -->
+    % DO NOT SUBMIT - ground(A) --> see payload(embedded, ...)
+    { Compound =.. [Type, A] },
+    protobuf_tag_type(Tag, Type),
+    { phrase(packed(Type, A), Codes) },
+    payload(codes, Codes).
 message_sequence(group, Tag, A) -->
     start_group(Tag),
     protobuf(A),
@@ -324,13 +368,20 @@ message_sequence(PrologType, Tag, Payload) -->
     prolog_type(Tag, PrologType),
     payload(PrologType, Payload).
 
-%!  protobuf_message(?Template, ?Wire_stream) is semidet.
-%!  protobuf_message(?Template, ?Wire_stream, ?Rest) is nondet.
+% TODO: packed ...
+packed_message_sequence(Type, [A|As]) --> { representation_error(packed(Type, [A|As])) }.
+packed_message_sequence(Type, [_A|As]) -->
+      packed_message_sequence(Type, As).
+% packed_message_sequence(_Type, A) -->
+%     nothing(A).
+
+%!  protobuf_message(?Template, ?WireStream) is semidet.
+%!  protobuf_message(?Template, ?WireStream, ?Rest) is nondet.
 %
 %   Marshals  and  unmarshals   byte  streams  encoded  using   Google's
 %   Protobuf  grammars.  protobuf_message/2  provides  a  bi-directional
-%   parser that marshals a Prolog   structure to Wire_stream,  according
-%   to rules specified by Template. It   can also unmarshal  Wire_stream
+%   parser that marshals a Prolog   structure to WireStream,  according
+%   to rules specified by Template. It   can also unmarshal  WireStream
 %   into  a  Prolog   structure   according    to   the   same  grammar.
 %   protobuf_message/3 provides a difference list version.
 %
@@ -343,26 +394,27 @@ message_sequence(PrologType, Tag, Payload) -->
 %
 %   @param Template is a  protobuf   grammar  specification.  On decode,
 %   unbound variables in the Template are  unified with their respective
-%   values in the Wire_stream. On encode, Template must be ground.
+%   values in the WireStream. On encode, Template must be ground.
 %
-%   @param Wire_stream is a code list that   was generated by a protobuf
+%   @param WireStream is a code list that   was generated by a protobuf
 %   encoder using an equivalent template.
 
-protobuf_message(protobuf(Template), Wirestream) :-
-    must_be(list, Template),
-    phrase(protobuf(Template), Wirestream),
+protobuf_message(protobuf(TemplateList), WireStream) :-
+    must_be(list, TemplateList),
+    phrase(protobuf(TemplateList), WireStream),
     !.
 
-protobuf_message(protobuf(Template), Wirestream, Residue) :-
-    must_be(list, Template),
-    phrase(protobuf(Template), Wirestream, Residue).
+protobuf_message(protobuf(TemplateList), WireStream, Residue) :-
+    must_be(list, TemplateList),
+    phrase(protobuf(TemplateList), WireStream, Residue).
 
 %!  protobuf_segment_message(+Segments:list, -WireStream:list(int)) is det.
 %!  protobuf_segment_message(-Segments:list, +WireStream:list(int)) is det.
 %
 %  Low level marshalling and unmarshalling of byte streams. The
 %  processing is independent of the =|.proto|= description, similar
-%  to the processing done by =|protoc --decode_raw|=.
+%  to the processing done by =|protoc --decode_raw|=. This means that
+%  field names aren't shown: only field numbers.
 %
 %  For unmarshalling, a simple heuristic is used on length-delimited
 %  segments: first interpret it as a message; if that fails, try to
@@ -386,6 +438,10 @@ protobuf_message(protobuf(Template), Wirestream, Residue) :-
 %  @tbd Expansion of this code to allow generalized handling of wire
 %       streams with fields in arbitrary order. (See bugs for
 %       protobuf_message/2).
+%  @tbd Functionality similar to =|protoc --decode|=, which will
+%       use field names rather than field numbers and also
+%       will not need heuristics to guess at segment types because
+%       it will have the correct types from the .proto definition.
 %
 %  @param Segments a list containing terms of the following form (=Tag= is
 %  the field number; =Codes= is a list of integers):
@@ -549,30 +605,40 @@ protobuf_segment_convert_2(Codes, Tag, length_delimited(Tag,Codes)).
 
 %! int32_codes(?Value, ?Codes) is det.
 % Convert between a 32-bit integer value and its wirestream codes.
+% This is a low-level predicate; normally, you should use
+% template_message/2 and the appropriate template term.
 %
 % @param Value an integer
-% @param Codes a list of 4 integers
+% @param Codes a list of 4 integers (codes)
 
 %! float32_codes(?Value, ?Codes) is det.
 % Convert between a 32-bit floating point value and its wirestream codes.
+% This is a low-level predicate; normally, you should use
+% template_message/2 and the appropriate template term.
 %
 % @param Value a floating point number
-% @param Codes a list of 4 integers
+% @param Codes a list of 4 integers (codes)
 
 %! int64_codes(?Value, ?Codes) is det.
 % Convert between a 64-bit integer value and its wirestream codes.
+% This is a low-level predicate; normally, you should use
+% template_message/2 and the appropriate template term.
 %
 % @param Value an integer
-% @param Codes a list of 8 integers
+% @param Codes a list of 8 integers (codes)
 
 %! float64_codes(?Value, ?Codes) is det.
 % Convert between a 64-bit floating point value and its wirestream codes.
+% This is a low-level predicate; normally, you should use
+% template_message/2 and the appropriate template term.
 %
 % @param Value a floating point number
-% @param Codes a list of 8 integers
+% @param Codes a list of 8 integers (codes)
 
 %! integer_zigzag(?Original, ?Encoded) is det.
 % Convert between an integer value and its zigzag encoding
+% This is a low-level predicate; normally, you should use
+% template_message/2 and the appropriate template term.
 %
 % @param Original an integer in the original form
 % @param Encoded the zigzag encoding of =Original=
