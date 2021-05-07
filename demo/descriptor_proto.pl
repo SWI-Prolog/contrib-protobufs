@@ -35,8 +35,7 @@
 
 :- use_module(descriptor_proto_expand, [descriptor_proto_expand_file//1]).
 :- use_module(library(readutil), [read_file_to_codes/3]).
-% :- use_module(library(protobufs).) % DO NOT SUBMIT
-:- use_module('../protobufs').  % DO NOT SUBMIT
+:- use_module(library(protobufs)).
 :- use_module(library(debug)).
 
 %! descriptor_segment(-Msg) is det.

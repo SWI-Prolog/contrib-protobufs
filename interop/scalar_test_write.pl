@@ -9,8 +9,7 @@
 
 :- initialization(scalar_test_main, main).
 
-% :- use_module(library(protobufs)). % DO NOT SUBMIT
-:- use_module('../protobufs').
+:- use_module(library(protobufs)).
 :- use_module(scalar_test_common).
 
 scalar_test_main :-

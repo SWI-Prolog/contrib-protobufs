@@ -21,7 +21,7 @@
 # This demo was tested with protoc versions 3.6.1 and 3.15.8
 # on Ubuntu 20.04.2.
 
-.SUFFIXES: .proto .cpp .cc .o .proto.wire .py .proto.rawdump .proto.dump .proto.rawdump
+.SUFFIXES: .proto .cpp .cc .o .proto.wire .pl .py .proto.rawdump .proto.dump .proto.rawdump
 
 .PHONY: FORCE check clean docs
 .PHONY: test_all test_basic_usage test_segment_messages test_send_command test_send_precompiled_command
@@ -166,3 +166,22 @@ dump_golden:
 .PHONY: test_protobufs
 test_protobufs:
 	$(SWIPL) "-p" "foreign=" "-f" "none" "--no-packs" "-s" ../test_protobufs.pl "-g" "test_protobufs" "-t" "halt"
+
+# For looking at the generated documentation.  This assumes that
+# you're working in ~/src/contrib-protobufs and that there's also
+# ~/src/swipl-devel (and you might wish to stash
+# ~/src/swipl-devel/packages/protobufs somewhere).
+# Also, cmake doesn't seem to play nicely with symlinks,
+# so we can't just do
+#    ln -s $(HOME)/src/contrib-protobufs $(HOME)/src/swipl-devel/packages/protobufs
+
+.PHONY: test_doc
+test_doc:
+	rsync -avHx --delete $(HOME)/src/contrib-protobufs/ $(HOME)/src/swipl-devel/packages/protobufs/
+	cd $(HOME)/src/swipl-devel && \
+		mkdir -p build && \
+		cd build && \
+		cmake -G Ninja .. && \
+		ninja && \
+		gio open $(HOME)/src/swipl-devel/build/packages/protobufs/protobufs.html
+

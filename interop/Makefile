@@ -7,9 +7,9 @@
 .PRECIOUS: %.pb.cc %.pb.h %_pb.h
 
 # PROTOC=$(shell type -p protoc)
-# PYTHON=$(shell type -p python3.7)
+# PYTHON=$(shell type -p python3)
 PROTOC=protoc
-PYTHON=python3.7
+PYTHON=python3
 SWIPL=swipl
 
 # -Wall produces warnings from the generated *.pb.cc files

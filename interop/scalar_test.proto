@@ -51,7 +51,4 @@ message Scalars2 {
   optional string   v_string     = 18;
 }
 
-// TODO:
-//   embedded
-//   repeated
-//   packed
+// TODO:  embedded, repeated, packed

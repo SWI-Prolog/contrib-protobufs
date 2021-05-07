@@ -7,14 +7,25 @@ added in the future (e.g., C++, JavaScript).
 
 The tests are *not* part of the standard release process because they
 require having the protobuf compiler (`protoc`) installed and also a
-version of Python (currently, Python 3.7, but this should be changed
-to 3.9 or newer).
+version of Python 3.
 
 To run the tests:
 ```
 make test
+make clean
 ```
 You can specify these additional variables:
 ```
-make protoc=/path/to/protoc python=/path/to/python3 test
+make PROTOC=/path/to/protoc PYTHON=/path/to/python3 SWIPL=/path/to/swipl test
 ```
+
+The tests require the Python protobuf support. One way of installing it is:
+```
+python3 -m pip install protobuf
+```
+
+## Future work
+
+These tests write into the current directory. This prevents using a
+read-only source tree, amongst other things. The tests should be
+modified to use a separate "build" directory.

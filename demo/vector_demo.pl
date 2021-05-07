@@ -25,8 +25,7 @@
            test_xml/2
           ]).
 
-% :- use_module(library(protobufs)).  %% DO NOT SUBMIT
-:- use_module('../protobufs'). %% DO NOT SUBMIT
+:- use_module(library(protobufs)).
 :- use_module(library(error)).
 :- use_module('../eventually_implies'). % For ~>
 
@@ -35,14 +34,16 @@
 
 
 % Example: "Basic Usage"
+%  (see "Basic Usage" section in ../protobufs_overview.md)
 
-% (There is no associated .proto for this example)
+% TODO: move this to ../test_protobufs.pl
+% %ODO: There is no associated .proto for this example
 
 %! command(+Term, -Proto) is det.
 % Map a Prolog term to a corresponding protobuf term.
 command(add(X,Y), Proto) :-
-    freeze(X, must_be(integer, X)),
-    freeze(Y, must_be(integer, Y)),
+    freeze(X, must_be(integer, X)), % for debugginbg
+    freeze(Y, must_be(integer, Y)), % for debugging
     Proto = protobuf([atom(1, command),
                       atom(2, add),
                       integer(3, X),
@@ -80,7 +81,7 @@ test_basic_usage(['X'=X,
                   'Op2'=Op2,
                   'Extra2'=Extra2,
                   'Proto'=Proto,
-                  'Msg'=Msg,
+                  'WireCodes'=WireCodes,
                   'Segments-raw'=Segments,
                   'CommandCode'=CommandCode,
                   'OpCode'=OpCode,
@@ -88,14 +89,14 @@ test_basic_usage(['X'=X,
                   'Yseg'=Yseg]) :-
     X = 666, Y = 123,
     command(add(X,Y), Proto),
-    protobuf_message(Proto, Msg),
+    protobuf_message(Proto, WireCodes),
     % and read it back again:
     command(add(X2,Y2), Proto2),
-    protobuf_message(Proto2, Msg),
+    protobuf_message(Proto2, WireCodes),
     assertion(Proto == Proto2),
     command2(Command2, Op2, X2, Y2, Extra2, Proto3),
-    protobuf_message(Proto3, Msg),
-    protobuf_segment_message(Segments, Msg),
+    protobuf_message(Proto3, WireCodes),
+    protobuf_segment_message(Segments, WireCodes),
     Segments = [string(1,CommandCode),
                 string(2,OpCode),
                 varint(3,Xzig),
@@ -104,8 +105,8 @@ test_basic_usage(['X'=X,
     % of the Proto template:
     integer_zigzag(Xseg, Xzig),
     integer_zigzag(Yseg, Yzig),
-    protobuf_segment_message(Segments, Msg4),
-    assertion(Msg == Msg4).
+    protobuf_segment_message(Segments, WireCodes4),
+    assertion(WireCodes == WireCodes4).
 
 % ======================
 
@@ -154,7 +155,7 @@ protobufs:commands(Key, Value) :-
             ],
          Key).
 
-send_command(Command, Vector, Msg) :-
+send_command(Command, Vector, WireCodes) :-
     basic_vector(Vector, Proto1),
     Proto = protobuf([enum(1, commands(Command)), embedded(2, Proto1)]),
     % e.g., if Command=square, Proto1=protobuf([repeated(2,double([1,22,3,4]))])
@@ -165,28 +166,28 @@ send_command(Command, Vector, Msg) :-
     % library(protobufs) expands an` enum(Tag,Type)` by calling `Type`,
     % so enum(1,commands(square)) gets turned into enum(1,1) by calling
     % protobufs:commands(square,Value) => Value=1
-    protobuf_message(Proto, Msg).
+    protobuf_message(Proto, WireCodes).
 
 test_send_command :-
-    test_send_command(Msg),
-    protobuf_segment_message(Seg, Msg),
+    test_send_command(WireCodes),
+    protobuf_segment_message(Seg, WireCodes),
     print_term(Seg, []), nl.
 
-test_send_command(Msg) :-
-    send_command(square, double([1,22,3,4]), Msg).
+test_send_command(WireCodes) :-
+    send_command(square, double([1,22,3,4]), WireCodes).
 
 test_send_precompiled_command :-
-    test_send_precompiled_command(Msg),
-    protobuf_segment_message(Seg, Msg),
+    test_send_precompiled_command(WireCodes),
+    protobuf_segment_message(Seg, WireCodes),
     print_term(Seg, []), nl.
 
-test_send_precompiled_command(Msg) :-
-    send_precompiled_command(square, double([1,22,3,4]), Msg).
+test_send_precompiled_command(WireCodes) :-
+    send_precompiled_command(square, double([1,22,3,4]), WireCodes).
 
-send_precompiled_command(Command, Vector, Msg) :-
+send_precompiled_command(Command, Vector, WireCodes) :-
     basic_vector(Vector, Proto1),
-    precompiled_message(commands(Command), Msg, Msg1),
-    protobuf_message(protobuf([embedded(3, Proto1)]), Msg1),
+    precompiled_message(commands(Command), WireCodes, WireCodes1),
+    protobuf_message(protobuf([embedded(3, Proto1)]), WireCodes1),
 
     % Do it again, but without the precompiled message.
     % Above, precompile_commands added
@@ -194,15 +195,15 @@ send_precompiled_command(Command, Vector, Msg) :-
     Proto2 = protobuf([atom(1, command),
                        enum(2, commands(Command)),
                        embedded(3, Proto1)]),
-    protobuf_message(Proto2, Msg2),
-    assertion(Msg2 == Msg).
+    protobuf_message(Proto2, WireCodes2),
+    assertion(WireCodes2 == WireCodes).
 
 term_expansion(precompile_commands, Clauses) :-
-    findall(precompiled_message(commands(Key), Msg, Tail),
+    findall(precompiled_message(commands(Key), WireCodes, Tail),
             (   protobufs:commands(Key, _),
                 Proto = protobuf([atom(1, command),
                                   enum(2, commands(Key))]),
-                protobuf_message(Proto, Msg, Tail)
+                protobuf_message(Proto, WireCodes, Tail)
             ),
             Clauses).
 
@@ -226,11 +227,11 @@ compound_protobuf(integer(Val),
 
 protobuf_bag([], []).
 
-protobuf_bag([Type|More], Msg) :-
+protobuf_bag([Type|More], WireCodes) :-
     compound_protobuf(Type, X),
     Proto = protobuf([embedded(1, protobuf([X]))]),
-    protobuf_message(Proto, Msg, Msg1),
-    protobuf_bag(More, Msg1),
+    protobuf_message(Proto, WireCodes, WireCodes1),
+    protobuf_bag(More, WireCodes1),
     !.
 
 make_tmp99 :-
