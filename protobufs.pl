@@ -1,7 +1,7 @@
 /*  Part of SWI-Prolog
 
-    Author:        Jeffrey Rosenwald
-    E-mail:        jeffrose@acm.org
+    Author:        Jeffrey Rosenwald, extended by Peter Ludemann
+    E-mail:        jeffrose@acm.org, peter.ludemann.gmail.com
     WWW:           http://www.swi-prolog.org
     Copyright (c)  2010-2013, Jeffrey Rosenwald
     All rights reserved.
@@ -186,14 +186,14 @@ protobuf_tag_type(Tag, Type, Rest, Rest1) :-
 % Convert between Tag (field number) + Type and list of codes.
 % When Type is a variable, backtracks through all the possibilities
 % for a given wire encoding.
+% Note that 'repeated' isn't here because it's handled by message_sequence//3.
 prolog_type(Tag, double) -->     protobuf_tag_type(Tag, fixed64).
 prolog_type(Tag, integer64) -->  protobuf_tag_type(Tag, fixed64).
 prolog_type(Tag, float) -->      protobuf_tag_type(Tag, fixed32).
 prolog_type(Tag, integer32) -->  protobuf_tag_type(Tag, fixed32).
 prolog_type(Tag, integer) -->    protobuf_tag_type(Tag, varint).
 prolog_type(Tag, unsigned) -->   protobuf_tag_type(Tag, varint).
-% signed32 is omitted for wire-stream compabitility, even
-% though payload(signed32,_)// is defined, for completeness.
+%                signed32  - omitted for wire-stream compabitility
 prolog_type(Tag, signed64) -->   protobuf_tag_type(Tag, varint).
 prolog_type(Tag, boolean) -->    protobuf_tag_type(Tag, varint).
 prolog_type(Tag, enum) -->       protobuf_tag_type(Tag, varint).
@@ -202,6 +202,8 @@ prolog_type(Tag, codes) -->      protobuf_tag_type(Tag, length_delimited).
 prolog_type(Tag, utf8_codes) --> protobuf_tag_type(Tag, length_delimited).
 prolog_type(Tag, string) -->     protobuf_tag_type(Tag, length_delimited).
 prolog_type(Tag, embedded) -->   protobuf_tag_type(Tag, length_delimited).
+prolog_type(Tag, packed) -->     protobuf_tag_type(Tag, length_delimited).
+
 %
 %   The protobuf-2.1.0 grammar allows negative values in enums.
 %   But they are encoded as unsigned in the  golden message.
@@ -238,16 +240,16 @@ payload(integer, A) -->
     protobuf_var_int(X),
     { integer_zigzag(A, X) }.
 payload(unsigned, A) -->
+    % TODO: replace payload(unsigned, A) with this (needs unit tests +
+    %       comparison with Python,C++):
+    %   payload(unsigned, A) -->
+    %       protobuf_var_int(A),
+    %       { A >= 0 }.
     {   nonvar(A)
     ->  A >= 0
     ;   true
     },
     protobuf_var_int(A).
-% TODO: replace payload(unsigned, A) with this:
-% payload(unsigned, A) -->
-%     protobuf_var_int(A),
-%     { A >= 0 }.
-
 payload(signed32, A) --> % signed32 is not defined by prolog_type//2
                          % for wire-stream compatibility reasons.
 %     % signed32 ought to write 5 bytes for negative numbers, but both
@@ -261,20 +263,22 @@ payload(signed32, A) --> % signed32 is not defined by prolog_type//2
 %     % change the "A xor % 0xffffffffffffffff" to "A xor 0xffffffff".)
       payload(signed64, A).
 payload(signed64, A) -->
-    { var(A) },
-    !,
-    protobuf_var_int(X),
-    {   X > 0x7fffffffffffffff
-    ->  A is -(X xor 0xffffffffffffffff + 1) % TODO: -(\ X + 1)
-    ;   A = X
-    }.
-payload(signed64, A) -->
     % protobuf_var_int//1 cannot handle negative numbers (note that
     % zig-zag encoding always results in a positive number), so
     % compute the 64-bit 2s complement, which is what is produced
     % form C++ and Python.
+    % TODO: \A instead of A xor ...?
+    { var(A) },
+    !,
+    protobuf_var_int(X),
+    {   X > 0x7fffffffffffffff
+    ->  A is -(X xor 0xffffffffffffffff + 1)
+    ;   A = X
+    }.
+payload(signed64, A) -->
+    % See comment in previous clause about negative numbers.
     {   nonvar(A), A < 0
-    ->  X is -(A xor 0xffffffffffffffff + 1) % TODO: -(\ A + 1)
+    ->  X is -(A xor 0xffffffffffffffff + 1)
     ;   X = A
     },
     protobuf_var_int(X).
@@ -326,6 +330,23 @@ payload(embedded, protobuf(A)) -->
 payload(embedded, protobuf(A)) -->
     payload(codes, Codes),
     { phrase(protobuf(A), Codes) }.
+payload(packed, Compound) -->
+    { Compound =.. [Type, A],
+      ground(A),
+      phrase(packed_payload(Type, A), Codes)
+    },
+    payload(codes, Codes),
+    !.
+payload(packed, Compound) -->
+    payload(codes, Codes),
+    { Compound =.. [Type, A] },
+    { phrase(packed_payload(Type, A), Codes) }.
+
+packed_payload(Type, [A | B]) -->
+    payload(Type, A),
+    packed_payload(Type, B).
+packed_payload(_Type, A) -->
+    nothing(A).
 
 start_group(Tag) --> protobuf_tag_type(Tag, start_group).
 
@@ -355,18 +376,11 @@ repeated_message_sequence(_Type, _Tag, A) -->
     nothing(A).
 
 message_sequence(repeated, Tag, enum(Compound)) -->
-    { Compound =.. [ Type, List] },
+    { Compound =.. [Type, List] },
     repeated_message_sequence(repeated_enum, Tag, Type, List).
 message_sequence(repeated, Tag, Compound) -->
     { Compound =.. [Type, A] },
     repeated_message_sequence(Type, Tag, A).
-% DO NOT SUBMIT - also handle packed enum
-message_sequence(packed, Tag, Compound) -->
-    % DO NOT SUBMIT - ground(A) --> see payload(embedded, ...)
-    { Compound =.. [Type, A] },
-    protobuf_tag_type(Tag, Type),
-    { phrase(packed(Type, A), Codes) },
-    payload(codes, Codes).
 message_sequence(group, Tag, A) -->
     start_group(Tag),
     protobuf(A),
@@ -375,13 +389,6 @@ message_sequence(group, Tag, A) -->
 message_sequence(PrologType, Tag, Payload) -->
     prolog_type(Tag, PrologType),
     payload(PrologType, Payload).
-
-% TODO: packed ...
-packed_message_sequence(Type, [A|As]) --> { representation_error(packed(Type, [A|As])) }.
-packed_message_sequence(Type, [_A|As]) -->
-      packed_message_sequence(Type, As).
-% packed_message_sequence(_Type, A) -->
-%     nothing(A).
 
 %!  protobuf_message(?Template, ?WireStream) is semidet.
 %!  protobuf_message(?Template, ?WireStream, ?Rest) is nondet.
@@ -398,7 +405,7 @@ packed_message_sequence(Type, [_A|As]) -->
 %   This implementation assumes that the fields are in the exact order
 %   of the definition and match exactly.
 %
-%   @bug "Packed" repeated fields are not supported.
+%   @bug "Packed" repeated enums are not supported.
 %
 %   @param Template is a  protobuf   grammar  specification.  On decode,
 %   unbound variables in the Template are  unified with their respective
@@ -442,7 +449,9 @@ protobuf_message(protobuf(TemplateList), WireStream, Residue) :-
 %
 %  @bug This predicate is preliminary and may change as additional
 %       functionality is added.
-%
+%  @bug Does not detect =packed= (it's treated as =length_delimited=).
+%  @bug Does not support [groups](https://developers.google.com/protocol-buffers/docs/proto#groups)
+%       (deprecated in the protobuf documentation).
 %  @tbd Expansion of this code to allow generalized handling of wire
 %       streams with fields in arbitrary order. (See bugs for
 %       protobuf_message/2).
@@ -588,8 +597,8 @@ length_delimited_segment(length_delimited(Tag,Codes), Tag, Codes).
 %  @bug This predicate is preliminary and may change as additional
 %       functionality is added.
 %  @bug This predicate will sometimes generate unexpected choice points,
-%       Such as from protobuf_segment_convert(message(10,...), string(10,...))`
-%  @bug When converting from a Form1=string, unnecessarily produces Form2=string
+%       Such as from =|protobuf_segment_convert(message(10,...), string(10,...))|=
+%  @bug When converting from a =|Form1=string|=, unnecessarily produces =Form2=string|=.
 %
 % @param Form1 =|message(Tag,Pieces)|= or =|string(Tag,String)|=.
 % @param Form2 =|string(Tag,String)|= or =|length_delimited(Tag,Codes)|=.

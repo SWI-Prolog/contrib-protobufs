@@ -16,7 +16,7 @@ the "old" format.
 
 The idea behind Google's  Protocol  Buffers   is  that  you  define your
 structured messages using a  domain-specific   language.  This takes the
-form of a =.proto= source file. You   pass  this file through a Google
+form of a .proto source file. You   pass  this file through a Google
 provided tool that generates source code for a target language, creating
 an interpreter that can encode/decode  your   structured  data. You then
 compile and build  this  interpreter   into  your  application  program.
@@ -56,13 +56,13 @@ protobuf([
     ])
 ==
 
-This corresponds to a message created with this =.proto= definition
+This corresponds to a message created with this .proto definition
 (using proto2 syntax):
 ==
 syntax = "proto2";
 package my.protobuf;
 message SomeMessage {
-  optional int32 first = 1;  // or int64, uint32, uint64
+  optional int32 first = 1;  // example template also works with int64, uint32, uint64
   optional string second = 2;
   repeated string third = 3;
   optional bool fourth = 4;
@@ -73,14 +73,14 @@ message SomeMessage {
   optional NestedMessage fifth = 5;
   repeated NestedMessage sixth = 6;
   repeated sint32 seventh = 7;
-  repeated sint32 eighth = 8 [packed=true]; // TODO: "packed" not yet implemented
+  repeated sint32 eighth = 8 [packed=true];
 }
 ==
 
 The wire format message can be displayed:
 
 ==
-$ protoc --decode=SomeMessage some_message.proto <some_message.wire
+$ protoc --decode=my.protobuf.SomeMessage some_message.proto <some_message.wire
 first: 100
 second: "abcd"
 third: "foo"
@@ -102,6 +102,9 @@ seventh: 1
 seventh: 2
 seventh: 3
 seventh: 4
+eighth: 100
+eighth: -200
+eighth: 1000
 ==
 
 and the actual message would be created in Python by code similar to this:
@@ -122,6 +125,7 @@ m1.value = 1234
 m1.text = "onetwothreefour"
 msg.sixth.append(msg.NestedMessage(value=2222, text="four twos"))
 msg.seventh.extend([1,2,3,4])
+msg.eighth.extend([100,-200,1000])
 ==
 or
 ==
@@ -133,7 +137,8 @@ msg2 = some_message_pb2.SomeMessage(
     fifth = some_message_pb2.SomeMessage.NestedMessage(value=-666, text="negative 666"),
     sixth = [some_message_pb2.SomeMessage.NestedMessage(value=1234, text="onetwothreefour"),
              some_message_pb2.SomeMessage.NestedMessage(value=2222, text="four twos")],
-    seventh = [1,2,3,4]
+    seventh = [1,2,3,4],
+    eighth = [100,-200,1000],
     )
 ==
 
@@ -157,7 +162,7 @@ decoded using  the template that was used to encode it. Note also that
 the primitive is interpreted according to  the   needs  of a local host.
 Local word-size and endianness are dealt with at this level.
 
-The following table shows the association between the types in the \.proto file
+The following table shows the association between the types in the .proto file
 and the primitives used in the
 wire-stream.  For how these correspond to other programming languages,
 such as C++, Java, etc. see [[Protocol Buffers Scalar Value
@@ -209,7 +214,6 @@ in some of the interoperability tests.)
        =|embedded(protobuf([...]))|=, etc.
     7. =|repeated ... [packed=true]|= in proto2.
        Can not contain "length delimited" types.
-       *Not yet implemented.* DO NOT SUBMIT
     8. Prolog =|boolean(Tag,false)|= maps to 0 and
        =|boolean(Tag,true)|= maps to 1.
     9. Uses "zig-zag" encoding, which is more space-efficient for
@@ -219,7 +223,7 @@ in some of the interoperability tests.)
        In particular, both C++ and Python encode negative numbers as
        10 bytes, and Prolog follows this for wire-stream compatibility
        (note that SWI-Prolog typically uses 64-bit integers anyway).
-       Therefore, signed64 is used for both \.proto types =int32= and
+       Therefore, signed64 is used for both .proto types =int32= and
        =int64=.
    11. =integer32= and =integer64= are not checked for negative values;
        if you use a negative value, it will be treated as the 2s complement
@@ -253,7 +257,7 @@ form =|Type(Tag,Value|= and =Type= can be any scalar or compound
 type.
 
 Scalar fields are encoded as =|Type(Tag,Value)|=.  For example, if a
-field is defined in a \.proto file by
+field is defined in a .proto file by
 =|optional string some_field = 10|=, then it could be encoded by
 =|string(10,"some field's contents")|= or by
 =|atom(10, 'some field\'s contents')|=.
@@ -270,7 +274,7 @@ that is not ground. Decoding a message  into a template that has unbound
 variables  has  the  effect  of  unifying    the  variables  with  their
 corresponding values in the wire-stream.
 
-Assume a \.proto definition:
+Assume a .proto definition:
 
 ==
 message Command {
@@ -314,7 +318,7 @@ message. =WireCodes= is the wire-stream, which encodes bytes (values between 0 a
 If   you  are  interworking with other
 systems and languages, then the protobuf   templates  that you supply to
 protobuf_message/2  must  be  equivalent  to   those  described  in  the
-=.proto= file that is used on the other side.
+.proto file that is used on the other side.
 
 ## Alternation, Aggregation, Encapsulation, and Enumeration {#protobufs-aaee}
 
@@ -369,8 +373,12 @@ with tag 23.
  field with an empty set.
 
  The protobuf grammar provides a variant   of the =repeated= field known
- as "packed." Packed, repeated fields are currently not supported by our
- interpreter.  DO NOT SUBMIT
+ as "packed." This is represented similar to =repeated=, e.g.:
+
+==
+    packed(22, float([1,2,3,4])),
+    packed(23, enum(tank_state([empty, half_full, full]))).
+==
 
 
 ### Encapsulation and Enumeration {#protobufs-encapsulation}
@@ -385,7 +393,7 @@ requires that you specify a callable   predicate like commands/2, below.
 The first argument is an atom  specifying   the  name  of token, and the
 second is an non-negative integer  that   specifies  the  token's value.
 These  must  of  course,  match  a   corresponding  enumeration  in  the
-=.proto= file.
+.proto file.
 
 *|Note:|* You must expose this predicate to the protobufs module
 by assigning it explicitly.
