@@ -42,7 +42,7 @@
 %! command(+Term, -Proto) is det.
 % Map a Prolog term to a corresponding protobuf term.
 command(add(X,Y), Proto) :-
-    freeze(X, must_be(integer, X)), % for debugginbg
+    freeze(X, must_be(integer, X)), % for debugging
     freeze(Y, must_be(integer, Y)), % for debugging
     Proto = protobuf([atom(1, command),
                       atom(2, add),
