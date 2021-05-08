@@ -379,10 +379,13 @@ test(not_packed) :-
 
 test(packed) :-
     Message = protobuf([packed(4, unsigned([3, 270, 86942]))]),
+    Message2 = protobuf([packed(4, unsigned([_, _, _]))]),
     protobuf_message(Message, WireStream),
     protobuf_segment_message(Segments, WireStream),
+    protobuf_message(Message2, WireStream),
     assertion(Segments == [length_delimited(4,[3,142,2,158,167,5])]), % TODO: packed(4,[...])
-    assertion(WireStream == [0x22, 0x06, 0x03, 0x8E, 0x02, 0x9E, 0xA7, 0x05]).
+    assertion(WireStream == [0x22, 0x06, 0x03, 0x8E, 0x02, 0x9E, 0xA7, 0x05]),
+    assertion(Message2 == Message).
 
 :- end_tests(repeated_fields).
 
