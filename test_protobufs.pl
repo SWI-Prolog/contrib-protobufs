@@ -36,12 +36,20 @@
         [ test_protobufs/0
         ]).
 
+% Trap syntax errors and halt. See https://github.com/SWI-Prolog/swipl-devel/issues/826
+:- multifile user:message_hook/3.
+:- dynamic user:message_hook/3.
+user:message_hook(Term, error, Lines) :-
+    Term = error(syntax_error(_Msg), _Details),
+    print_message_lines(user_error, 'ERROR: ', Lines),
+    halt(1).
+
+:- use_module(library(plunit)).
+
 :- asserta(user:file_search_path(library, .)).
 :- asserta(user:file_search_path(foreign, .)).
 
 :- use_module(library(protobufs)).
-
-:- use_module(eventually_implies).   % ~> operator
 
 protobufs:nested_enum(Key, Value) :-
     nested_enum(Key, Value).
@@ -65,6 +73,10 @@ import_enum(bar, 8).
 import_enum(baz, 9).
 
 golden_message(Proto) :-
+    % This corresponds to protobuf_unittest.TestAllTypes
+    % defined in google/protobuf/unittest.proto
+    % (from git@github.com:protocolbuffers/protobuf.git)
+
     string_codes("116", Codes116),
     string_codes("216", Codes216),
     string_codes("316", Codes316),
@@ -79,7 +91,7 @@ golden_message(Proto) :-
     string_codes(String324, "324"),
     string_codes(String415, "415"),
 
-    Proto = protobuf([ unsigned(1 , 101),
+    Proto = protobuf([ unsigned(1, 101),
                        unsigned(2, 102),
                        unsigned(3, 103),
                        unsigned(4, 104),
@@ -95,16 +107,16 @@ golden_message(Proto) :-
                        atom(14, '115'),
                        codes(15, Codes116),
                        group(16, [unsigned(17, 117)]),
-                       embedded(18, protobuf([unsigned(1, 118)])), % nested_message
-                       embedded(19, protobuf([unsigned(1, 119)])), % foreign_message
-                       embedded(20, protobuf([unsigned(1, 120)])),  % import message
-                       enum(21, nested_enum(baz)),    % nested_enum  BAZ
-                       enum(22, foreign_enum(baz)),     % nested_enum  FOREIGN_BAZ
-                       enum(23, import_enum(baz)),     %  nested_enum IMPORT_BAZ
-                       string(24, String124),   % string_piece
-                       string(25, String125),   % cord
-                       codes(26, [8, 126]),        % public_import_message
-                       codes(27, [8, 127]),        % lazy message
+                       embedded(18, protobuf([unsigned(1, 118)])),             % nested_message
+                       embedded(19, protobuf([unsigned(1, 119)])),             % foreign_message
+                       embedded(20, protobuf([unsigned(1, 120)])),             % import message
+                       enum(21, nested_enum(baz)),                             % nested_enum  BAZ
+                       enum(22, foreign_enum(baz)),                            % nested_enum  FOREIGN_BAZ
+                       enum(23, import_enum(baz)),                             %  nested_enum IMPORT_BAZ
+                       string(24, String124),                                  % string_piece
+                       string(25, String125),                                  % cord
+                       codes(26, [8, 126]),                                    % public_import_message
+                       codes(27, [8, 127]),                                    % lazy message
                        repeated(31, unsigned([201, 301])),
                        repeated(32, unsigned([202, 302])),
                        repeated(33, unsigned([203, 303])),
@@ -126,15 +138,15 @@ golden_message(Proto) :-
                        repeated(49, embedded([protobuf([unsigned(1, 219)]),
                                               protobuf([unsigned(1, 319)])])), % foreign
                        repeated(50, embedded([protobuf([unsigned(1, 220)]),
-                                              protobuf([unsigned(1, 320)])])),  % import
+                                              protobuf([unsigned(1, 320)])])), % import
                        repeated(51, enum(nested_enum([bar, baz]))),
                        repeated(52, enum(foreign_enum([bar, baz]))),
                        repeated(53, enum(import_enum([bar, baz]))),
-                       repeated(54, string([String224, String324])),   % string_piece
-                       repeated(55, codes([Codes225, Codes325])),    % cord
-                       repeated(57, embedded([protobuf([unsigned(1,227)]), % lazy msg
+                       repeated(54, string([String224, String324])),           % string_piece
+                       repeated(55, codes([Codes225, Codes325])),              % cord
+                       repeated(57, embedded([protobuf([unsigned(1,227)]),     % lazy msg
                                               protobuf([unsigned(1,327)])])),
-                       unsigned(61, 401),  % default_int32
+                       unsigned(61, 401),                                      % default_int32
                        unsigned(62, 402),
                        unsigned(63, 403),
                        unsigned(64, 404),
@@ -157,7 +169,7 @@ golden_message(Proto) :-
                      ]).
 
 golden_message_template(Proto) :-
-    Proto = protobuf([ unsigned(_ , _),
+    Proto = protobuf([ unsigned(_, _),
                        unsigned(_, _),
                        unsigned(_, _),
                        unsigned(_, _),
@@ -173,16 +185,16 @@ golden_message_template(Proto) :-
                        atom(_, _),
                        codes(_, _),
                        group(_, [unsigned(_, _)]),
-                       embedded(_, protobuf([unsigned(_, _)])), % nested_message
-                       embedded(_, protobuf([unsigned(_, _)])), % foreign_message
-                       embedded(_, protobuf([unsigned(_, _)])),  % import message
-                       enum(_, nested_enum(_)),    % nested_enum  BAZ
-                       enum(_, foreign_enum(_)),     % nested_enum  FOREIGN_BAZ
-                       enum(_, import_enum(_)),     %  nested_enum IMPORT_BAZ
-                       string(_, _),   % string_piece
-                       string(_, _),   % cord
-                       codes(_, _),        % public_import_message
-                       codes(_, _), %lazy message
+                       embedded(_, protobuf([unsigned(_, _)])),             % nested_message
+                       embedded(_, protobuf([unsigned(_, _)])),             % foreign_message
+                       embedded(_, protobuf([unsigned(_, _)])),             % import message
+                       enum(_, nested_enum(_)),                             % nested_enum  BAZ
+                       enum(_, foreign_enum(_)),                            % nested_enum  FOREIGN_BAZ
+                       enum(_, import_enum(_)),                             %  nested_enum IMPORT_BAZ
+                       string(_, _),                                        % string_piece
+                       string(_, _),                                        % cord
+                       codes(_, _),                                         % public_import_message
+                       codes(_, _),                                         %lazy message
                        repeated(_, unsigned(_)),
                        repeated(_, unsigned(_)),
                        repeated(_, unsigned(_)),
@@ -204,15 +216,15 @@ golden_message_template(Proto) :-
                        repeated(_, embedded([protobuf([unsigned(_, _)]),
                                              protobuf([unsigned(_, _)])])), % foreign
                        repeated(_, embedded([protobuf([unsigned(_, _)]),
-                                             protobuf([unsigned(_, _)])])),  % import
+                                             protobuf([unsigned(_, _)])])), % import
                        repeated(_, enum(nested_enum(_))),
                        repeated(_, enum(foreign_enum(_))),
                        repeated(_, enum(import_enum(_))),
-                       repeated(_, string(_)),   % string_piece
-                       repeated(_, codes(_)),    % cord
+                       repeated(_, string(_)),                              % string_piece
+                       repeated(_, codes(_)),                               % cord
                        repeated(_, embedded([protobuf([unsigned(_,_)]),
                                              protobuf([unsigned(_,_)])])),
-                       unsigned(_, _),  % default_int_
+                       unsigned(_, _),                                      % default_int_
                        unsigned(_, _),
                        unsigned(_, _),
                        unsigned(_, _),
@@ -234,78 +246,203 @@ golden_message_template(Proto) :-
                        codes(_, _)
                      ]).
 
-announce(Announcement, Test) :-
-    write(Announcement)
-      ~> (Test == ok -> writeln('OK'); writeln('FAILED')).
-
-test_protobufs :-
-    golden_message(Message),
-    golden_message_template(Template),
-    copy_term(Template, Template1),
-    copy_term(Template, Template2),
-
-    test_input('./golden_message.2.5.0', Gold250),
-    announce('Loading Google''s Golden Wirestream (2.5.0)...', Test1a),
-    (   read_file_to_codes(Gold250, Wirestream, [type(binary)])
-    ->  Test1a = ok
-    ),
-    !,
-    announce('Unifying canned Golden Message with canned Golden Template...',
-             Test1),
-    (   (Message = Template, Message == Template)
-    ->  Test1 = ok
-    ),
-    !,
-
-    announce('Unifying canned Golden Message with Google''s Golden Wirestream...',
-             Test2),
-    (   protobuf_message(Message, Wirestream)
-    ->  Test2 = ok
-    ),
-    !,
-
-    announce('Parsing Google''s Golden Wirestream to canned Golden Template...',
-             Test3),
-    (   protobuf_message(Template2, Wirestream)
-    ->  Test3 = ok
-    ),
-    !,
-
-    announce('Comparing canned Golden Message to parsed Golden Template...',
-             Test3a),
-    (   Message == Template2
-    ->  Test3a = ok
-    ),
-    !,
-
-    announce('Serializing canned Golden Message to Codes...', Test4),
-    (   protobuf_message(Message, Codes )
-    ->  Test4 = ok
-    ),
-    !,
-
-    announce('Comparing Google''s Golden Wirestream to Codes...', Test4a),
-    (   (Wirestream == Codes)
-    ->  Test4a = ok
-    ),
-    !,
-
-    announce('Parsing Codes to canned Golden Template...', Test5),
-    (   protobuf_message(Template1, Codes)
-    ->  Test5 = ok
-    ),
-    !,
-
-    announce('Comparing canned Golden Message to parsed Golden Template...',
-             Test6),
-    (   (Message == Template1)
-    ->  Test6 = ok
-    ),
-    !,
-
-    writeln('All tests passed.').
+test_protobufs :- run_tests.
 
 test_input(Name, Path) :-
     source_file(test_protobufs, MyFile),
     file_directory_name(MyFile, MyDir),
     atomic_list_concat([MyDir, Name], /, Path).
+
+golden_message_codes(Wirestream) :-
+    test_input('./golden_message.2.5.0', Gold250),
+    read_file_to_codes(Gold250, Wirestream, [encoding(octet),type(binary)]).
+
+:- begin_tests(protobuf_message).
+
+% The original test suite had a series of tests that built on each
+% other.  The tests below have taken those tests and separated them
+% out, so there's some duplication on setup between tests.
+
+% The "Test...-" at the beginning of a test name references the
+% original test that was written before the tests were converted to
+% use plunit.
+
+test(original) :-
+    % These are the executable parts from the original test. It is
+    % preserved here, in case there was a mistake in defining the
+    % indvidual tests.
+    golden_message(Message),
+    golden_message_template(Template),
+    copy_term(Template, Template1),
+    copy_term(Template, Template2),
+    test_input('./golden_message.2.5.0', Gold250),
+    read_file_to_codes(Gold250, Wirestream, [type(binary)]), % Test1a - Loading Google''s Golden Wirestream (2.5.0)
+    (Message = Template, Message == Template),               % Test1  - Unifying canned Golden Message with canned Golden Template
+    protobuf_message(Message, Wirestream),                   % Test2  - Unifying canned Golden Message with Google''s Golden Wirestream
+    protobuf_message(Template2, Wirestream),                 % Test3  - Parsing Google''s Golden Wirestream to canned Golden Template
+    Message == Template2,                                    % Test3a - Comparing canned Golden Message to parsed Golden Template
+    protobuf_message(Message, Codes ),                       % Test4  - Serializing canned Golden Message to Codes
+    (Wirestream == Codes),                                   % Test4a - Comparing Google''s Golden Wirestream to Codes
+    protobuf_message(Template1, Codes),                      % Test5  - Parsing Codes to canned Golden Template
+    (Message == Template1).                                  % Test6  - Comparing canned Golden Message to parsed Golden Template
+
+test("Test1a,Test1 - test set-up check: Unifying canned Golden Message with canned Golden Template") :-
+    golden_message(Message),
+    golden_message_template(Template),
+    % golden_message_template/1, golden_message/1 have same "shape":
+    assertion(subsumes_term(Template, Message)),
+    Message = Template,
+    % TODO: Why the following test? Leaving it here because it was in
+    %       the original test file.
+    Message == Template.
+
+test("Test2 - Unifying canned Golden Message with Google's Golden Wirestream") :-
+    golden_message_codes(Wirestream),
+    golden_message(Message),
+    protobuf_message(Message, Wirestream).
+
+test("Test3,Test3a - Parsing Google's Golden Wirestream to canned Golden Template, Comparing canned Golden Message to parsed Golden Template") :-
+    golden_message_codes(Wirestream),
+    golden_message_template(Template2),
+    protobuf_message(Template2, Wirestream),
+    golden_message(Message),
+    assertion(Message == Template2).
+
+test("Test4,Test4a - Serializing canned Golden Message to Codes, Comparing Google's Golden Wirestream to Codes") :-
+    golden_message(Message),
+    protobuf_message(Message, Codes),
+    golden_message_codes(Wirestream),
+    assertion(Wirestream == Codes).
+
+test("Test5,Test6 - Parsing Codes to canned Golden Template, Comparing canned Golden Message to parsed Golden Template") :-
+    golden_message(Message),
+    golden_message_template(Template1),
+    protobuf_message(Message, Codes),
+    protobuf_message(Template1, Codes),
+    assertion(Message == Template1).
+
+:- end_tests(protobuf_message).
+
+:- begin_tests(some_message_example).
+
+some_message_wire(Wire) :-
+    % This is output generated by some_message.py
+    Wire = [8, 100, 18, 4, 97, 98, 99, 100, 26, 3, 102, 111, 111, 26, 3, 98, 97, 114, 32, 1, 42, 17, 8, 179, 10, 18, 12, 110, 101, 103, 97, 116, 105, 118, 101, 32, 54, 54, 54, 50, 20, 8, 164, 19, 18, 15, 111, 110, 101, 116, 119, 111, 116, 104, 114, 101, 101, 102, 111, 117, 114, 50, 14, 8, 220, 34, 18, 9, 102, 111, 117, 114, 32, 116, 119, 111, 115, 56, 2, 56, 4, 56, 6, 56, 8, 66, 6, 200, 1, 143, 3, 208, 15].
+
+some_message_template(Template) :-
+    Template = protobuf([
+        unsigned(1, 100),
+        string(2, "abcd"),
+        repeated(3, atom([foo, bar])),
+        boolean(4, true),
+        embedded(5, protobuf([integer(1, -666), string(2, "negative 666")])),
+        repeated(6, embedded([protobuf([integer(1, 1234), string(2, "onetwothreefour")]),
+                              protobuf([integer(1, 2222), string(2, "four twos")])])),
+        repeated(7, integer([1,2,3,4])),
+        packed(8, integer([100,-200,1000]))
+       ]).
+
+test(some_message_wire) :-
+    some_message_template(Template),
+    some_message_wire(ExpectedWire),
+    protobuf_message(Template, WireStream),
+    assertion(WireStream == ExpectedWire).
+
+:- end_tests(some_message_example).
+
+:- begin_tests(repeated_fields).
+
+% Taken from https://developers.google.com/protocol-buffers/docs/encoding#packed
+%
+% message Test4 {
+%  repeated int32 d = 4 [packed=true];
+% }
+
+% Construct a Test4, providing the values 3, 270, and 86942 for the
+% repeated field d. Then, the encoded form would be:
+%   22        // key (field number 4, wire type 2)
+%   06        // payload size (6 bytes)
+%   03        // first element (varint 3)
+%   8E 02     // second element (varint 270)
+%   9E A7 05  // third element (varint 86942)
+
+test(not_packed) :-
+    Message = protobuf([repeated(4, unsigned([3, 270, 86942]))]),
+    Template = protobuf([repeated(Tag, unsigned(Ints))]),
+    protobuf_message(Message, WireStream),
+    protobuf_segment_message(Segments, WireStream),
+    assertion(Segments == [varint(4,3), varint(4,270), varint(4,86942)]),
+    protobuf_message(Template, WireStream),
+    assertion(Template == Message),
+    assertion(Tag == 4),
+    assertion(Ints = [3, 270, 86942]).
+
+test(packed) :-
+    Message = protobuf([packed(4, unsigned([3, 270, 86942]))]),
+    Message2 = protobuf([packed(4, unsigned([_, _, _]))]),
+    protobuf_message(Message, WireStream),
+    protobuf_segment_message(Segments, WireStream),
+    protobuf_message(Message2, WireStream),
+    assertion(Segments == [length_delimited(4,[3,142,2,158,167,5])]), % TODO: packed(4,[...])
+    assertion(WireStream == [0x22, 0x06, 0x03, 0x8E, 0x02, 0x9E, 0xA7, 0x05]),
+    assertion(Message2 == Message).
+
+:- end_tests(repeated_fields).
+
+:- begin_tests(protobuf_segment_convert).
+
+test_data(Msg, Str, Ld, Codes) :-
+    Msg = message(10,[fixed64(13,[110,112,117,116,84,121,112,101])]),
+    Str = string(10,"inputType"),
+    Ld  = length_delimited(10,[105,110,112,117,116,84,121,112,101]),
+    Codes = [82,9,105,110,112,117,116,84,121,112,101].
+
+test(protobuf_message) :-
+    test_data(Msg, _, _, Codes),
+    protobuf_segment_message(Segments, Codes),
+    assertion(Segments == [Msg]),
+    protobuf_segment_message([Msg], CodesFromMsg),
+    assertion(CodesFromMsg == Codes).
+
+test(message_string1,
+     [true(Strs = [Str, Ld])]) :-
+    test_data(Msg, Str, Ld, _),
+    findall(S, protobuf_segment_convert(Msg, S), Strs).
+
+test(message_string2,
+     [true(Strs == [Str])]) :-
+    test_data(Msg, Str, _, _),
+    % protobuf_segment_convert/2 leaves a choicepoint - ensure that
+    % there's only one result
+    findall(Str, protobuf_segment_convert(Msg, Str), Strs).
+
+test(message_string3,
+     [true(Strs == [Str])]) :-
+    test_data(Msg, Str, _, _),
+    % protobuf_segment_convert/2 leaves a choicepoint - ensure that
+    % there's only one result
+    findall(S,
+            ( S = string(_,_), protobuf_segment_convert(Msg, S ) ),
+            Strs).
+
+test(message_length_delimited1) :-
+    test_data(Msg, _, Ld, _),
+    protobuf_segment_convert(Msg, Ld).
+
+test(message_length_delimited2,
+     [true(Ld == Ld2)]) :-
+    test_data(Msg, _, Ld, _),
+    Ld2 = length_delimited(_,_),
+    protobuf_segment_convert(Msg, Ld2).
+
+test(string_length_delimited1) :-
+    test_data(_, Str, Ld, _),
+    protobuf_segment_convert(Str, Ld).
+
+test(string_length_delimited2,
+     [true(Xs = [Str,Ld])]) :-
+    test_data(_, Str, Ld, _),
+    findall(X, protobuf_segment_convert(Str, X), Xs).
+
+:- end_tests(protobuf_segment_convert).
+

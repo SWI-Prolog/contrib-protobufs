@@ -1,7 +1,7 @@
 /*  Part of SWI-Prolog
 
-    Author:        Jeffrey Rosenwald
-    E-mail:        jeffrose@acm.org
+    Author:        Jeffrey Rosenwald, extended by Peter Ludemann
+    E-mail:        jeffrose@acm.org, peter.ludemann.gmail.com
     WWW:           http://www.swi-prolog.org
     Copyright (c)  2010-2013, Jeffrey Rosenwald
     All rights reserved.
@@ -37,10 +37,13 @@
             protobuf_message/3,   % ?Template ?Codes ?Rest
             protobuf_segment_message/2,  % ?Segment ?Message
             protobuf_segment_convert/2,  % +Form1 ?Form2
+            int32_codes/2,
             float32_codes/2,
             int64_codes/2,
             float64_codes/2,
-            integer_zigzag/2
+            integer_zigzag/2,
+            protobuf_var_int//1,
+            protobuf_tag_type//2
           ]).
 :- autoload(library(error),[must_be/2]).
 :- autoload(library(lists),[append/3]).
@@ -74,7 +77,7 @@ protobuf_message/2. The interpreter will unify  the unbound variables in
 the template with values decoded from the wire-stream.
 
 For an overview and tutorial with examples, see
-[[protobufs_overview.md][https://github.com/SWI-Prolog/contrib-protobufs/blob/master/protobufs_overview.md]].
+[library(protobufs): Google's Protocol Buffers](#protobufs-main)
 Examples of usage may also be found by inspecting
 [[test_protobufs.pl][https://github.com/SWI-Prolog/contrib-protobufs/blob/master/test_protobufs.pl]]
 and the
@@ -134,43 +137,47 @@ code_string(N, Codes) -->
 % deal with Google's method of packing unsigned integers in variable
 % length, modulo 128 strings.
 %
-% var_int//1 and tag_type//2 productions were rewritten in straight
+% protobuf_var_int//1 and protobuf_tag_type//2 productions were rewritten in straight
 % Prolog for speed's sake.
 %
 
-%! var_int(?A:int, ?Rest:list, ?Rest1:list) is det.
+%! protobuf_var_int(?A:int)// is det.
 % Conversion between an int A and a list of codes, using the
 % "varint" encoding.
-% Rest, Rest1 are a DCG difference list
-% e.g. var_int(300, S, []) => S = [172,2]
-%      var_int(A, [172,2]) -> A = 300
-var_int(A, [A | Rest], Rest) :-
+% The behvior is undefined if =A= is negative.
+% This is a low-level predicate; normally, you should use
+% template_message/2 and the appropriate template term.
+% e.g. phrase(protobuf_var_int(300), S) => S = [172,2]
+%      phrase(protobuf_var_int(A), [172,2]) -> A = 300
+protobuf_var_int(A, [A | Rest], Rest) :-
     A < 128,
     !.
-var_int(X, [A | Rest], Rest1) :-
+protobuf_var_int(X, [A | Rest], Rest1) :-
     nonvar(X),
     X1 is X >> 7,
     A is 128 + (X /\ 0x7f),
-    var_int(X1, Rest, Rest1),
+    protobuf_var_int(X1, Rest, Rest1),
     !.
-var_int(X, [A | Rest], Rest1) :-
-    var_int(X1, Rest, Rest1),
+protobuf_var_int(X, [A | Rest], Rest1) :-
+    protobuf_var_int(X1, Rest, Rest1),
     X is (X1 << 7) + A - 128,
     !.
 
-%! tag_type(?Tag:int, ?Type:atom, ?Rest, Rest1) is det.
+%! protobuf_tag_type(?Tag:int, ?Type:atom, ?Rest, Rest1) is det.
 % Conversion between Tag (number) + Type and list of codes.
-% Tag: The item's tag (field number)
-% Type: The item's type (see prolog_type//2)
-% Rest, Rest1 are a DCG difference list
-tag_type(Tag, Type, Rest, Rest1) :-
+% This is a low-level predicate; normally, you should use
+% template_message/2 and the appropriate template term.
+% @arg Tag The item's tag (field number)
+% @arg Type The item's type (see prolog_type//2)
+% @arg Rest, @arg Rest1 DCG difference list
+protobuf_tag_type(Tag, Type, Rest, Rest1) :-
     nonvar(Tag), nonvar(Type),
     wire_type(Type, X),
     A is Tag << 3 \/ X,
-    var_int(A, Rest, Rest1),
+    protobuf_var_int(A, Rest, Rest1),
     !.
-tag_type(Tag, Type, Rest, Rest1) :-
-    var_int(A, Rest, Rest1),
+protobuf_tag_type(Tag, Type, Rest, Rest1) :-
+    protobuf_var_int(A, Rest, Rest1),
     X is A /\ 0x07,
     wire_type(Type, X),
     Tag is A >> 3.
@@ -179,33 +186,45 @@ tag_type(Tag, Type, Rest, Rest1) :-
 % Convert between Tag (field number) + Type and list of codes.
 % When Type is a variable, backtracks through all the possibilities
 % for a given wire encoding.
-prolog_type(Tag, double) -->     tag_type(Tag, fixed64).
-prolog_type(Tag, integer64) -->  tag_type(Tag, fixed64).
-prolog_type(Tag, float) -->      tag_type(Tag, fixed32).
-prolog_type(Tag, integer32) -->  tag_type(Tag, fixed32).
-prolog_type(Tag, integer) -->    tag_type(Tag, varint).
-prolog_type(Tag, unsigned) -->   tag_type(Tag, varint).
-prolog_type(Tag, boolean) -->    tag_type(Tag, varint).
-prolog_type(Tag, enum) -->       tag_type(Tag, varint).
-prolog_type(Tag, atom) -->       tag_type(Tag, length_delimited).
-prolog_type(Tag, codes) -->      tag_type(Tag, length_delimited).
-prolog_type(Tag, utf8_codes) --> tag_type(Tag, length_delimited).
-prolog_type(Tag, string) -->     tag_type(Tag, length_delimited).
-prolog_type(Tag, embedded) -->   tag_type(Tag, length_delimited).
+% Note that 'repeated' isn't here because it's handled by message_sequence//3.
+prolog_type(Tag, double) -->     protobuf_tag_type(Tag, fixed64).
+prolog_type(Tag, integer64) -->  protobuf_tag_type(Tag, fixed64).
+prolog_type(Tag, float) -->      protobuf_tag_type(Tag, fixed32).
+prolog_type(Tag, integer32) -->  protobuf_tag_type(Tag, fixed32).
+prolog_type(Tag, integer) -->    protobuf_tag_type(Tag, varint).
+prolog_type(Tag, unsigned) -->   protobuf_tag_type(Tag, varint).
+%                signed32  - omitted for wire-stream compabitility
+prolog_type(Tag, signed64) -->   protobuf_tag_type(Tag, varint).
+prolog_type(Tag, boolean) -->    protobuf_tag_type(Tag, varint).
+prolog_type(Tag, enum) -->       protobuf_tag_type(Tag, varint).
+prolog_type(Tag, atom) -->       protobuf_tag_type(Tag, length_delimited).
+prolog_type(Tag, codes) -->      protobuf_tag_type(Tag, length_delimited).
+prolog_type(Tag, utf8_codes) --> protobuf_tag_type(Tag, length_delimited).
+prolog_type(Tag, string) -->     protobuf_tag_type(Tag, length_delimited).
+prolog_type(Tag, embedded) -->   protobuf_tag_type(Tag, length_delimited).
+prolog_type(Tag, packed) -->     protobuf_tag_type(Tag, length_delimited).
+
 %
 %   The protobuf-2.1.0 grammar allows negative values in enums.
 %   But they are encoded as unsigned in the  golden message.
 %   Encode as integer and lose. Encode as unsigned and win.
 %
-:- meta_predicate enumeration(1,*,*).
+:- meta_predicate enumeration(1,?,?).
 
 enumeration(Type) -->
     { call(Type, Value) },
     payload(unsigned, Value).
 
+% TODO: payload//2 "mode" is sometimes module-sensitive, sometimes not.
+%       payload(enum, A)// has A as a callable
+%       all other uses of payload//2, the 2nd arg is not callable.
+%     - This confuses check/0; it also makes defining an enumeration
+%       more difficult because it has to be defined in module protobufs
+%       (see vector_demo.pl, which defines protobufs:commands/2)
+
 payload(enum, A) -->
     enumeration(A).
-payload(double,  A) -->
+payload(double, A) -->
     fixed_float64(A).
 payload(integer64, A) -->
     fixed_int64(A).
@@ -216,22 +235,59 @@ payload(integer32, A) -->
 payload(integer, A) -->
     { nonvar(A), integer_zigzag(A,X) },
     !,
-    var_int(X).
+    protobuf_var_int(X).
 payload(integer, A) -->
-    var_int(X),
+    protobuf_var_int(X),
     { integer_zigzag(A, X) }.
 payload(unsigned, A) -->
+    % TODO: replace payload(unsigned, A) with this (needs unit tests +
+    %       comparison with Python,C++):
+    %   payload(unsigned, A) -->
+    %       protobuf_var_int(A),
+    %       { A >= 0 }.
     {   nonvar(A)
     ->  A >= 0
     ;   true
     },
-    var_int(A).
+    protobuf_var_int(A).
+payload(signed32, A) --> % signed32 is not defined by prolog_type//2
+                         % for wire-stream compatibility reasons.
+%     % signed32 ought to write 5 bytes for negative numbers, but both
+%     % the C++ and Python implementations write 10 bytes. For
+%     % wire-stream compatibility, we follow C++ and Python, even though
+%     % protoc decode appears to work just fine with 5 bytes --
+%     % presumably there are some issues with decoding 5 bytes and
+%     % getting the sign extension correct with some 32/64-bit integer
+%     % models.  See CodedOutputStream::WriteVarint32SignExtended(int32
+%     % value) in google/protobuf/io/coded_stream.h.  (To write 5 bytes,
+%     % change the "A xor % 0xffffffffffffffff" to "A xor 0xffffffff".)
+      payload(signed64, A).
+payload(signed64, A) -->
+    % protobuf_var_int//1 cannot handle negative numbers (note that
+    % zig-zag encoding always results in a positive number), so
+    % compute the 64-bit 2s complement, which is what is produced
+    % form C++ and Python.
+    % TODO: \A instead of A xor ...?
+    { var(A) },
+    !,
+    protobuf_var_int(X),
+    {   X > 0x7fffffffffffffff
+    ->  A is -(X xor 0xffffffffffffffff + 1)
+    ;   A = X
+    }.
+payload(signed64, A) -->
+    % See comment in previous clause about negative numbers.
+    {   nonvar(A), A < 0
+    ->  X is -(A xor 0xffffffffffffffff + 1)
+    ;   X = A
+    },
+    protobuf_var_int(X).
 payload(codes, A) -->
     { nonvar(A), !, length(A, Len)},
-    var_int(Len),
+    protobuf_var_int(Len),
     code_string(Len, A).
 payload(codes, A) -->
-    var_int(Len),
+    protobuf_var_int(Len),
     code_string(Len, A).
 payload(utf8_codes, A) -->
     { nonvar(A),
@@ -260,7 +316,10 @@ payload(string, A) -->
     ->  string_codes(A, Codes)
     ;   true
     },
-    payload(codes, Codes),
+    % string_codes produces a list of unicode, not bytes, e.g.
+    % string_codes('écran 網目錦蛇', [233,99,114,97,110,32,32178,30446,37670,34503])
+    % so don't use payload(codes, Codes):
+    payload(utf8_codes, Codes),
     { string_codes(A, Codes) }.
 payload(embedded, protobuf(A)) -->
     { ground(A),
@@ -271,10 +330,27 @@ payload(embedded, protobuf(A)) -->
 payload(embedded, protobuf(A)) -->
     payload(codes, Codes),
     { phrase(protobuf(A), Codes) }.
+payload(packed, Compound) -->
+    { Compound =.. [Type, A],
+      ground(A),
+      phrase(packed_payload(Type, A), Codes)
+    },
+    payload(codes, Codes),
+    !.
+payload(packed, Compound) -->
+    payload(codes, Codes),
+    { Compound =.. [Type, A] },
+    { phrase(packed_payload(Type, A), Codes) }.
 
-start_group(Tag) -->            tag_type(Tag, start_group).
+packed_payload(Type, [A | B]) -->
+    payload(Type, A),
+    packed_payload(Type, B).
+packed_payload(_Type, A) -->
+    nothing(A).
 
-end_group(Tag) -->              tag_type(Tag, end_group).
+start_group(Tag) --> protobuf_tag_type(Tag, start_group).
+
+end_group(Tag) -->   protobuf_tag_type(Tag, end_group).
 %
 %
 nothing([]) --> [], !.
@@ -300,7 +376,7 @@ repeated_message_sequence(_Type, _Tag, A) -->
     nothing(A).
 
 message_sequence(repeated, Tag, enum(Compound)) -->
-    { Compound =.. [ Type, List] },
+    { Compound =.. [Type, List] },
     repeated_message_sequence(repeated_enum, Tag, Type, List).
 message_sequence(repeated, Tag, Compound) -->
     { Compound =.. [Type, A] },
@@ -314,13 +390,13 @@ message_sequence(PrologType, Tag, Payload) -->
     prolog_type(Tag, PrologType),
     payload(PrologType, Payload).
 
-%!  protobuf_message(?Template, ?Wire_stream) is semidet.
-%!  protobuf_message(?Template, ?Wire_stream, ?Rest) is nondet.
+%!  protobuf_message(?Template, ?WireStream) is semidet.
+%!  protobuf_message(?Template, ?WireStream, ?Rest) is nondet.
 %
 %   Marshals  and  unmarshals   byte  streams  encoded  using   Google's
 %   Protobuf  grammars.  protobuf_message/2  provides  a  bi-directional
-%   parser that marshals a Prolog   structure to Wire_stream,  according
-%   to rules specified by Template. It   can also unmarshal  Wire_stream
+%   parser that marshals a Prolog   structure to WireStream,  according
+%   to rules specified by Template. It   can also unmarshal  WireStream
 %   into  a  Prolog   structure   according    to   the   same  grammar.
 %   protobuf_message/3 provides a difference list version.
 %
@@ -329,30 +405,31 @@ message_sequence(PrologType, Tag, Payload) -->
 %   This implementation assumes that the fields are in the exact order
 %   of the definition and match exactly.
 %
-%   @bug "Packed" repeated fields are not supported.
+%   @bug "Packed" repeated enums are not supported.
 %
 %   @param Template is a  protobuf   grammar  specification.  On decode,
 %   unbound variables in the Template are  unified with their respective
-%   values in the Wire_stream. On encode, Template must be ground.
+%   values in the WireStream. On encode, Template must be ground.
 %
-%   @param Wire_stream is a code list that   was generated by a protobuf
+%   @param WireStream is a code list that   was generated by a protobuf
 %   encoder using an equivalent template.
 
-protobuf_message(protobuf(Template), Wirestream) :-
-    must_be(list, Template),
-    phrase(protobuf(Template), Wirestream),
+protobuf_message(protobuf(TemplateList), WireStream) :-
+    must_be(list, TemplateList),
+    phrase(protobuf(TemplateList), WireStream),
     !.
 
-protobuf_message(protobuf(Template), Wirestream, Residue) :-
-    must_be(list, Template),
-    phrase(protobuf(Template), Wirestream, Residue).
+protobuf_message(protobuf(TemplateList), WireStream, Residue) :-
+    must_be(list, TemplateList),
+    phrase(protobuf(TemplateList), WireStream, Residue).
 
 %!  protobuf_segment_message(+Segments:list, -WireStream:list(int)) is det.
 %!  protobuf_segment_message(-Segments:list, +WireStream:list(int)) is det.
 %
 %  Low level marshalling and unmarshalling of byte streams. The
 %  processing is independent of the =|.proto|= description, similar
-%  to the processing done by =|protoc --decode_raw|=.
+%  to the processing done by =|protoc --decode_raw|=. This means that
+%  field names aren't shown: only field numbers.
 %
 %  For unmarshalling, a simple heuristic is used on length-delimited
 %  segments: first interpret it as a message; if that fails, try to
@@ -372,10 +449,16 @@ protobuf_message(protobuf(Template), Wirestream, Residue) :-
 %
 %  @bug This predicate is preliminary and may change as additional
 %       functionality is added.
-%
+%  @bug Does not detect =packed= (it's treated as =length_delimited=).
+%  @bug Does not support [groups](https://developers.google.com/protocol-buffers/docs/proto#groups)
+%       (deprecated in the protobuf documentation).
 %  @tbd Expansion of this code to allow generalized handling of wire
 %       streams with fields in arbitrary order. (See bugs for
 %       protobuf_message/2).
+%  @tbd Functionality similar to =|protoc --decode|=, which will
+%       use field names rather than field numbers and also
+%       will not need heuristics to guess at segment types because
+%       it will have the correct types from the .proto definition.
 %
 %  @param Segments a list containing terms of the following form (=Tag= is
 %  the field number; =Codes= is a list of integers):
@@ -415,13 +498,13 @@ segment_message([]) --> [].
 segment_message([Segment|Segments]) -->
     { var(Segment) },
     !,
-    tag_type(Tag, Type),
+    protobuf_tag_type(Tag, Type),
     segment(Type, Tag, Segment),
     segment_message(Segments).
 segment_message([Segment|Segments]) -->
     % { nonvar(Segment) },
     { segment_type_tag(Segment, Type, Tag) },
-    tag_type(Tag, Type),
+    protobuf_tag_type(Tag, Type),
     segment(Type, Tag, Segment),
     segment_message(Segments).
 
@@ -435,7 +518,7 @@ segment_type_tag(message(Tag,_Segments),       length_delimited, Tag).
 segment_type_tag(string(Tag,_String),          length_delimited, Tag).
 
 segment(varint, Tag, varint(Tag,Value)) -->
-    var_int(Value).
+    protobuf_var_int(Value).
 segment(fixed64, Tag, fixed64(Tag, [A0,A1,A2,A3,A4,A5,A6,A7])) -->
     [A0, A1, A2, A3, A4, A5, A6, A7].
 segment(start_group, Tag, start_group(Tag)) --> [].
@@ -450,11 +533,11 @@ segment_length_delimited(Tag, Result) -->
     !,
     { length_delimited_segment(Result, Tag, Codes) },
     { length(Codes, CodesLen) },
-    var_int(CodesLen),
+    protobuf_var_int(CodesLen),
     code_string(CodesLen, Codes).
 segment_length_delimited(Tag, Result) -->
     % { var(Result) },
-    var_int(CodesLen),
+    protobuf_var_int(CodesLen),
     code_string(CodesLen, Codes),
     { length_delimited_segment(Result, Tag, Codes) }.
 
@@ -481,11 +564,22 @@ length_delimited_segment(string(Tag,String), Tag, Codes) :-
     !.
 length_delimited_segment(length_delimited(Tag,Codes), Tag, Codes).
 
-%! protobuf_segment_convert(+Form1, -Form2) is multi.
+%! protobuf_segment_convert(+Form1, ?Form2) is multi.
 % A convenience predicate for dealing with the situation where
 % protobuf_segment_message/2 interprets a segment of the wire stream
 % as a form that you don't want (e.g., as a message but it should have
 % been a UTF8 string).
+%
+% =Form1= is converted back to the original wire stream, then the
+% predicate non-deterinisticly attempts to convert the wire stream to
+% a =|string|= or =|length_delimited|= term (or both: the lattter
+% always succeeds).
+%
+% The possible conversions are:
+%   message(Tag,Segments) => string(Tag,String)
+%   message(Tag,Segments) => length_delimited(Tag,Codes)
+%   string(Tag,String) => length_delimited(Tag,Codes)
+%   length_delimited(Tag,Codes) => length_delimited(Tag,Codes)
 %
 % For example:
 % ==
@@ -502,24 +596,25 @@ length_delimited_segment(length_delimited(Tag,Codes), Tag, Codes).
 %
 %  @bug This predicate is preliminary and may change as additional
 %       functionality is added.
-%  @tbd Make this bidirectional, so it fits better
-%       with the style of protobuf_meessage/2.
+%  @bug This predicate will sometimes generate unexpected choice points,
+%       Such as from =|protobuf_segment_convert(message(10,...), string(10,...))|=
+%  @bug When converting from a =|Form1=string|=, unnecessarily produces =Form2=string|=.
 %
 % @param Form1 =|message(Tag,Pieces)|= or =|string(Tag,String)|=.
 % @param Form2 =|string(Tag,String)|= or =|length_delimited(Tag,Codes)|=.
 protobuf_segment_convert(Form1, Form2) :-
     protobuf_segment_message([Form1], MessageCodes),
     phrase(tag_and_codes(Tag, Codes), MessageCodes),
-    protobuf_segment_convert_string(Codes, Tag, Form2).
-
-protobuf_segment_convert_string(Codes, Tag, string(Tag,String)) :-
-    phrase(utf8_codes(StringCodes), Codes),
-    string_codes(String, StringCodes).
-protobuf_segment_convert_string(Codes, Tag, length_delimited(Tag,Codes)).
+    protobuf_segment_convert_2(Codes, Tag, Form2).
 
 tag_and_codes(Tag, Codes) -->
-    tag_type(Tag, length_delimited),
+    protobuf_tag_type(Tag, length_delimited),
     payload(codes, Codes).
+
+protobuf_segment_convert_2(Codes, Tag, string(Tag,String)) :-
+    phrase(utf8_codes(StringCodes), Codes),
+    string_codes(String, StringCodes).
+protobuf_segment_convert_2(Codes, Tag, length_delimited(Tag,Codes)).
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -527,30 +622,40 @@ tag_and_codes(Tag, Codes) -->
 
 %! int32_codes(?Value, ?Codes) is det.
 % Convert between a 32-bit integer value and its wirestream codes.
+% This is a low-level predicate; normally, you should use
+% template_message/2 and the appropriate template term.
 %
 % @param Value an integer
-% @param Codes a list of 4 integers
+% @param Codes a list of 4 integers (codes)
 
 %! float32_codes(?Value, ?Codes) is det.
 % Convert between a 32-bit floating point value and its wirestream codes.
+% This is a low-level predicate; normally, you should use
+% template_message/2 and the appropriate template term.
 %
 % @param Value a floating point number
-% @param Codes a list of 4 integers
+% @param Codes a list of 4 integers (codes)
 
 %! int64_codes(?Value, ?Codes) is det.
 % Convert between a 64-bit integer value and its wirestream codes.
+% This is a low-level predicate; normally, you should use
+% template_message/2 and the appropriate template term.
 %
 % @param Value an integer
-% @param Codes a list of 8 integers
+% @param Codes a list of 8 integers (codes)
 
 %! float64_codes(?Value, ?Codes) is det.
 % Convert between a 64-bit floating point value and its wirestream codes.
+% This is a low-level predicate; normally, you should use
+% template_message/2 and the appropriate template term.
 %
 % @param Value a floating point number
-% @param Codes a list of 8 integers
+% @param Codes a list of 8 integers (codes)
 
 %! integer_zigzag(?Original, ?Encoded) is det.
 % Convert between an integer value and its zigzag encoding
+% This is a low-level predicate; normally, you should use
+% template_message/2 and the appropriate template term.
 %
 % @param Original an integer in the original form
 % @param Encoded the zigzag encoding of =Original=

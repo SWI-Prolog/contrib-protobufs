@@ -21,7 +21,7 @@
 # This demo was tested with protoc versions 3.6.1 and 3.15.8
 # on Ubuntu 20.04.2.
 
-.SUFFIXES: .proto .cpp .cc .o .proto.msg .py .proto.rawdump .proto.dump .proto.rawdump
+.SUFFIXES: .proto .cpp .cc .o .proto.wire .pl .py .proto.rawdump .proto.dump .proto.rawdump
 
 .PHONY: FORCE check clean docs
 .PHONY: test_all test_basic_usage test_segment_messages test_send_command test_send_precompiled_command
@@ -74,10 +74,10 @@ pb_vector_pb2.py: pb-vector.proto
 # $(SRC_PROTOBUF)/src/google/protobuf/descriptor.proto) with a
 # FileDescriptorSet message, describing the .proto and all its
 # dependencies:
-%.proto.msg: %.proto
+%.proto.wire: %.proto
 	$(PROTOC) --include_imports --descriptor_set_out=$@ $?
 
-descriptor.proto.msg: $(SRC_PROTOBUF)/src/google/protobuf/descriptor.proto
+descriptor.proto.wire: $(SRC_PROTOBUF)/src/google/protobuf/descriptor.proto
 	$(PROTOC) --include_imports --descriptor_set_out=$@ \
 		-I$(SRC_PROTOBUF)/src/google/protobuf \
 		descriptor.proto
@@ -104,7 +104,7 @@ test_basic_usage: vector_demo.pl FORCE
 # Run the protobuf_segment_messages test.
 # See also rules  descriptor.proto.rawdump, descriptor.proto.dump
 
-test_segment_messages: descriptor.proto.msg vector_demo.pl FORCE
+test_segment_messages: descriptor.proto.wire vector_demo.pl FORCE
 	$(SWIPL) -g test_segment_messages -g halt vector_demo.pl
 
 test_send_command: vector_demo.pl FORCE
@@ -115,7 +115,7 @@ test_send_precompiled_command: vector_demo.pl FORCE
 
 clean:
 	@# TODO: special handling for descriptor.* files
-	$(RM) -r foo *.o *.pb.cc *.pb.h *.tmp *_pb2.py *.proto.msg doc/ *.proto.rawdump
+	$(RM) -r foo *.o *.pb.cc *.pb.h *.tmp *_pb2.py *.proto.wire doc/ *.proto.rawdump addressbook.proto.dump
 
 # Generate the documentation from ../protobufs.pl
 # The result is in ../doc/protobufs.html
@@ -127,11 +127,61 @@ docs:
 
 SRC_PROTOBUF=$(HOME)/src/protobuf
 
-descriptor.proto.dump: descriptor.proto.msg
+addressbook.proto.dump: addressbook.proto.wire
 	$(PROTOC) -I. -I$(SRC_PROTOBUF)/src/google/protobuf \
 		--decode=google.protobuf.FileDescriptorSet \
 		descriptor.proto \
 		<$? >$@
 
-descriptor.proto.rawdump: descriptor.proto.msg
-	$(PROTOC) --decode_raw <descriptor.proto.msg >$@
+.PHONY: addressbook.segment
+addressbook.segment: descriptor_proto.pl addressbook.proto.wire FORCE
+	swipl -g "descriptor_segment('addressbook.proto.wire', Msg), print_term(Msg, []), halt." descriptor_proto.pl
+
+.PHONY: descriptor.segment
+descriptor.segment: descriptor_proto.pl descriptor.proto.wire FORCE
+	swipl -g "descriptor_segment('descriptor.proto.wire', Msg), print_term(Msg, []), halt." descriptor_proto.pl
+
+descriptor.proto.dump: descriptor.proto.wire
+	$(PROTOC) -I. -I$(SRC_PROTOBUF)/src/google/protobuf \
+		--decode=google.protobuf.FileDescriptorSet \
+		descriptor.proto \
+		<$? >$@
+
+descriptor.proto.parse: descriptor.proto.dump parse_descriptor_proto_dump.pl FORCE
+	swipl -g parse_descriptor -g halt parse_descriptor_proto_dump.pl
+
+descriptor.proto.rawdump: descriptor.proto.wire
+	$(PROTOC) --decode_raw <descriptor.proto.wire >$@
+
+# Assume you've cloned git@github.com:protocolbuffers/protobuf.git (fetch) to $(HOME)/src.
+# Note that ../golden_message.2.5.0 is the same as $(HOME)/src/protobuf/python/compatibility_tests/v2.5.0/tests/google/protobuf/internal/golden_message
+dump_golden:
+	$(PROTOC) -I$(HOME)/src/protobuf/src \
+		--decode=protobuf_unittest.TestAllTypes \
+		google/protobuf/unittest.proto \
+		<../golden_message.2.5.0
+
+# For testing: this is what the build does:
+
+.PHONY: test_protobufs
+test_protobufs:
+	$(SWIPL) "-p" "foreign=" "-f" "none" "--no-packs" "-s" ../test_protobufs.pl "-g" "test_protobufs" "-t" "halt"
+
+# For looking at the generated documentation.  This assumes that
+# you're working in ~/src/contrib-protobufs and that there's also
+# ~/src/swipl-devel (and you might wish to stash
+# ~/src/swipl-devel/packages/protobufs somewhere).
+# Also, cmake doesn't seem to play nicely with symlinks,
+# so we can't just do
+#    ln -s $(HOME)/src/contrib-protobufs $(HOME)/src/swipl-devel/packages/protobufs
+
+.PHONY: test_doc
+test_doc:
+	rsync -avHx --delete $(HOME)/src/contrib-protobufs/ $(HOME)/src/swipl-devel/packages/protobufs/
+	cd $(HOME)/src/swipl-devel && \
+		mkdir -p build && \
+		cd build && \
+		cmake -G Ninja .. && \
+		ninja && \
+		gio open $(HOME)/src/swipl-devel/build/packages/protobufs/protobufs.html
+

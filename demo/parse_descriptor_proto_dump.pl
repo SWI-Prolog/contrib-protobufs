@@ -41,7 +41,7 @@ parse_descriptor(Term) :-
     parse_file('descriptor.proto.dump', Term).
 
 parse_file(File, Term) :-
-    read_file_to_codes(File, Codes, [type(binary)]),
+    read_file_to_codes(File, Codes, [encoding(octet),type(binary)]),
     phrase(file(Term), Codes).
 
 test_parse_round_trip :-
@@ -91,7 +91,7 @@ field(Indent0, field{name:Name, number:Number, label:Label, type:Type, type_name
     optional_tag_colon_id(Indent, "type", Type),
     optional_tag_colon_string(Indent, "type_name", TypeName),
     optional_tag_colon_string(Indent, "default_value", DefaultValue),
-    optional(options(Indent, Options), {Options=[]}),
+    optional(options(Indent, Options), {Options=options{}}),
     optional_tag_colon_string(Indent, "json_name", JsonName),
     right_brace(Indent0), !.
 
