@@ -602,7 +602,7 @@ Y = [162, 1, 193, 1, 170, 1, 6, 115, 112|...],
 A protobuf description that is compatible with the above wire stream
 follows:
 
-```
+```prolog
 message kv_pair {
   required string key = 30;
   optional sint64  int_value = 31;
@@ -692,7 +692,7 @@ elements {
 
 In the Prolog client:
 
-```
+```prolog
 vector_type(double(_List), 2).
 vector_type(float(_List), 3).
 vector_type(integer(_List), 4).
@@ -712,7 +712,7 @@ vector(Type, B):-
 A protobuf description that is compatible with the above wire stream
 follows:
 
-```
+```prolog
   message Vector {
   repeated double double_values     = 2;
   repeated float float_values       = 3;
@@ -734,7 +734,7 @@ the demos.
 
 On the Prolog side:
 
-```
+```prolog
   :- meta_predicate ~>(0,0).
   :- op(950, xfy, ~>).
 
@@ -754,7 +754,7 @@ On the Prolog side:
 
 Run the Prolog side:
 
-```
+```prolog
 ?- X is pi,
    write_as_proto(double([-2.2212, -7.6675, X, 0, 1.77e-9, 2.54e222])).
 X = 3.14159.
@@ -782,7 +782,7 @@ The following example shows  how  one   can  specify  a  Protocol Buffer
 message  that  can  deal  with  variable-length,  unstructured  bags  of
 numbers:
 
-```
+```prolog
 compound_protobuf(complex(Real, Img), group(12, [double(1, Real), double(2, Img)])).
 compound_protobuf(float(Val), float(13, Val)).
 compound_protobuf(double(Val), double(14, Val)).
@@ -800,7 +800,7 @@ protobuf_bag([ Type | More], WireCodes) :-
 
 Use it as follows:
 
-```
+```prolog
 ?- protobuf_bag([complex(2,3), complex(4,5),
                  complex(6,7), 355 rdiv -113, integer(11)], X).
 
@@ -814,7 +814,7 @@ Y = [complex(2.0, 3.0), complex(4.0, 5.0),
 A protobuf description that is compatible with the above wire stream
 follows:
 
-```
+```prolog
 message compound_protobuf {
 optional group Complex = 12 {
     required double real = 1;
