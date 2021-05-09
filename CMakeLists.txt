@@ -15,6 +15,7 @@ swipl_plugin(
 swipl_examples(
                some_message.proto
                some_message.py
+               eventually_implies.pl
                )
 swipl_examples(
                demo/Makefile
