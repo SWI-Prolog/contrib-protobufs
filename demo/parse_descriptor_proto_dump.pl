@@ -4,16 +4,16 @@
 %% It does not handle the general output of protoc --decode ... for
 %% that, use protoc --descriptor_set_out [--include_imports] and
 %% process that protobuf.
+%%
+%% This code is used to bootstrap the protoc plugin.
+%% TODO: document bootstrap.
 
-% This code is reversible -- that is, you can do this, where
-% `Term` is ground but `Codes` isn't, e.g., to round-trip descriptor.proto.dump:
-% see test_parse_round_trip.
+% This code is reversible -- see test_parse_round_trip/0.
 
 :- module(parse_descriptor_proto_dump,
-          [parse_descriptor/0,
-           parse_descriptor/1,
+          [parse_file/1,
            parse_file/2,
-           test_parse_round_trip/0,
+           test_parse_round_trip/1,
            file//1]).
 
 :- use_module(library(dcg/basics),
@@ -33,19 +33,17 @@
 
 % Use one of these to process the file:
 
-parse_descriptor :-
-    parse_descriptor(Term),
-    print_term(Term, []), nl.
-
-parse_descriptor(Term) :-
-    parse_file('descriptor.proto.dump', Term).
+parse_file(File) :-
+    parse_file(File, Term),
+    print_term(Term, [indent_arguments(4)]),
+    nl.
 
 parse_file(File, Term) :-
     read_file_to_codes(File, Codes, [encoding(octet),type(binary)]),
     phrase(file(Term), Codes).
 
-test_parse_round_trip :-
-    parse_descriptor(Term),
+test_parse_round_trip(File) :-  % e.g., File = 'descriptor.proto.wiredump'
+    parse_file(File, Term),
     phrase(file(Term), Codes),
     string_codes(String, Codes),
     write(String), nl.

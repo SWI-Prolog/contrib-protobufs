@@ -27,7 +27,7 @@ swipl_examples(
                demo/descriptor_proto_expand.pl
                demo/foo.cpp
                demo/parse_descriptor_proto_dump.pl
-               demo/pb-vector.proto
+               demo/pb_vector.proto
                demo/vector_demo.pl
                SUBDIR demo
                )

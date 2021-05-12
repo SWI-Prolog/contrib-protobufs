@@ -1,7 +1,4 @@
-*.proto.wire
-addressbook.proto.dump
+*.proto.wiredump
+descriptor.proto.parse
 foo
-*.pb.cc
-*.pb.h
-*_pb2.py
 tmp99.tmp

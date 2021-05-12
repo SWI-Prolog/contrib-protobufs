@@ -37,7 +37,7 @@
 %  (see "Basic Usage" section in ../protobufs_overview.md)
 
 % TODO: move this to ../test_protobufs.pl
-% %ODO: There is no associated .proto for this example
+% TODO: Create an associated .proto for this example
 
 %! command(+Term, -Proto) is det.
 % Map a Prolog term to a corresponding protobuf term.
@@ -110,7 +110,7 @@ test_basic_usage(['X'=X,
 
 % ======================
 
-% vector_type/2 corresponds to pb-vector.proto enum VectorType
+% vector_type/2 corresponds to pb_vector.proto enum VectorType
 vector_type(double(_List),    2).
 vector_type(float(_List),     3).
 vector_type(integer(_List),   4).
@@ -121,7 +121,7 @@ vector_type(codes(_List),     8).
 vector_type(atom(_List),      9).
 vector_type(string(_List),    10).
 
-% basic_vector/2 corresponds to pb-vector.proto message Vector
+% basic_vector/2 corresponds to pb_vector.proto message Vector
 basic_vector(TypedList, Template) :-
     vector_type(TypedList, Tag),
     Template = protobuf([ repeated(Tag, TypedList) ]).
@@ -320,7 +320,6 @@ test_xml :-
 % You may wish to compare the contents of =Segments= with
 % the output from protoc --decode_raw
 test_segment_messages :-
-    assertion(test_segment_assertions),
     read_file_to_codes('descriptor.proto.wire', WireStream, [encoding(octet),type(binary)]),
     protobuf_segment_message(Segments, WireStream),
     % Check that it reverses:
@@ -329,15 +328,7 @@ test_segment_messages :-
     Segments = [message(1, MessageSegments)],
     length(MessageSegments, MessageSegmentsLen),
     format('test_segment_messages succeeded with ~d segment(s) in the message.~n', [MessageSegmentsLen]),
-    % And print it out in all its glory (but it's rather long, so don't, for now)
+    % Don't print it out in all its glory because it's rather long.
     true. % print_term(Segments, [tab_width(0), right_margin(88)]), nl.
-
-test_segment_assertions :-
-    % Check that we can reinterpret a segment that comes out
-    % in an unexpected form:
-    forall(
-           protobuf_segment_convert(message(10, [fixed64(13,[110,112,117,116,84,121,112,101])]), S1),
-           assertion(( S1 == string(10, "inputType")
-                     ; S1 == length_delimited(10,[105,110,112,117,116,84,121,112,101]) ))).
 
 precompile_commands.  % Trigger the term-expansion precompilation

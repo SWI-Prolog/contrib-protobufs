@@ -52,7 +52,8 @@ protobuf([
         repeated(6, embedded([
             protobuf([integer(1, 1234), string(2, "onetwothreefour")]),
             protobuf([integer(1, 2222), string(2, "four twos")])])),
-        repeated(7, integer([1,2,3,4])) % TODO: packed(7, ...)
+        repeated(7, integer([1,2,3,4])),
+        packed(8, integer([5,6,7,8]))
     ])
 ```
 
@@ -384,12 +385,44 @@ with tag 23.
     packed(23, enum(tank_state([empty, half_full, full]))).
 ```
 
+### Handling missing fields {#protobufs-missing}
+
+For input, you can wrap fields in `repeated`, so that if a field is there,
+it gets a length-1 list and if it's missing, an empty list:
+
+```prolog
+?- Codes = [82,9,105,110,112,117,116,84,121,112,101],
+   protobuf_message(protobuf([embedded(10, protobuf([repeated(13, integer64(I))]))]),  Codes),
+   protobuf_message(protobuf([embedded(10, protobuf([repeated(13, double(D))]))]),  Codes),
+   protobuf_message(protobuf([repeated(10, string(S))]), Codes).
+I = [7309475598860382318],
+D = [4.272430685433854e+180],
+S = ["inputType"].
+```
+
+```
+?- Codes = [82,9,105,110,112,117,116,84,121,112,101],
+      protobuf_message(protobuf([repeated(10, string(S)),
+                                 repeated(11, integer64(I))]), Codes).
+S = ["inputType"],
+I = [].
+```
+
+This technique can also be used for output - a missing field simply
+produces nothing in the wire format:
+```
+?- protobuf_message(protobuf([repeated(10, string([]))]), Codes).
+Codes = [].
+?- protobuf_message(protobuf([repeated(10, string(S))]), []).
+S = [].
+```
 
 ### Encapsulation and Enumeration {#protobufs-encapsulation}
 
-It is possible to embed one protocol buffer specification inside another
-using the =embedded= term.  The  following   example  shows  a vector of
-numbers being placed in an envelope that contains a command enumeration.
+It is possible to embed one protocol buffer specification inside
+another using the =embedded= term.  The following example shows a
+vector of numbers being placed in an envelope that contains a command
+enumeration.
 
 Enumerations are a compact method of sending   tokens from one system to
 another. Most occupy only two bytes   in the wire-stream. An enumeration
@@ -629,7 +662,7 @@ message XMLFile {
 Verify the wire stream using the protobuf compiler's decoder:
 
 ```
-$ protoc --decode=XMLFile pb-vector.proto <tmp98.tmp
+$ protoc --decode=XMLFile pb_vector.proto <tmp98.tmp
 elements {
   name: "space1"
   attributes {
@@ -767,7 +800,7 @@ Vector = double([-2.2212, -7.6675, 3.14159, 0.0, 1.77e-09, 2.54e+222])
 Verify the wire stream using the protobuf compiler's decoder:
 
 ```
-$ protoc --decode=Vector pb-vector.proto <tmp99.tmp
+$ protoc --decode=Vector pb_vector.proto <tmp99.tmp
 double_values: -2.2212
 double_values: -7.6675
 double_values: 3.1415926535897931
@@ -836,7 +869,7 @@ message protobuf_bag {
 Verify the wire stream using the protobuf compiler's decoder:
 
 ```
-$ protoc --decode=protobuf_bag pb-vector.proto <tmp96.tmp
+$ protoc --decode=protobuf_bag pb_vector.proto <tmp96.tmp
 bag {
   Complex {
     real: 2

@@ -1,7 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <string>
-#include "pb-vector.pb.h"
+#include "pb_vector.pb.h"
 
 using namespace std;
 

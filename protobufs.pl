@@ -45,9 +45,11 @@
             protobuf_var_int//1,
             protobuf_tag_type//2
           ]).
-:- autoload(library(error),[must_be/2]).
-:- autoload(library(lists),[append/3]).
-:- autoload(library(utf8),[utf8_codes/3]).
+:- autoload(library(error), [must_be/2]).
+:- autoload(library(lists), [append/3]).
+:- autoload(library(utf8), [utf8_codes/3]).
+:- autoload(library(dif), [dif/2]).
+:- autoload(library(dcg/high_order), [sequence//2]).
 
 /** <module> Google's Protocol Buffers
 
@@ -96,12 +98,12 @@ directory.
 %
 % Map wire type (atom) to its encoding (an int)
 %
-wire_type(varint, 0).  % for int32, int64, uint32, uint64, sint32, sint64, bool, enum
-wire_type(fixed64, 1). % for fixed64, sfixed64, double
-wire_type(length_delimited, 2). % for string, bytes, embedded messages, packed repeated fields
-wire_type(start_group, 3). % for groups (deprecated)
-wire_type(end_group, 4). % for groups (deprecated)
-wire_type(fixed32, 5). % for fixed32, sfixed32, float
+wire_type(varint,            0).  % for int32, int64, uint32, uint64, sint32, sint64, bool, enum
+wire_type(fixed64,           1). % for fixed64, sfixed64, double
+wire_type(length_delimited,  2). % for string, bytes, embedded messages, packed repeated fields
+wire_type(start_group,       3). % for groups (deprecated)
+wire_type(end_group,         4). % for groups (deprecated)
+wire_type(fixed32,           5). % for fixed32, sfixed32, float
 
 %
 %  basic wire-type processing handled by C-support code
@@ -187,6 +189,7 @@ protobuf_tag_type(Tag, Type, Rest, Rest1) :-
 % When Type is a variable, backtracks through all the possibilities
 % for a given wire encoding.
 % Note that 'repeated' isn't here because it's handled by message_sequence//3.
+% See also segment_type_tag/3.
 prolog_type(Tag, double) -->     protobuf_tag_type(Tag, fixed64).
 prolog_type(Tag, integer64) -->  protobuf_tag_type(Tag, fixed64).
 prolog_type(Tag, float) -->      protobuf_tag_type(Tag, fixed32).
@@ -342,11 +345,8 @@ payload(packed, Compound) -->
     { Compound =.. [Type, A] },
     { phrase(packed_payload(Type, A), Codes) }.
 
-packed_payload(Type, [A | B]) -->
-    payload(Type, A),
-    packed_payload(Type, B).
-packed_payload(_Type, A) -->
-    nothing(A).
+packed_payload(Type, Codes) -->
+    sequence(payload(Type), Codes).
 
 start_group(Tag) --> protobuf_tag_type(Tag, start_group).
 
@@ -423,8 +423,8 @@ protobuf_message(protobuf(TemplateList), WireStream, Residue) :-
     must_be(list, TemplateList),
     phrase(protobuf(TemplateList), WireStream, Residue).
 
-%!  protobuf_segment_message(+Segments:list, -WireStream:list(int)) is det.
-%!  protobuf_segment_message(-Segments:list, +WireStream:list(int)) is det.
+%! protobuf_segment_message(+Segments:list, -WireStream:list(int)) is det.
+%! protobuf_segment_message(-Segments:list, +WireStream:list(int)) is det.
 %
 %  Low level marshalling and unmarshalling of byte streams. The
 %  processing is independent of the =|.proto|= description, similar
@@ -449,7 +449,6 @@ protobuf_message(protobuf(TemplateList), WireStream, Residue) :-
 %
 %  @bug This predicate is preliminary and may change as additional
 %       functionality is added.
-%  @bug Does not detect =packed= (it's treated as =length_delimited=).
 %  @bug Does not support [groups](https://developers.google.com/protocol-buffers/docs/proto#groups)
 %       (deprecated in the protobuf documentation).
 %  @tbd Expansion of this code to allow generalized handling of wire
@@ -464,50 +463,62 @@ protobuf_message(protobuf(TemplateList), WireStream, Residue) :-
 %  the field number; =Codes= is a list of integers):
 %    * varint(Tag,Varint) - =Varint= may need integer_zigzag/2
 %    * fixed64(Tag,Codes) - =Codes= is of length 8, (un)marshalled by int64_codes/2 or float64_codes/2
-%    * start_group(Tag)
-%    * end_group(Tag)
 %    * fixed32(Tag,Codes) - =Codes= is of length 4, (un)marshalled by int32_codes/2 or float32_codes/2
 %    * message(Tag,Segments)
 %    * string(Tag,String) - =String= is a SWI-Prolog string
+%    * packed(Tag,Type(Scalars)) - =Type= is one of
+%             =varint=, =fixed64=, =fixed32=; =Scalars=
+%             is a list of =Varint= or =Codes=, which should
+%             be interpreted as described under those items.
+%             Note that the protobuf specification does not
+%             allow packed repeated string.
+%    * start_group(Tag) - not supported, but included for completeness
+%    * end_group(Tag) - not supported, but included for completeness
 %    * length_delimited(Tag,Codes)
 %  Of these, =start_group= and =end_group= are deprecated in the
-%  protobuf documentation and shouldn't appear in modern code, having
-%  been replaced by nested message types.
+%  protobuf documentation and shouldn't appear in modern code, because
+%  they have been replaced by nested message types.
 %
 %  For deciding how to interpret a length-delimited item (when
-%  =Segments= is a variable), an attempt is made to parse the item as
-%  a meeesage; if that succeeds, it is put into a =message/2= term, if
-%  it fails and it's of the formof a UTF8 string, it is put into a
-%  =string/2= term (as a string, not as codes), otherwise into a
-%  =length_delimited/2= term.
+%  =Segments= is a variable), an attempt is made to parse the item in
+%  the following order (although code should not rely on this order):
+%    * message
+%    * string (it must be of the form of a UTF string)
+%    * packed (which can backtrack through the various =Type=s)
+%    * length_delimited - which always is possible.
 %
-%  The interpretation of length-delimited items can sometimes guess
-%  wrong; the interpretation can be undone by using
-%  protobuf_segment_convert/2 to convert the incorrect segment to a
-%  string or a list of codes.
+%  The most likely interpretation of length-delimited items can
+%  sometimes guess wrong; the interpretation can be undone by either
+%  backtracking or byusing protobuf_segment_convert/2 to convert the
+%  incorrect segment to a string or a list of codes. Backtracking
+%  through all the possibilities is not recommended, because of
+%  combinatoric explosion (there is an example in the unit tests);
+%  instead, it is suggested that you take the first result and iterate
+%  through its items, calling protobuf_segment_convert/2 as needed
+%  to reinterpret incorrectly guessed segments.
 %
 %  @param WireStream a code list that was generated by a protobuf
 %  endoder.
 %
 %  @see https://developers.google.com/protocol-buffers/docs/encoding
 protobuf_segment_message(Segments, WireStream) :-
-    phrase(segment_message(Segments), WireStream),
-    !. % Remove choicepoint for 2nd clause of DCG
+    phrase(segment_message(Segments), WireStream).
 
-segment_message([]) --> [].
-segment_message([Segment|Segments]) -->
+segment_message(Segments) -->
+    sequence(segment, Segments).
+
+segment(Segment) -->
     { var(Segment) },
     !,
     protobuf_tag_type(Tag, Type),
-    segment(Type, Tag, Segment),
-    segment_message(Segments).
-segment_message([Segment|Segments]) -->
+    segment(Type, Tag, Segment).
+segment(Segment) -->
     % { nonvar(Segment) },
     { segment_type_tag(Segment, Type, Tag) },
     protobuf_tag_type(Tag, Type),
-    segment(Type, Tag, Segment),
-    segment_message(Segments).
+    segment(Type, Tag, Segment).
 
+% See also prolog_type//2
 segment_type_tag(varint(Tag,_Codes),           varint,           Tag).
 segment_type_tag(fixed64(Tag,_Codes),          fixed64,          Tag).
 segment_type_tag(start_group(Tag),             start_group,      Tag).
@@ -515,6 +526,7 @@ segment_type_tag(end_group(Tag),               end_group,        Tag).
 segment_type_tag(fixed32(Tag,_Codes),          fixed32,          Tag).
 segment_type_tag(length_delimited(Tag,_Codes), length_delimited, Tag).
 segment_type_tag(message(Tag,_Segments),       length_delimited, Tag).
+segment_type_tag(packed(Tag,_Compound),        length_delimited, Tag).
 segment_type_tag(string(Tag,_String),          length_delimited, Tag).
 
 segment(varint, Tag, varint(Tag,Value)) -->
@@ -552,17 +564,29 @@ length_delimited_segment(message(Tag,Segments), Tag, Codes) :-
         \+ memberchk(start_group(_), Segments),
         \+ memberchk(end_group(_), Segments)
     ;   protobuf_segment_message(Segments, Codes)
-    ),
-    !.
+    ).
 length_delimited_segment(string(Tag,String), Tag, Codes) :-
     (   nonvar(String)
     ->  string_codes(String, StringCodes),
         phrase(utf8_codes(StringCodes), Codes)
     ;   phrase(utf8_codes(StringCodes), Codes),
         string_codes(String, StringCodes)
-    ),
-    !.
+    ).
+length_delimited_segment(packed(Tag,Compound), Tag, Codes) :-
+    % We don't know the type of the fields, so we try the 3
+    % possibilities.  This has a problem: an even number of fixed32
+    % items can't be distinguished from half the number of fixed64
+    % items; but it's all we can do. The good news is that usually
+    % varint (possibly with zig-zag encoding) is more common because
+    % it's more compact (I don't know whether 32-bit or 64-bit is more
+    % common for floating point).
+    packed_option(Type, Items, Compound),
+    phrase(sequence(payload(Type), Items), Codes).
 length_delimited_segment(length_delimited(Tag,Codes), Tag, Codes).
+
+packed_option(signed64,  Items, varint(Items)).
+packed_option(integer64, Items, fixed64(Items)).
+packed_option(integer32, Items, fixed32(Items)).
 
 %! protobuf_segment_convert(+Form1, ?Form2) is multi.
 % A convenience predicate for dealing with the situation where
@@ -593,6 +617,15 @@ length_delimited_segment(length_delimited(Tag,Codes), Tag, Codes).
 %        string(10, "inputType"),
 %        length_delimited(10,[105,110,112,117,116,84,121,112,101])).
 % ==
+% These come from:
+% ==
+% Codes = [82,9,105,110,112,117,116,84,121,112,101],
+% protobuf_message(protobuf([embedded(T1, protobuf([integer64(T2, I)]))]), Codes),
+% protobuf_message(protobuf([string(T,S)]), Codes).
+%    T = 10, T1 = 10, T2 = 13,
+%    I = 7309475598860382318,
+%    S = "inputType".
+% ==
 %
 %  @bug This predicate is preliminary and may change as additional
 %       functionality is added.
@@ -602,9 +635,11 @@ length_delimited_segment(length_delimited(Tag,Codes), Tag, Codes).
 %
 % @param Form1 =|message(Tag,Pieces)|= or =|string(Tag,String)|=.
 % @param Form2 =|string(Tag,String)|= or =|length_delimited(Tag,Codes)|=.
+protobuf_segment_convert(Form, Form). % for efficiency, don't generate codes
 protobuf_segment_convert(Form1, Form2) :-
-    protobuf_segment_message([Form1], MessageCodes),
-    phrase(tag_and_codes(Tag, Codes), MessageCodes),
+    dif(Form1, Form2), % Form1=Form2 already generated by first clause
+    protobuf_segment_message([Form1], WireCodes),
+    phrase(tag_and_codes(Tag, Codes), WireCodes),
     protobuf_segment_convert_2(Codes, Tag, Form2).
 
 tag_and_codes(Tag, Codes) -->

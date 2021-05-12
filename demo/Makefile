@@ -8,7 +8,8 @@
 # The demo is run by:
 #   make check
 
-# Assumption: protoc and swipl are in your $PATH
+# Assumption: protoc and swipl are in your $PATH ... you can override
+# these by setting PROTOC= or SWIPL= when envoking "make".
 
 # If you're having problems with the gcc flags, you might need to set
 # PKGCONFIG_PATH. For example, if you install the protobuf compiler
@@ -21,14 +22,21 @@
 # This demo was tested with protoc versions 3.6.1 and 3.15.8
 # on Ubuntu 20.04.2.
 
-.SUFFIXES: .proto .cpp .cc .o .proto.wire .pl .py .proto.rawdump .proto.dump .proto.rawdump
+# Many of the rules at the end of this Makefile are for development
+# and will eventually be removed.
+
+# Naming conventions - see README.md section "descriptor.proto and friends"
+
+.SUFFIXES: .proto .cpp .cc .o .pl .py .wire .wiredump .wirerawdump .segment
+
+.DELETE_ON_ERROR: # Any non-zero return code deletes the target file(s)
 
 .PHONY: FORCE check clean docs
 .PHONY: test_all test_basic_usage test_segment_messages test_send_command test_send_precompiled_command
 
 .DEFAULT_GOAL=test_all
 
-test_all: check test_basic_usage test_segment_messages test_send_command test_send_precompiled_command
+test_all: check test_basic_usage test_segment_messages test_send_command test_send_precompiled_command other_tests
 
 # SHELL:=/bin/bash
 # PROTOC=$(shell type -p protoc)
@@ -56,7 +64,7 @@ LDFLAGS:=$(shell pkg-config --libs protobuf)
 SRC_PROTOBUF=$(HOME)/src/protobuf
 
 # These files don't need to be kept, but can be useful for debugging:
-.PRECIOUS: %.pb.cc %.pb.h
+.PRECIOUS: %.pb.cc %.pb.h %_pb2.py
 
 # Protobuf code generator for C++
 %.pb.cc %.pb.h: %.proto
@@ -64,10 +72,6 @@ SRC_PROTOBUF=$(HOME)/src/protobuf
 
 # Protobuf code generator for Python
 %_pb2.py: %.proto
-	$(PROTOC) --python_out=. $?
-
-# Handle "-" in file name for generating Python protobuf code
-pb_vector_pb2.py: pb-vector.proto
 	$(PROTOC) --python_out=. $?
 
 # Make a binary protobuf msg file (see
@@ -82,10 +86,10 @@ descriptor.proto.wire: $(SRC_PROTOBUF)/src/google/protobuf/descriptor.proto
 		-I$(SRC_PROTOBUF)/src/google/protobuf \
 		descriptor.proto
 
-foo.o: pb-vector.pb.h foo.cpp
+foo.o: pb_vector.pb.h foo.cpp
 
-# foo: foo.cpp pb-vector.pb.cc pb-vector.pb.h
-foo: pb-vector.pb.o foo.o
+# foo: foo.cpp pb_vector.pb.cc pb_vector.pb.h
+foo: pb_vector.pb.o foo.o
 	@# To run, you might require setting LD_LIBRARY_PATH or specify -static
 	$(CXX) -o $@ $^ $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS)
 
@@ -95,14 +99,14 @@ tmp99.tmp: vector_demo.pl ../eventually_implies.pl
 check: foo tmp99.tmp FORCE
 	./foo <tmp99.tmp
 	$(PROTOC) --decode_raw <tmp99.tmp
-	$(PROTOC) --decode=Vector pb-vector.proto <tmp99.tmp
+	$(PROTOC) --decode=Vector pb_vector.proto <tmp99.tmp
 
 # Run the basic_usage example
 test_basic_usage: vector_demo.pl FORCE
 	$(SWIPL) -g test_basic_usage -g halt vector_demo.pl
 
 # Run the protobuf_segment_messages test.
-# See also rules  descriptor.proto.rawdump, descriptor.proto.dump
+# See also rules  descriptor.proto.wirerawdump, descriptor.proto.wiredump
 
 test_segment_messages: descriptor.proto.wire vector_demo.pl FORCE
 	$(SWIPL) -g test_segment_messages -g halt vector_demo.pl
@@ -115,42 +119,39 @@ test_send_precompiled_command: vector_demo.pl FORCE
 
 clean:
 	@# TODO: special handling for descriptor.* files
-	$(RM) -r foo *.o *.pb.cc *.pb.h *.tmp *_pb2.py *.proto.wire doc/ *.proto.rawdump addressbook.proto.dump
+	$(RM) -r foo *.tmp *.o *.pb.cc *.pb.h *_pb2.py doc/ ../TAGS \
+		*.proto.wire *.proto.wirerawdump *.proto.wiredump descriptor.proto.parse
+	git clean -dxf  # Should find nothing.
 
 # Generate the documentation from ../protobufs.pl
 # The result is in ../doc/protobufs.html
 docs:
-	cd .. && swipl -g 'use_module(library(doc_files))' \
+	cd .. && $(SWIPL) -g 'use_module(library(doc_files))' \
 		-g 'doc_save(.,[])' -g halt protobufs.pl
 
 # TODO: remove the following
 
 SRC_PROTOBUF=$(HOME)/src/protobuf
 
-addressbook.proto.dump: addressbook.proto.wire
+%.proto.wiredump: %.proto.wire
 	$(PROTOC) -I. -I$(SRC_PROTOBUF)/src/google/protobuf \
 		--decode=google.protobuf.FileDescriptorSet \
 		descriptor.proto \
 		<$? >$@
 
-.PHONY: addressbook.segment
-addressbook.segment: descriptor_proto.pl addressbook.proto.wire FORCE
-	swipl -g "descriptor_segment('addressbook.proto.wire', Msg), print_term(Msg, []), halt." descriptor_proto.pl
+.PHONY: addressbook.segment descriptor.segment
+addressbook.segment: addressbook.proto.segment
+descriptor.segment: descriptor.proto.segment
 
-.PHONY: descriptor.segment
-descriptor.segment: descriptor_proto.pl descriptor.proto.wire FORCE
-	swipl -g "descriptor_segment('descriptor.proto.wire', Msg), print_term(Msg, []), halt." descriptor_proto.pl
+# make SWIPL=$HOME/src/swipl-devel/build/src/swipl -C ~/src/swipl-devel/packages/protobufs/demo rebuild0 addressbook.segment # descriptor.segment
+%.proto.segment: descriptor_proto.pl %.proto.wire
+	$(SWIPL) descriptor_proto.pl <$*.proto.wire >$@
 
-descriptor.proto.dump: descriptor.proto.wire
-	$(PROTOC) -I. -I$(SRC_PROTOBUF)/src/google/protobuf \
-		--decode=google.protobuf.FileDescriptorSet \
-		descriptor.proto \
-		<$? >$@
+descriptor.proto.parse: descriptor.proto.wiredump parse_descriptor_proto_dump.pl FORCE
+	$(SWIPL) -g "parse_file('descriptor.proto.wiredump')" \
+		-g halt parse_descriptor_proto_dump.pl >$@
 
-descriptor.proto.parse: descriptor.proto.dump parse_descriptor_proto_dump.pl FORCE
-	swipl -g parse_descriptor -g halt parse_descriptor_proto_dump.pl
-
-descriptor.proto.rawdump: descriptor.proto.wire
+descriptor.proto.wirerawdump: descriptor.proto.wire
 	$(PROTOC) --decode_raw <descriptor.proto.wire >$@
 
 # Assume you've cloned git@github.com:protocolbuffers/protobuf.git (fetch) to $(HOME)/src.
@@ -175,13 +176,47 @@ test_protobufs:
 # so we can't just do
 #    ln -s $(HOME)/src/contrib-protobufs $(HOME)/src/swipl-devel/packages/protobufs
 
-.PHONY: test_doc
-test_doc:
-	rsync -avHx --delete $(HOME)/src/contrib-protobufs/ $(HOME)/src/swipl-devel/packages/protobufs/
-	cd $(HOME)/src/swipl-devel && \
+.PHONY: rebuild rebuild_clean rebuild other_tests
+
+rebuild_clean:
+	cd ../../.. && git clean -dxf
+	$(MAKE) rebuild
+
+rebuild:
+	cd ../../.. && \
 		mkdir -p build && \
 		cd build && \
 		cmake -G Ninja .. && \
 		ninja && \
-		gio open $(HOME)/src/swipl-devel/build/packages/protobufs/protobufs.html
+		ctest -j8
+	@# gio open $(HOME)/src/swipl-devel/build/packages/protobufs/protobufs.html
 
+rebuild0: # same as rebuild but without the test
+	cd ../../.. && \
+		mkdir -p build && \
+		cd build && \
+		cmake -G Ninja .. && \
+		ninja
+
+other_tests:
+	@# "ctest -V -R protobufs" is envoked by "test_protobufs"
+	cd ../../../build && ninja && ctest -V -R protobufs
+	$(MAKE) -C ../interop test
+
+.PHONY: testx
+testx:
+	cd ../../../build && ninja
+	make SWIPL=$(HOME)/src/swipl-devel/build/src/swipl $(HOME)/src/swipl-devel/packages/protobufs/demo test_all
+
+.PHONY: tar
+tar:
+	cd ../../.. && tar --create --bzip2 --file ~/Downloads/contrib-protobufs-$$(date +%Y-%m-%d-%H-%M).tjz packages/protobufs
+
+.PHONY: etags
+etags:	../TAGS
+../TAGS: ../*.pl ./*.pl ../interop/*.pl
+	etags -l prolog -o $@ ../*.pl ./*.pl ../interop/*.pl
+
+.PHONY: tkdiff
+tkdiff:
+	git difftool --tool=tkdiff --no-prompt
