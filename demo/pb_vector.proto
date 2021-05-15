@@ -45,7 +45,10 @@ message compound_protobuf {
 message protobuf_bag {
   repeated compound_protobuf bag = 1;
 }
-//
+
+
+// messages used in section "Example: A Simple XML Like Structure"
+
 message kv_pair {
   required string key = 30;
   optional sint64  int_value = 31;

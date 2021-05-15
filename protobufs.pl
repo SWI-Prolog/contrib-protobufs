@@ -35,7 +35,7 @@
 :- module(protobufs,
           [ protobuf_message/2,   % ?Template ?Codes
             protobuf_message/3,   % ?Template ?Codes ?Rest
-            protobuf_segment_message/2,  % ?Segment ?Message
+            protobuf_segment_message/2,  % ?Segment ?Codes
             protobuf_segment_convert/2,  % +Form1 ?Form2
             int32_codes/2,
             float32_codes/2,

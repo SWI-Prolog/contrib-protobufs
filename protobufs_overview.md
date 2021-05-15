@@ -561,7 +561,7 @@ supply three =message_sequence= decorators: =kv_pair=, =xml_element=,
 and =aux_xml_element=. These are treated as first class host types.
 
 ```prolog
-:- multifile protobufs:message_sequence/5.
+:- multifile protobufs:message_sequence//3.
 
 protobufs:message_sequence(Type, Tag, Value)  -->
     { my_message_sequence(Type, Value, Proto) },
@@ -586,8 +586,8 @@ my_message_sequence(xml_element,
                        repeated(22, kv_pair(Attributes)),
                        repeated(23, aux_xml_element(Contents))]).
 
-my_message_sequence(aux_xml_element,  Contents, Proto) :-
-    functor(Contents, element, 3),
+my_message_sequence(aux_xml_element, Contents, Proto) :-
+    Contents = element(_Name, _Attributes, _ElementContents),
     Proto = protobuf([xml_element(40, Contents)]).
 
 my_message_sequence(aux_xml_element, Contents, Proto) :-
@@ -635,7 +635,7 @@ Y = [162, 1, 193, 1, 170, 1, 6, 115, 112|...],
 A protobuf description that is compatible with the above wire stream
 follows:
 
-```prolog
+```
 message kv_pair {
   required string key = 30;
   optional sint64  int_value = 31;
