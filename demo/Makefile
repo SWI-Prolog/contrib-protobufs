@@ -41,7 +41,9 @@ test_all: check test_basic_usage test_segment_messages test_send_command test_se
 # SHELL:=/bin/bash
 # PROTOC=$(shell type -p protoc)
 PROTOC=protoc
-SWIPL=swipl
+# SWIPL=swipl # DO NOT SUBMIT
+# DO NOT SUBMIT:
+SWIPL=$(HOME)/src/swipl-devel/build/src/swipl
 
 # The following correspond to the default rules in GNU Make 4.2.1
 # (There are no *.c files, only C++)
@@ -138,10 +140,6 @@ SRC_PROTOBUF=$(HOME)/src/protobuf
 		--decode=google.protobuf.FileDescriptorSet \
 		descriptor.proto \
 		<$? >$@
-
-.PHONY: addressbook.segment descriptor.segment
-addressbook.segment: addressbook.proto.segment
-descriptor.segment: descriptor.proto.segment
 
 # make SWIPL=$HOME/src/swipl-devel/build/src/swipl -C ~/src/swipl-devel/packages/protobufs/demo rebuild0 addressbook.segment # descriptor.segment
 %.proto.segment: descriptor_proto.pl %.proto.wire

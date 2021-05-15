@@ -1,20 +1,22 @@
 % -*- mode: Prolog -*-
 
-% Inputs a .proto.wire file (as output by protoc
-% --descriptor_set_out=...) and outputs a Prolog term that represents
-% the same data.
+% Inputs a .proto.wire file and outputs a Prolog term that represents
+% the same data. The .proto.wire file can be created by:
+%     protoc --descriptor_set_out=___.proto.wire
 
-% The descriptor_proto/1 contents is derived from descriptor.proto (libprotoc 3.6.1):
-%   protoc --include_imports --descriptor_set_out=descriptor.proto.wire \
-%     -I$HOME/src/protobuf/src/google/protobuf \
-%     descriptor.proto
-%   protoc -I. -I$HOME/src/protobuf/src/google/protobuf \
-%     --decode=google.protobuf.FileDescriptorSet \
-%     descriptor.proto \
-%     <descriptor.proto.wire
-%     >descriptor.proto.wiredump
-% And then run descriptor.proto.wiredump through parse_descriptor_proto_dump.pl
-% parse_descriptor('descriptor.proto.wiredump').
+% The protobuf metadata is in descriptor_proto/1, which is derived
+% from descriptor.proto (libprotoc 3.6.1). Eventually, this will be bootstrapped
+% to use the .proto.wire data; but for now, the process is:
+%     protoc --include_imports --descriptor_set_out=descriptor.proto.wire \
+%       -I$HOME/src/protobuf/src/google/protobuf \
+%       descriptor.proto
+%     protoc -I. -I$HOME/src/protobuf/src/google/protobuf \
+%       --decode=google.protobuf.FileDescriptorSet \
+%       descriptor.proto \
+%       < descriptor.proto.wire
+%       > descriptor.proto.wiredump
+%   And then run use parse_descriptor_proto_dump.pl:
+%     ?- parse_descriptor('descriptor.proto.wiredump').
 
 :- module(descriptor_proto,
     [                                 % Term expansion of descriptor_proto/1 creates the following facts:
@@ -49,14 +51,15 @@ main :-
     set_stream(user_input, type(binary)),
     read_stream_to_codes(user_input, WireFormat),
     protobuf_segment_message(Segments, WireFormat),
-    % protobuf_segment_message/2 can leave choicepoints, but we don't
+    % protobuf_segment_message/2 can leave choicepoints, and we don't
     % want to backtrack through all the possibilities because that
     % leads to combinatoric explosion; instead use
     % protobuf_segment_convert/2 to change segments that were guessed
     % incorrectly.
     !, % don't use any other possible Segments - let protobuf_segment_convert/2 do the job
     maplist(segment_to_term('.google.protobuf.FileDescriptorSet'), Segments, Msg),
-    print_term(Msg, [indent_arguments(4), output(user_output)]),
+    print_term_cleaned(Msg, [indent_arguments(4)], MsgStr),
+    write(user_output, MsgStr),
     writeln(user_output, '.').
 
 :- det(sanity_check/0).
@@ -237,6 +240,18 @@ field_descriptor_label_repeated('LABEL_REPEATED').
 % From message FieldDescriptorProto enum Label
 field_descriptor_label_single('LABEL_OPTIONAL').
 field_descriptor_label_single('LABEL_REQUIRED').
+
+:- det(print_term_cleaned/3).
+%! print_term_cleaned(+Term, +Options, -TermStr) is det.
+% print_term, cleaned up
+print_term_cleaned(Term, Options, TermStr) =>
+    % print_term leaves trailing whitespace, so remove it
+    with_output_to(
+            string(TermStr0),
+            (current_output(TermStream),
+             print_term(Term, [output(TermStream)|Options]))),
+    re_replace(" +\n"/g, "\n", TermStr0, TermStr1),
+    re_replace("\t"/g, "        ", TermStr1, TermStr).
 
 %! term_expansion(+Term, -Expansion) is semidet.
 % Term expansion for =|descriptor_proto(Proto)|=.

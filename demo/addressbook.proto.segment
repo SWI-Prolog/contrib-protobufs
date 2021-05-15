@@ -1,173 +1,173 @@
 [ field_and_value(
       file,
       repeat,
-      '.google.protobuf.FileDescriptorProto'{ 
-	  message_type:[ '.google.protobuf.DescriptorProto'{ 
-			     field:[ '.google.protobuf.FieldDescriptorProto'{ 
-					 json_name:"seconds",
-					 label:'LABEL_OPTIONAL',
-					 name:"seconds",
-					 number:1,
-					 type:'TYPE_INT64'
-				       },
-				     '.google.protobuf.FieldDescriptorProto'{ 
-					 json_name:"nanos",
-					 label:'LABEL_OPTIONAL',
-					 name:"nanos",
-					 number:2,
-					 type:'TYPE_INT32'
-				       }
-				   ],
-			     name:"Timestamp"
-			   }
-		       ],
-	  name:"google/protobuf/timestamp.proto",
-	  options:'.google.protobuf.FileOptions'{ 
-		      cc_enable_arenas:true,
-		      csharp_namespace:"Google.Protobuf.WellKnownTypes",
-		      go_package:"github.com/golang/protobuf/ptypes/timestamp",
-		      java_multiple_files:true,
-		      java_outer_classname:"TimestampProto",
-		      java_package:"com.google.protobuf",
-		      objc_class_prefix:"GPB"
-		    },
-	  package:"google.protobuf",
-	  syntax:"proto3"
-	}),
+      '.google.protobuf.FileDescriptorProto'{
+          message_type:[ '.google.protobuf.DescriptorProto'{
+                             field:[ '.google.protobuf.FieldDescriptorProto'{
+                                         json_name:"seconds",
+                                         label:'LABEL_OPTIONAL',
+                                         name:"seconds",
+                                         number:1,
+                                         type:'TYPE_INT64'
+                                       },
+                                     '.google.protobuf.FieldDescriptorProto'{
+                                         json_name:"nanos",
+                                         label:'LABEL_OPTIONAL',
+                                         name:"nanos",
+                                         number:2,
+                                         type:'TYPE_INT32'
+                                       }
+                                   ],
+                             name:"Timestamp"
+                           }
+                       ],
+          name:"google/protobuf/timestamp.proto",
+          options:'.google.protobuf.FileOptions'{
+                      cc_enable_arenas:true,
+                      csharp_namespace:"Google.Protobuf.WellKnownTypes",
+                      go_package:"github.com/golang/protobuf/ptypes/timestamp",
+                      java_multiple_files:true,
+                      java_outer_classname:"TimestampProto",
+                      java_package:"com.google.protobuf",
+                      objc_class_prefix:"GPB"
+                    },
+          package:"google.protobuf",
+          syntax:"proto3"
+        }),
   field_and_value(
       file,
       repeat,
-      '.google.protobuf.FileDescriptorProto'{ 
-	  dependency:[ "google/protobuf/timestamp.proto"
-		     ],
-	  message_type:[ '.google.protobuf.DescriptorProto'{ 
-			     field:[ '.google.protobuf.FieldDescriptorProto'{ 
-					 json_name:"lastUpdated",
-					 label:'LABEL_OPTIONAL',
-					 name:"last_updated",
-					 number:1,
-					 type:'TYPE_MESSAGE',
-					 type_name:".google.protobuf.Timestamp"
-				       },
-				     '.google.protobuf.FieldDescriptorProto'{ 
-					 json_name:"updates",
-					 label:'LABEL_REPEATED',
-					 name:"updates",
-					 number:2,
-					 type:'TYPE_MESSAGE',
-					 type_name:".google.protobuf.Timestamp"
-				       }
-				   ],
-			     name:"TimeStamps"
-			   }
-		       ],
-	  name:"addressbook2.proto",
-	  package:"tutorial"
-	}),
+      '.google.protobuf.FileDescriptorProto'{
+          dependency:[ "google/protobuf/timestamp.proto"
+                     ],
+          message_type:[ '.google.protobuf.DescriptorProto'{
+                             field:[ '.google.protobuf.FieldDescriptorProto'{
+                                         json_name:"lastUpdated",
+                                         label:'LABEL_OPTIONAL',
+                                         name:"last_updated",
+                                         number:1,
+                                         type:'TYPE_MESSAGE',
+                                         type_name:".google.protobuf.Timestamp"
+                                       },
+                                     '.google.protobuf.FieldDescriptorProto'{
+                                         json_name:"updates",
+                                         label:'LABEL_REPEATED',
+                                         name:"updates",
+                                         number:2,
+                                         type:'TYPE_MESSAGE',
+                                         type_name:".google.protobuf.Timestamp"
+                                       }
+                                   ],
+                             name:"TimeStamps"
+                           }
+                       ],
+          name:"addressbook2.proto",
+          package:"tutorial"
+        }),
   field_and_value(
       file,
       repeat,
-      '.google.protobuf.FileDescriptorProto'{ 
-	  dependency:[ "addressbook2.proto"
-		     ],
-	  message_type:[ '.google.protobuf.DescriptorProto'{ 
-			     enum_type:[ '.google.protobuf.EnumDescriptorProto'{ 
-					     name:"PhoneType",
-					     value:[ '.google.protobuf.EnumValueDescriptorProto'{ 
-							 name:"MOBILE",
-							 number:0
-						       },
-						     '.google.protobuf.EnumValueDescriptorProto'{ 
-							 name:"HOME",
-							 number:1
-						       },
-						     '.google.protobuf.EnumValueDescriptorProto'{ 
-							 name:"WORK",
-							 number:2
-						       }
-						   ]
-					   }
-				       ],
-			     field:[ '.google.protobuf.FieldDescriptorProto'{ 
-					 json_name:"name",
-					 label:'LABEL_OPTIONAL',
-					 name:"name",
-					 number:1,
-					 type:'TYPE_STRING'
-				       },
-				     '.google.protobuf.FieldDescriptorProto'{ 
-					 json_name:"id",
-					 label:'LABEL_OPTIONAL',
-					 name:"id",
-					 number:2,
-					 type:'TYPE_INT32'
-				       },
-				     '.google.protobuf.FieldDescriptorProto'{ 
-					 json_name:"email",
-					 label:'LABEL_OPTIONAL',
-					 name:"email",
-					 number:3,
-					 type:'TYPE_STRING'
-				       },
-				     '.google.protobuf.FieldDescriptorProto'{ 
-					 json_name:"phones",
-					 label:'LABEL_REPEATED',
-					 name:"phones",
-					 number:4,
-					 type:'TYPE_MESSAGE',
-					 type_name:".tutorial.Person.PhoneNumber"
-				       },
-				     '.google.protobuf.FieldDescriptorProto'{ 
-					 json_name:"timeStamps",
-					 label:'LABEL_OPTIONAL',
-					 name:"time_stamps",
-					 number:5,
-					 type:'TYPE_MESSAGE',
-					 type_name:".tutorial.TimeStamps"
-				       }
-				   ],
-			     name:"Person",
-			     nested_type:[ '.google.protobuf.DescriptorProto'{ 
-					       field:[ '.google.protobuf.FieldDescriptorProto'{ 
-							   json_name:"number",
-							   label:'LABEL_OPTIONAL',
-							   name:"number",
-							   number:1,
-							   type:'TYPE_STRING'
-							 },
-						       '.google.protobuf.FieldDescriptorProto'{ 
-							   default_value:"HOME",
-							   json_name:"type",
-							   label:'LABEL_OPTIONAL',
-							   name:"type",
-							   number:2,
-							   type:'TYPE_ENUM',
-							   type_name:".tutorial.Person.PhoneType"
-							 }
-						     ],
-					       name:"PhoneNumber"
-					     }
-					 ]
-			   },
-			 '.google.protobuf.DescriptorProto'{ 
-			     field:[ '.google.protobuf.FieldDescriptorProto'{ 
-					 json_name:"people",
-					 label:'LABEL_REPEATED',
-					 name:"people",
-					 number:1,
-					 type:'TYPE_MESSAGE',
-					 type_name:".tutorial.Person"
-				       }
-				   ],
-			     name:"AddressBook"
-			   }
-		       ],
-	  name:"addressbook.proto",
-	  options:'.google.protobuf.FileOptions'{ 
-		      csharp_namespace:"Google.Protobuf.Examples.AddressBook",
-		      java_outer_classname:"AddressBookProtos",
-		      java_package:"com.example.tutorial"
-		    },
-	  package:"tutorial"
-	})
+      '.google.protobuf.FileDescriptorProto'{
+          dependency:[ "addressbook2.proto"
+                     ],
+          message_type:[ '.google.protobuf.DescriptorProto'{
+                             enum_type:[ '.google.protobuf.EnumDescriptorProto'{
+                                             name:"PhoneType",
+                                             value:[ '.google.protobuf.EnumValueDescriptorProto'{
+                                                         name:"MOBILE",
+                                                         number:0
+                                                       },
+                                                     '.google.protobuf.EnumValueDescriptorProto'{
+                                                         name:"HOME",
+                                                         number:1
+                                                       },
+                                                     '.google.protobuf.EnumValueDescriptorProto'{
+                                                         name:"WORK",
+                                                         number:2
+                                                       }
+                                                   ]
+                                           }
+                                       ],
+                             field:[ '.google.protobuf.FieldDescriptorProto'{
+                                         json_name:"name",
+                                         label:'LABEL_OPTIONAL',
+                                         name:"name",
+                                         number:1,
+                                         type:'TYPE_STRING'
+                                       },
+                                     '.google.protobuf.FieldDescriptorProto'{
+                                         json_name:"id",
+                                         label:'LABEL_OPTIONAL',
+                                         name:"id",
+                                         number:2,
+                                         type:'TYPE_INT32'
+                                       },
+                                     '.google.protobuf.FieldDescriptorProto'{
+                                         json_name:"email",
+                                         label:'LABEL_OPTIONAL',
+                                         name:"email",
+                                         number:3,
+                                         type:'TYPE_STRING'
+                                       },
+                                     '.google.protobuf.FieldDescriptorProto'{
+                                         json_name:"phones",
+                                         label:'LABEL_REPEATED',
+                                         name:"phones",
+                                         number:4,
+                                         type:'TYPE_MESSAGE',
+                                         type_name:".tutorial.Person.PhoneNumber"
+                                       },
+                                     '.google.protobuf.FieldDescriptorProto'{
+                                         json_name:"timeStamps",
+                                         label:'LABEL_OPTIONAL',
+                                         name:"time_stamps",
+                                         number:5,
+                                         type:'TYPE_MESSAGE',
+                                         type_name:".tutorial.TimeStamps"
+                                       }
+                                   ],
+                             name:"Person",
+                             nested_type:[ '.google.protobuf.DescriptorProto'{
+                                               field:[ '.google.protobuf.FieldDescriptorProto'{
+                                                           json_name:"number",
+                                                           label:'LABEL_OPTIONAL',
+                                                           name:"number",
+                                                           number:1,
+                                                           type:'TYPE_STRING'
+                                                         },
+                                                       '.google.protobuf.FieldDescriptorProto'{
+                                                           default_value:"HOME",
+                                                           json_name:"type",
+                                                           label:'LABEL_OPTIONAL',
+                                                           name:"type",
+                                                           number:2,
+                                                           type:'TYPE_ENUM',
+                                                           type_name:".tutorial.Person.PhoneType"
+                                                         }
+                                                     ],
+                                               name:"PhoneNumber"
+                                             }
+                                         ]
+                           },
+                         '.google.protobuf.DescriptorProto'{
+                             field:[ '.google.protobuf.FieldDescriptorProto'{
+                                         json_name:"people",
+                                         label:'LABEL_REPEATED',
+                                         name:"people",
+                                         number:1,
+                                         type:'TYPE_MESSAGE',
+                                         type_name:".tutorial.Person"
+                                       }
+                                   ],
+                             name:"AddressBook"
+                           }
+                       ],
+          name:"addressbook.proto",
+          options:'.google.protobuf.FileOptions'{
+                      csharp_namespace:"Google.Protobuf.Examples.AddressBook",
+                      java_outer_classname:"AddressBookProtos",
+                      java_package:"com.example.tutorial"
+                    },
+          package:"tutorial"
+        })
 ].

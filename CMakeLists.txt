@@ -17,12 +17,16 @@ swipl_examples(
                some_message.py
                eventually_implies.pl
                )
+# TODO: addressbook.proto.segment
+#       descriptor.proto.segment
+#       can be computed, so possibly delete them
 swipl_examples(
                demo/Makefile
                demo/README.md
                demo/addressbook.proto
+               demo/addressbook.proto.segment
                demo/addressbook2.proto
-               demo/descriptor.proto.dump
+               demo/descriptor.proto.segment
                demo/descriptor_proto.pl
                demo/descriptor_proto_expand.pl
                demo/foo.cpp
