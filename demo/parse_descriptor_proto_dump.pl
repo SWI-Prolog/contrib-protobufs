@@ -48,7 +48,7 @@ test_parse_round_trip(File) :-  % e.g., File = 'descriptor.proto.wiredump'
     string_codes(String, Codes),
     write(String), nl.
 
-
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % The parser:
 % All the rules have an Indent parameter. For parsing, this is ignored.
 % For output, it's a list of 32 (ascii blank) that's put at the beginning

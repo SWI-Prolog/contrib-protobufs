@@ -19,26 +19,24 @@
 %     ?- parse_descriptor('descriptor.proto.wiredump').
 
 :- module(descriptor_proto,
-    [                                 % Term expansion of descriptor_proto/1 creates the following facts:
-     proto_package/3,                 %   proto_package(Package, FileName, Options)
-     proto_message_type/3,            %   proto_message_type(           Fqn, Package, Name)
-     proto_field_name/4,              %   proto_field_name(             Fqn, FieldNumber, FieldName, FqnName),
-     proto_field_json_name/2,         %   proto_field_json_name(        FqnName, JsonName)
-     proto_field_label/2,             %   proto_field_label(            FqnName, LabelRepeatOptional) % LABEL_OPTIONAL, LABEL_REQUIRED, LABEL_REPEATED
-     proto_field_type/2,              %   proto_field_type(             FqnName, Type) % TYPE_INT32, TYPE_MESSAGE, etc
-     proto_field_type_name/2,         %   proto_field_type_name(        FqnName, TypeName)
-     proto_field_default_value/2,     %   proto_field_default_value(    FqnName, DefaultValue)
-     proto_field_option_deprecated/1, %   proto_field_option_deprecated(FqnName)
-     proto_field_option_packed/1,     %   proto_field_option_packed(    FqnName)
-     proto_nested_type/3,             %   proto_nested_type(            FqnName, Fqn, Name)
-     proto_enum_type/3,               %   proto_enum_type(              FqnName, Fqn, Name)
-     proto_enum_value/3,              %   proto_enum_value(             FqnName, Name, Number)
-     proto_extension_range/3,         %   proto_extension_range(        FqnName, Start, End)
-     proto_reserved_range/3,          %   proto_reserved_range(         FqnName, Start, End)
+    [ % Term expansion of descriptor_proto/1 creates the following facts
+      % see descriptor_proto_expand.pl
+     proto_package/3,
+     proto_message_type/3,
+     proto_field_name/4,
+     proto_field_json_name/2,
+     proto_field_label/2,
+     proto_field_type/2,
+     proto_field_type_name/2,
+     proto_field_default_value/2,
+     proto_field_option_packed/1,
+     proto_nested_type/3,
+     proto_enum_type/3,
+     proto_enum_value/3,
      main/0
     ]).
 
-:- use_module(descriptor_proto_expand, [descriptor_proto_expand_file//1]).
+:- use_module(descriptor_proto_expand, [descriptor_proto_expand_file/2]).
 :- use_module(library(readutil), [read_stream_to_codes/3]).
 :- use_module(library(protobufs)).
 :- use_module(library(debug)).
@@ -58,7 +56,11 @@ main :-
     % incorrectly.
     !, % don't use any other possible Segments - let protobuf_segment_convert/2 do the job
     maplist(segment_to_term('.google.protobuf.FileDescriptorSet'), Segments, Msg),
-    print_term_cleaned(Msg, [indent_arguments(4)], MsgStr),
+    maplist(write_metadata, Msg).
+
+write_metadata(field_and_value(file,repeat,FileDescriptor)) =>
+    FileDescriptor >:< '.google.protobuf.FileDescriptorProto'{name:FileName},
+    print_term_cleaned(protobuf_metadata(FileName, FileDescriptor), [indent_arguments(4)], MsgStr),
     write(user_output, MsgStr),
     writeln(user_output, '.').
 
@@ -124,8 +126,12 @@ convert_segment('TYPE_BOOL', _ContextType, Segment0, Value) =>
     protobuf_segment_convert(Segment0, Segment), !,
     int_bool(Value0, Value).
 convert_segment('TYPE_STRING', _ContextType, Segment0, Value) =>
-    Segment = string(_,Value),
-    protobuf_segment_convert(Segment0, Segment), !.
+    Segment = string(_,ValueStr),
+    protobuf_segment_convert(Segment0, Segment), !,
+    (   true     % TODO: control whether atom or string with an option
+    ->  atom_string(Value, ValueStr)
+    ;   Value = ValueStr
+    ).
 convert_segment('TYPE_GROUP', _ContextType, _Segment0, _Value) =>
     fail. % TODO - for now, this will throw an exception because of :- det(convert_segment/4).
 convert_segment('TYPE_MESSAGE', ContextType, Segment0, Value) =>
@@ -256,8 +262,7 @@ print_term_cleaned(Term, Options, TermStr) =>
 %! term_expansion(+Term, -Expansion) is semidet.
 % Term expansion for =|descriptor_proto(Proto)|=.
 term_expansion(descriptor_proto(Proto), Expansion) :-
-    phrase(descriptor_proto_expand_file(Proto), ExpansionRaw),
-    sort(ExpansionRaw, Expansion). % prevent warning messages about discontiguous messages
+    descriptor_proto_expand_file(Proto, Expansion).
 
 %! descriptor_proto(-Proto) is det.
 % descriptor_proto/1 is expanded using

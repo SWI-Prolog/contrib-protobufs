@@ -36,7 +36,8 @@
 
 .DEFAULT_GOAL=test_all
 
-test_all: check test_basic_usage test_segment_messages test_send_command test_send_precompiled_command other_tests
+test_all: check test_basic_usage test_segment_messages test_send_command test_send_precompiled_command other_tests \
+	addressbook.proto.segment descriptor.proto.segment
 
 # SHELL:=/bin/bash
 # PROTOC=$(shell type -p protoc)
@@ -142,7 +143,7 @@ SRC_PROTOBUF=$(HOME)/src/protobuf
 		<$? >$@
 
 # make SWIPL=$HOME/src/swipl-devel/build/src/swipl -C ~/src/swipl-devel/packages/protobufs/demo rebuild0 addressbook.segment # descriptor.segment
-%.proto.segment: descriptor_proto.pl %.proto.wire
+%.proto.segment: descriptor_proto.pl descriptor_proto_expand.pl %.proto.wire
 	$(SWIPL) descriptor_proto.pl <$*.proto.wire >$@
 
 descriptor.proto.parse: descriptor.proto.wiredump parse_descriptor_proto_dump.pl FORCE
