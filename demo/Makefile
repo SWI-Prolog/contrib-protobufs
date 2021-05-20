@@ -146,8 +146,8 @@ SRC_PROTOBUF=$(HOME)/src/protobuf
 %.proto.segment: descriptor_proto.pl descriptor_proto_expand.pl %.proto.wire
 	$(SWIPL) descriptor_proto.pl <$*.proto.wire >$@
 
-descriptor.proto.parse: descriptor.proto.wiredump parse_descriptor_proto_dump.pl FORCE
-	$(SWIPL) -g "parse_file('descriptor.proto.wiredump')" \
+descriptor.proto.parse: descriptor.proto.wiredump parse_descriptor_proto_dump.pl
+	$(SWIPL) -g "parse_wiredump('descriptor.proto.wiredump')" \
 		-g halt parse_descriptor_proto_dump.pl >$@
 
 descriptor.proto.wirerawdump: descriptor.proto.wire
@@ -209,7 +209,7 @@ testx:
 
 .PHONY: tar
 tar:
-	cd ../../.. && tar --create --bzip2 --file ~/Downloads/contrib-protobufs-$$(date +%Y-%m-%d-%H-%M).tjz packages/protobufs
+	cd ../../.. && tar --create --bzip2 --file ~/Downloads/contrib-protobufs-$$(date +%Y-%m-%d-%H-%M).tbz2 packages/protobufs
 
 .PHONY: etags
 etags:	../TAGS

@@ -5,16 +5,16 @@
 %% descriptor_proto/1 fact -- see the documentation of
 %% descriptor_proto.pl for how this term is created.)
 
-:- module(descriptor_proto_expand, [descriptor_proto_expand_file/2,
-                                    descriptor_proto_expand_file//1,
-                                    descriptor_proto_expand_file_preds/1]).
+:- module(descriptor_proto_expand, [descriptor_proto_expand_FileDescriptorSet/2,
+                                    descriptor_proto_expand_FileDescriptorSet//1,
+                                    descriptor_proto_expand_FileDescriptorSet_preds/1]).
 
 :- use_module(library(dcg/basics)).
 :- use_module(library(dcg/high_order)).
 :- use_module(library(debug), [assertion/1]).
 
-:- det(descriptor_proto_expand_file_preds/1).
-descriptor_proto_expand_file_preds(Preds) :-
+:- det(descriptor_proto_expand_FileDescriptorSet_preds/1).
+descriptor_proto_expand_FileDescriptorSet_preds(Preds) :-
     Preds = [
      proto_package/3,                 %   proto_package(Package, FileName, Options)
      proto_message_type/3,            %   proto_message_type(           Fqn, Package, Name)
@@ -25,16 +25,16 @@ descriptor_proto_expand_file_preds(Preds) :-
      proto_field_type_name/2,         %   proto_field_type_name(        FqnName, TypeName)
      proto_field_default_value/2,     %   proto_field_default_value(    FqnName, DefaultValue)
      proto_field_option_packed/1,     %   proto_field_option_packed(    FqnName)
-     proto_nested_type/3,             %   proto_nested_type(            FqnName, Fqn, Name)
      proto_enum_type/3,               %   proto_enum_type(              FqnName, Fqn, Name)
      proto_enum_value/3               %   proto_enum_value(             FqnName, Name, Number)
             ].
 
-:- det(descriptor_proto_expand_file/2).
-descriptor_proto_expand_file(Proto,
-                             [(:- discontiguous CommaPreds) | Expansion]) :-
-    phrase(descriptor_proto_expand_file(Proto), Expansion),
-    descriptor_proto_expand_file_preds(Preds),
+:- det(descriptor_proto_expand_FileDescriptorSet/2).
+descriptor_proto_expand_FileDescriptorSet(Set,
+                                          [(:- discontiguous CommaPreds) | Expansion]) :-
+    phrase(descriptor_proto_expand_FileDescriptorSet(Set), Expansion),
+    % print_term('***expansion':Expansion, [right_margin(160)]), % Uncomment for debugging
+    descriptor_proto_expand_FileDescriptorSet_preds(Preds),
     list_commalist(Preds, CommaPreds).
 
 :- det(list_commalist/2).
@@ -64,7 +64,7 @@ lookup_pieces(Tag, DataDict, LookupDict) :-
     lookup_piece_pairs(LookupPairs, DataDict).
 
 lookup_piece_pairs([], RemainderDict) =>
-    RemainderDict = _{}.
+    RemainderDict = _{}. % For debugging: assertion(RemainderDict = _{})
 lookup_piece_pairs([Key-(Default-Value)|KDVs], DataDict0) =>
     dict_create(D0, _, [Key-Value]),
     (   select_dict(D0, DataDict0, DataDict)
@@ -74,88 +74,93 @@ lookup_piece_pairs([Key-(Default-Value)|KDVs], DataDict0) =>
     ),
     lookup_piece_pairs(KDVs, DataDict).
 
-:- det(descriptor_proto_expand_file//1).
-descriptor_proto_expand_file(File) -->
-    % message FileDescriptorProto
-    { lookup_pieces(file, File,
+:- det(descriptor_proto_expand_FileDescriptorSet//1).
+descriptor_proto_expand_FileDescriptorSet(Set) -->
+    { lookup_pieces('FileDescriptorSet', Set,
                     _{
-                      name:              ''        -File_name,
-                      package:           ''        -File_package,
-                      message_type:      []        -File_message_type,
-                      enum_type:         []        -File_enum_type,
-                      extension:         []        -File_extension,
-                      options:           options{} -File_options,
-                      dependency:        _         -_,
-                      public_dependency: _         -_,
-                      weak_dependency:   _         -_,
-                      service:           _         -_,
-                      source_code_info:  _         -_,
-                      syntax:            _         -_
+                      file: []-File
+                     }) },
+    sequence(descriptor_proto_expand_FileDescriptorProto, File).
+
+:- det(descriptor_proto_expand_FileDescriptorProto//1).
+descriptor_proto_expand_FileDescriptorProto(File) -->
+    { lookup_pieces('FileDescriptorProto', File,
+                    _{
+                      name:              ''              -File_name,
+                      package:           ''              -File_package,
+                      dependency:        []              -_,
+                      public_dependency: []              -_,
+                      weak_dependency:   []              -_,
+                      message_type:      []              -File_message_type, 
+                      enum_type:         []              -File_enum_type,
+                      service:           []               -_,
+                      extension:         []              -File_extension,
+                      options:           'FileOptions'{} -File_options,
+                      source_code_info:  _               -_,
+                      syntax:            ''              -_
                      }) },
     { assertion(File_extension == []) }, % TODO: handle this?
-    [ proto_package(File_package, File_name, File_options) ],
-    sequence(expand_message_type(File_package), File_message_type),
-    sequence(expand_enum_type(File_package), File_enum_type).
+    { add_to_fqn('', File_package, Package) },
+    [ proto_package(Package, File_name, File_options) ],
+    sequence(expand_DescriptorProto(Package), File_message_type),
+    sequence(expand_EnumDescriptorProto(Package), File_enum_type).
 
-:- det(expand_message_type//2).
-expand_message_type(Package, MessageType) -->
-    % message DescriptorProto
-    { lookup_pieces(message_type,MessageType,
+:- det(expand_DescriptorProto//2).
+expand_DescriptorProto(Fqn, MessageType) -->
+    { lookup_pieces('DescriptorProto', MessageType,
                     _{
-                      name:            '' - MessageType_name,
-                      field:           [] - MessageType_field,
-                      nested_type:     [] - MessageType_nested_type,
-                      enum_type:       [] - MessageType_enum_type,
-                      extension:       _  -_,
-                      extension_range: _  -_,
-                      oneof_decl:      _  -_,
-                      options:         _  -_,
-                      reserved_range:  _  -_,
-                      reserved_name:   _  -_
+                      name:            ''      -MessageType_name,
+                      field:           field{} -MessageType_field,
+                      extension:       []      -_,
+                      nested_type:     []      -MessageType_nested_type,
+                      enum_type:       []      -MessageType_enum_type,
+                      extension_range: []      -_,
+                      oneof_decl:      []      -_,
+                      options:         []      -_,
+                      reserved_range:  []      -_,
+                      reserved_name:   []      -_
                      }) },
-    { atomic_list_concat(['',Package,  MessageType_name], '.', Fqn) },
-    [ proto_message_type(Fqn, Package, MessageType_name) ],
-    sequence(expand_field(Fqn), MessageType_field),
-    sequence(expand_nested_type(Fqn), MessageType_nested_type),
-    sequence(expand_enum_type(Fqn), MessageType_enum_type).
+    { add_to_fqn(Fqn, MessageType_name, FqnName) },
+    [ proto_message_type(FqnName, Fqn, MessageType_name) ],
+    sequence(expand_FieldDescriptorProto(FqnName), MessageType_field),
+    sequence(expand_DescriptorProto(FqnName), MessageType_nested_type),
+    sequence(expand_EnumDescriptorProto(FqnName), MessageType_enum_type).
 
-:- det(expand_field//2).
-expand_field(Fqn, Field) -->
-    % message FieldDescriptorProto
-    { lookup_pieces(field, Field,
+:- det(expand_FieldDescriptorProto//2).
+expand_FieldDescriptorProto(Fqn, Field) -->
+    { lookup_pieces('FieldDescriptorProto', Field,
                     _{
-                      name:            ''              -Field_name,
-                      number:          0               -Field_number,
-                      label:           0               -Field_label,  % enum Label
-                      type:            0               -Field_type,  % enum Type
-                      type_name:       ''              -Field_type_name,
-                      default_value:   ''              -Field_default_value,
-                      json_name:       ''              -Field_json_name,
-                      options:         field_options{} -Field_options,
-                      extendee:        _               -_,
-                      oneof_index:     _               -_,
-                      proto3_optional: _               -_
+                      name:            ''               -Field_name,
+                      number:          0                -Field_number,
+                      label:           0                -Field_label,  % enum Label
+                      type:            0                -Field_type,  % enum Type
+                      type_name:       ''               -Field_type_name,
+                      extendee:        _                -_,
+                      default_value:   ''               -Field_default_value,
+                      oneof_index:     _                -_,
+                      json_name:       ''               -Field_json_name,
+                      options:         'FieldOptions'{} -Field_options,
+                      proto3_optional: _                -_
                      }) },
-    { atomic_list_concat([Fqn, Field_name], '.', FqnName) },
+    { add_to_fqn(Fqn, Field_name, FqnName) },
     [ proto_field_name(Fqn, Field_number, Field_name, FqnName) ],
     [ proto_field_json_name(FqnName, Field_json_name) ],
     [ proto_field_label(FqnName, Field_label) ],
-    expand_field_options(FqnName, Field_options),
     [ proto_field_type(FqnName, Field_type) ],
     [ proto_field_type_name(FqnName, Field_type_name) ],
-    [ proto_field_default_value(FqnName, Field_default_value) ].
+    [ proto_field_default_value(FqnName, Field_default_value) ],
+    expand_FieldOptions(FqnName, Field_options).
 
-:- det(expand_field_options//2).
-expand_field_options(FqnName, Options) -->
-    % message FieldOptions
-    { lookup_pieces(options, Options,
+:- det(expand_FieldOptions//2).
+expand_FieldOptions(FqnName, Options) -->
+    { lookup_pieces('FieldOptions', Options,
                     _{
                       ctype:                _     -_,
                       packed:               false -Option_packed,
                       jstype:               _     -_,
-                      lazy:                 _     -_,
-                      deprecated:           _     -_,
-                      weak:                 _     -_,
+                      lazy:                 false -_,
+                      deprecated:           false -_, % TODO: output warning if a deprecated field is used
+                      weak:                 false -_,
                       uninterpreted_option: _     -_
                      }) },
     (   { Option_packed = true }
@@ -163,51 +168,31 @@ expand_field_options(FqnName, Options) -->
     ;   [ ]
     ).
 
-:- det(expand_nested_type//2).
-expand_nested_type(Fqn, NestedType) -->
-    % message DescriptorProto
-    { lookup_pieces(nested_type, NestedType,
-                    _{
-                      name:            ''      -NestedType_name,
-                      field:           field{} -NestedType_field,
-                      extension:       []      -_,
-                      nested_type:     []      -NestedType_nested_type,
-                      enum_type:       []      -NestedType_enum_type,
-                      extension_range: []      -_,
-                      oneof_decl:      []      -_,
-                      options:         []      -_,
-                      reserved_range:  []      -_
-                     }) },
-    { atomic_list_concat([Fqn, NestedType_name], '.', FqnName) },
-    [ proto_nested_type(FqnName, Fqn, NestedType_name) ],
-    sequence(expand_field(FqnName), NestedType_field),
-    sequence(expand_nested_type(FqnName), NestedType_nested_type),
-    sequence(expand_enum_type(FqnName), NestedType_enum_type).
-
-:- det(expand_enum_type//2).
-expand_enum_type(Fqn, EnumType) -->
-    % message EnumDescriptorProto
-    { lookup_pieces(enum_type, EnumType,
+:- det(expand_EnumDescriptorProto//2).
+expand_EnumDescriptorProto(Fqn, EnumType) -->
+    { lookup_pieces('EnumDescriptorProto', EnumType,
                     _{
                       name:           '' -EnumType_name,
                       value:          [] -EnumType_value,
-                      options:        [] -_,
+                      options:        _  -_,
                       reserved_range: _  -_,
                       reserved_name:  _  -_
                       }) },
-
-    { atomic_list_concat([Fqn, EnumType_name], '.', FqnName) },
+    { add_to_fqn(Fqn, EnumType_name, FqnName) },
     [ proto_enum_type(FqnName, Fqn, EnumType_name) ],
-    sequence(expand_enum_value(FqnName), EnumType_value).
+    sequence(expand_EnumValueDescriptorProto(FqnName), EnumType_value).
 
-:- det(expand_enum_value//2).
-expand_enum_value(Fqn, Value) -->
-    % message EnumValueDescriptorProto
-    { lookup_pieces(value, Value,
+:- det(expand_EnumValueDescriptorProto//2).
+expand_EnumValueDescriptorProto(Fqn, Value) -->
+    { lookup_pieces('EnumValueDescriptorProto', Value,
                     _{
                       name:    ''-Value_name,
                       number:  0-Value_number,
                       options: _-_
                       }) },
-    { is_dict(Value, value) },
     [ proto_enum_value(Fqn, Value_name, Value_number) ].
+
+add_to_fqn(Fqn, Name, FqnName) :-
+    atomic_list_concat([Fqn, Name], '.', FqnName).
+
+end_of_file.

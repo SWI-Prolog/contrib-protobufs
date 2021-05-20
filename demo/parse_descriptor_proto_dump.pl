@@ -11,10 +11,9 @@
 % This code is reversible -- see test_parse_round_trip/0.
 
 :- module(parse_descriptor_proto_dump,
-          [parse_file/1,
-           parse_file/2,
-           test_parse_round_trip/1,
-           file//1]).
+          [parse_wiredump/1,
+           parse_wiredump/2,
+           test_parse_round_trip/1]).
 
 :- use_module(library(dcg/basics),
               [whites//0,
@@ -33,18 +32,18 @@
 
 % Use one of these to process the file:
 
-parse_file(File) :-
-    parse_file(File, Term),
-    print_term(Term, [indent_arguments(4)]),
-    nl.
+parse_wiredump(File) :-
+    parse_wiredump(File, Term),
+    print_term_cleaned(Term, [indent_arguments(4)]),
+    writeln('.').
 
-parse_file(File, Term) :-
+parse_wiredump(File, Term) :-
     read_file_to_codes(File, Codes, [encoding(octet),type(binary)]),
-    phrase(file(Term), Codes).
+    phrase(parse_FileDescriptorSet([], Term), Codes).
 
 test_parse_round_trip(File) :-  % e.g., File = 'descriptor.proto.wiredump'
-    parse_file(File, Term),
-    phrase(file(Term), Codes),
+    phrase(parse_FileDescriptorSet([], File), Term),
+    phrase(parse_FileDescriptorSet([], Term), Codes),
     string_codes(String, Codes),
     write(String), nl.
 
@@ -54,128 +53,125 @@ test_parse_round_trip(File) :-  % e.g., File = 'descriptor.proto.wiredump'
 % For output, it's a list of 32 (ascii blank) that's put at the beginning
 % of each line, to produce nicely indented output.
 
-file(File) -->
-    file([], File).
+parse_FileDescriptorSet(Indent, 'FileDescriptorSet'{file: File}) -->
+    sequence(name_braces(Indent, "file", parse_FileDescriptorProto), File).
 
-file(Indent0, file{name:Name,
-                   package:Package,
-                   message_type:MessageType,
-                   options:Options}) -->
-    left_brace(Indent0, Indent, "file"), !,
+parse_FileDescriptorProto(Indent,
+                          'FileDescriptorProto'{name:Name,
+                                                package:Package,
+                                                message_type:MessageType,
+                                                options:Options}) -->
     tag_colon_string(Indent, "name", Name),
     optional_tag_colon_string(Indent, "package", Package),
-    sequence(message_type(Indent), MessageType),
-    options_file(Indent, Options),
-    right_brace(Indent0), !.
+    sequence(name_braces(Indent, "message_type", parse_DescriptorProto), MessageType),
+    optional_name_braces(Indent, "options", parse_FileOptions,
+                         'FileOptions', Options).
 
-message_type(Indent0, message_type{name:Name, field:Field, nested_type:NestedType,
-                                   enum_type:EnumType, extension_range:ExtensionRange,
-                                   reserved_range:ReservedRange}) -->
-    left_brace(Indent0, Indent, "message_type"), !,
+parse_DescriptorProto(Indent,
+                      'DescriptorProto'{name:Name,
+                                        field:Field,
+                                        nested_type:NestedType,
+                                        enum_type:EnumType,
+                                        extension_range:ExtensionRange,
+                                        reserved_range:ReservedRange}) -->
     tag_colon_string(Indent, "name", Name),
-    sequence(field(Indent), Field),
-    sequence(nested_type(Indent), NestedType),
-    sequence(enum_type(Indent), EnumType),
-    sequence(extension_range(Indent), ExtensionRange),
-    sequence(reserved_range(Indent), ReservedRange),
-    right_brace(Indent0), !.
+    sequence(name_braces(Indent, "field", parse_FieldDescriptorProto), Field),
+    sequence(name_braces(Indent, "nested_type", parse_DescriptorProto), NestedType),
+    sequence(name_braces(Indent, "enum_type", parse_EnumDescriptorProto), EnumType),
+    sequence(name_braces(Indent, "extension_range", parse_ExtensionRange), ExtensionRange),
+    sequence(name_braces(Indent, "reserved_range", parse_EnumReservedRange), ReservedRange).
 
-field(Indent0, field{name:Name, number:Number, label:Label, type:Type, type_name:TypeName,
-                     default_value:DefaultValue, options:Options, json_name:JsonName}) -->
-    left_brace(Indent0, Indent, "field"), !,
-    optional_tag_colon_string(Indent, "name", Name),
-    optional_tag_colon_number(Indent, "number", Number),
-    optional_tag_colon_id(Indent, "label", Label),
-    optional_tag_colon_id(Indent, "type", Type),
-    optional_tag_colon_string(Indent, "type_name", TypeName),
-    optional_tag_colon_string(Indent, "default_value", DefaultValue),
-    optional(options(Indent, Options), {Options=options{}}),
-    optional_tag_colon_string(Indent, "json_name", JsonName),
-    right_brace(Indent0), !.
+parse_FieldDescriptorProto(Indent,
+                           'FieldDescriptorProto'{name:Name,
+                                                  number:Number,
+                                                  label:Label,
+                                                  type:Type,
+                                                  type_name:TypeName,
+                                                  default_value:DefaultValue,
+                                                  options:Options,
+                                                  json_name:JsonName}) -->
+     optional_tag_colon_string(Indent, "name", Name),
+     optional_tag_colon_number(Indent, "number", Number),
+     optional_tag_colon_id(Indent, "label", Label),
+     optional_tag_colon_id(Indent, "type", Type),
+     optional_tag_colon_string(Indent, "type_name", TypeName),
+     optional_tag_colon_string(Indent, "default_value", DefaultValue),
+     optional_name_braces(Indent, "options", parse_FieldOptions,
+                          'FieldOptions', Options),
+     optional_tag_colon_string(Indent, "json_name", JsonName).
 
-nested_type(Indent0, nested_type{name:Name, field:Field}) -->
-    left_brace(Indent0, Indent, "nested_type"), !,
-    optional_tag_colon_string(Indent, "name", Name),
-    sequence(field(Indent), Field),
-    right_brace(Indent0), !.
-
-enum_type(Indent0, enum_type{name:Name, value:Value}) -->
-    left_brace(Indent0, Indent, "enum_type"), !,
+parse_EnumDescriptorProto(Indent, 'EnumDescriptorProto'{name:Name,
+                                                        value:Value}) -->
     tag_colon_string(Indent, "name", Name),
-    sequence(value(Indent), Value),
-    right_brace(Indent0), !.
+    sequence(name_braces(Indent, "value", parse_EnumValueDescriptorProto), Value).
 
-value(Indent0, value{name:Name, number:Number}) -->
-    left_brace(Indent0, Indent, "value"), !,
+parse_EnumValueDescriptorProto(Indent, 'EnumValueDescriptorProto'{name:Name,
+                                                                  number:Number}) -->
     tag_colon_string(Indent, "name", Name),
-    tag_colon_number(Indent, "number", Number),
-    right_brace(Indent0), !.
+    tag_colon_number(Indent, "number", Number).
 
-extension_range(Indent0, extension_range{start:Start, end:End}) -->
-    left_brace(Indent0, Indent, "extension_range"), !,
+parse_ExtensionRange(Indent, 'ExtensionRange'{start:Start,
+                                              end:End}) -->
     tag_colon_number(Indent, "start", Start),
-    tag_colon_number(Indent, "end", End),
-    right_brace(Indent0), !.
+    tag_colon_number(Indent, "end", End).
 
-reserved_range(Indent0, reserved_range{start:Start, end:End}) -->
-    left_brace(Indent0, Indent, "reserved_range"), !,
+parse_EnumReservedRange(Indent, 'EnumReservedRange'{start:Start,
+                                                     end:End}) -->
     tag_colon_number(Indent, "start", Start),
-    tag_colon_number(Indent, "end", End),
-    right_brace(Indent0), !.
+    tag_colon_number(Indent, "end", End).
 
-options(Indent0, options{deprecated:Deprecated, packed:Packed}) -->
-    left_brace(Indent0, Indent, "options"), !,
+parse_FieldOptions(Indent, 'FieldOptions'{deprecated:Deprecated,
+                                          packed:Packed}) -->
     optional_tag_colon_id(Indent, "deprecated", Deprecated),
-    optional_tag_colon_id(Indent, "packed", Packed),
-    right_brace(Indent0), !.
+    optional_tag_colon_id(Indent, "packed", Packed).
 
-options_file(Indent0, options{java_package: V_java_package,
-                              java_outer_classname: V_java_outer_classname,
-                              optimize_for: V_optimize_for,
-                              go_package: V_go_package,
-                              cc_enable_arenas: V_cc_enable_arenas,
-                              objc_class_prefix: V_objc_class_prefix,
-                              csharp_namespace: V_csharp_namespace}) -->
-    left_brace(Indent0, Indent, "options"), !,
+parse_FileOptions(Indent, 'FileOptions'{java_package: V_java_package,
+                                         java_outer_classname: V_java_outer_classname,
+                                         optimize_for: V_optimize_for,
+                                         go_package: V_go_package,
+                                         cc_enable_arenas: V_cc_enable_arenas,
+                                         objc_class_prefix: V_objc_class_prefix,
+                                         csharp_namespace: V_csharp_namespace}) -->
     optional_tag_colon_string(Indent, "java_package", V_java_package),
     optional_tag_colon_string(Indent, "java_outer_classname", V_java_outer_classname),
     optional_tag_colon_id(Indent, "optimize_for", V_optimize_for),
     optional_tag_colon_string(Indent, "go_package", V_go_package),
     optional_tag_colon_id(Indent, "cc_enable_arenas", V_cc_enable_arenas),
     optional_tag_colon_string(Indent, "objc_class_prefix", V_objc_class_prefix),
-    optional_tag_colon_string(Indent, "csharp_namespace", V_csharp_namespace),
-    right_brace(Indent0), !.
+    optional_tag_colon_string(Indent, "csharp_namespace", V_csharp_namespace), !.
 
-
-left_brace(Indent0, Indent, Type) -->
-    indent(Indent0, Indent),
-    bidi(nonblanks, atom_codes, Type),
+name_braces(Indent, Name, ParseType, Value) -->
+    indent(Indent, Indent1),
+    bidi(nonblanks, atom_codes, Name),
     white_1, whites, "{", blanks_to_nl, !,
-    { debug(dcg_trace, '~q {~n', [Type]) }.
+    { debug(dcg_trace, '~q ~q{', [Name, ParseType]) },
+    call(ParseType, Indent1, Value),
+    whites(Indent), "}", blanks_to_nl, !,
+    { debug(dcg_trace, '~q }~q', [Name, ParseType]) }.
 
-right_brace(Indent) -->
-    whites(Indent), "}", blanks_to_nl, !.
+optional_name_braces(Indent, Name, ParseType, Type, Value) -->
+    optional(name_braces(Indent, Name, ParseType, Value), {Value=Type{}}).
 
-tag_colon_string(Indent, Tag, StringAsAtom) -->
+tag_colon_string(Indent, Tag, String) -->
     whites(Indent),
     bidi(nonblanks, atom_codes, Tag),
-    colon_string(Indent, StringAsAtom),
-    { debug(dcg_trace, '  ~q : ~q~n', [Tag, StringAsAtom]) }.
+    colon_string(Indent, String),
+    { debug(dcg_trace, '  ~q : ~q', [Tag, String]) }.
 
 tag_colon_number(Indent, Tag, Number) -->
     whites(Indent),
     bidi(nonblanks, atom_codes, Tag),
     colon_number(Indent, Number),
-    { debug(dcg_trace, '  ~q : ~q~n', [Tag, Number]) }.
+    { debug(dcg_trace, '  ~q : ~q', [Tag, Number]) }.
 
 tag_colon_id(Indent, Tag, IdAsAtom) -->
     whites(Indent),
     bidi(nonblanks, atom_codes, Tag),
     colon_id(Indent, IdAsAtom),
-    { debug(dcg_trace, '  ~q : ~q~n', [Tag, IdAsAtom]) }.
+    { debug(dcg_trace, '  ~q : ~q', [Tag, IdAsAtom]) }.
 
-optional_tag_colon_string(Indent, Tag, StringAsAtom) -->
-    optional(tag_colon_string(Indent, Tag, StringAsAtom), {StringAsAtom=''}).
+optional_tag_colon_string(Indent, Tag, String) -->
+    optional(tag_colon_string(Indent, Tag, String), {String=''}).
 
 optional_tag_colon_number(Indent, Tag, Number) -->
     optional(tag_colon_number(Indent, Tag, Number), {Number=0}).
@@ -183,10 +179,10 @@ optional_tag_colon_number(Indent, Tag, Number) -->
 optional_tag_colon_id(Indent, Tag, IdAsAtom) -->
     optional(tag_colon_id(Indent, Tag, IdAsAtom), {IdAsAtom=''}).
 
-colon_string(_Indent, StringAsAtom) -->
+colon_string(_Indent, String) -->
     whites, ":", white_1, whites,
     "\"",
-    bidi(string_without("\""), atom_codes, StringAsAtom),
+    bidi(string_without("\""), atom_codes, String),
     "\"",
     blanks_to_nl, !.
 
@@ -236,5 +232,22 @@ bidi(Element, Conversion, Converted) -->
     ;   { call(Conversion, Converted, Codes) },
         call(Element, Codes)
     ).
+
+:- det(print_term_cleaned/2).
+print_term_cleaned(Term, Options) =>
+    print_term_cleaned(Term, Options, TermStr),
+    write(TermStr).
+
+:- det(print_term_cleaned/3).
+%! print_term_cleaned(+Term, +Options, -TermStr) is det.
+% print_term, cleaned up
+print_term_cleaned(Term, Options, TermStr) =>
+    % print_term leaves trailing whitespace, so remove it
+    with_output_to(
+            string(TermStr0),
+            (current_output(TermStream),
+             print_term(Term, [output(TermStream)|Options]))),
+    re_replace(" +\n"/g, "\n", TermStr0, TermStr1),
+    re_replace("\t"/g, "        ", TermStr1, TermStr).
 
 end_of_file.
