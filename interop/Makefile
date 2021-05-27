@@ -8,7 +8,9 @@
 
 # PROTOC=$(shell type -p protoc)
 # PYTHON=$(shell type -p python3)
-PROTOC=protoc
+# PROTOC=protoc
+# See comment in ../demo/Makefile:
+PROTOC:=$(realpath ../../../../protobuf/src/protoc)
 PYTHON=python3
 SWIPL=swipl
 
@@ -70,13 +72,22 @@ scalars1a_from_python.wire scalars1b_from_python.wire: scalar_test_write.py scal
 	@# $(PROTOC) -I. --decode=scalar_test.Scalars1 scalar_test.proto <scalars1a_from_python.wire
 	@# $(PROTOC) -I. --decode=scalar_test.Scalars1 scalar_test.proto <scalars1b_from_python.wire
 
+# Can use type -p with bash:
+PROTOC_WHICH:=$(shell which protoc)
+PROTOC_DIR:=$(shell dirname $(PROTOC_WHICH))
+PROTOC_LIB:=$(shell realpath $(PROTOC_DIR)/../lib)
+
 scalar_test_write: scalar_test.pb.o scalar_test_write.o
-	$(CXX) -o $@ $^ $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS)
+	@# See comment about -static with "foo" rule in ../demo/Makefile
+	@# for non-static: -Wl,-rpath=$(PROTOC_LIB)
+	$(CXX) -static -o $@ $^ $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS)
 
 scalar_test_write.o: scalar_test.pb.h scalar_test.pb.cc scalar_test_write.cc
 
 scalar_test_read: scalar_test.pb.o scalar_test_read.o
-	$(CXX) -o $@ $^ $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS)
+	@# See comment about -static with "foo" rule in ../demo/Makefile
+	@# for non-static: -Wl,-rpath=$(PROTOC_LIB)
+	$(CXX) -static -o $@ $^ $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS)
 
 scalar_test_read.o: scalar_test.pb.h scalar_test.pb.cc scalar_test_read.cc
 

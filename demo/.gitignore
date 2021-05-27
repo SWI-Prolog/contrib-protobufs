@@ -1,4 +1,5 @@
 *.proto.wiredump
-descriptor.proto.parse
+*_pb.pl
+*.proto.parse
 foo
 tmp99.tmp

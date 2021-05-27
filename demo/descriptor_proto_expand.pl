@@ -33,7 +33,12 @@ descriptor_proto_expand_FileDescriptorSet_preds(Preds) :-
 descriptor_proto_expand_FileDescriptorSet(Set,
                                           [(:- discontiguous CommaPreds) | Expansion]) :-
     phrase(descriptor_proto_expand_FileDescriptorSet(Set), Expansion),
-    % print_term('***expansion':Expansion, [right_margin(160)]), % Uncomment for debugging
+    (   false  % for debugging
+    ->  writeln('***expansion'),
+        print_term(Expansion, [right_margin(160)]),
+        nl, writeln('***end expansion'), nl
+    ;   true
+    ),
     descriptor_proto_expand_FileDescriptorSet_preds(Preds),
     list_commalist(Preds, CommaPreds).
 

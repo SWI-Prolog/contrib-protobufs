@@ -24,7 +24,7 @@ protobuf_metadata(
         options:'.google.protobuf.FileOptions'{
                     cc_enable_arenas:true,
                     csharp_namespace:'Google.Protobuf.WellKnownTypes',
-                    go_package:'github.com/golang/protobuf/ptypes/timestamp',
+                    go_package:'google.golang.org/protobuf/types/known/timestamppb',
                     java_multiple_files:true,
                     java_outer_classname:'TimestampProto',
                     java_package:'com.google.protobuf',

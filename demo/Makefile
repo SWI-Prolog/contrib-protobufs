@@ -12,14 +12,15 @@
 # these by setting PROTOC= or SWIPL= when envoking "make".
 
 # If you're having problems with the gcc flags, you might need to set
-# PKGCONFIG_PATH. For example, if you install the protobuf compiler
-# in $HOME/.local (./configure --prefix=$HOME/.local), then set
-# PKG_CONFIG_PATH=$HOME/.local/lib/pkgconfig
+# PKGCONFIG_PATH. For example, if you install the protobuf compiler in
+# $HOME/.local (when building with ./configure --prefix=$HOME/.local),
+# then set PKG_CONFIG_PATH=$HOME/.local/lib/pkgconfig and also set
+# LD_LIBRARY_PATH=$HOME/.local/lib
 
 # You might also need to set LD_LIBRARY_PATH or change the rule for
 # "foo" to be: $(CXX) -static -o $@ ...
 
-# This demo was tested with protoc versions 3.6.1 and 3.15.8
+# This demo was tested with protoc versions 3.6.1 and 3.17.1
 # on Ubuntu 20.04.2.
 
 # Many of the rules at the end of this Makefile are for development
@@ -39,9 +40,21 @@
 test_all: check test_basic_usage test_segment_messages test_send_command test_send_precompiled_command other_tests \
 	addressbook.proto.segment descriptor.proto.segment
 
+# SRC_PROTOBUF is where you've downloaded the protobuf sources
+# (e.g., by git clone). This is not needed for "make check".
+SRC_PROTOBUF=$(HOME)/src/protobuf
+
 # SHELL:=/bin/bash
+
 # PROTOC=$(shell type -p protoc)
-PROTOC=protoc
+# PROTOC=protoc
+#  Requires having done "make" in ~/src/protobufs:
+PROTOC:=$(realpath ../../../../protobuf/src/protoc)
+# Requires having LD_LIBRARY_PATH=$(realpath ../../../../protobuf/src/.libs):
+# PROTOC:=$(realpath ../../../../protobuf/src/.libs/protoc)
+
+PROTOC_I=-I. -I$(SRC_PROTOBUF)/src -I$(SRC_PROTOBUF)/src/google/protobuf -I$(SRC_PROTOBUF)/src/google/protobuf/compiler
+
 # SWIPL=swipl # DO NOT SUBMIT
 # DO NOT SUBMIT:
 SWIPL=$(HOME)/src/swipl-devel/build/src/swipl
@@ -62,39 +75,57 @@ CXXFLAGS=-O3
 CPPFLAGS:=$(shell pkg-config --cflags protobuf)
 LDFLAGS:=$(shell pkg-config --libs protobuf)
 
-# SRC_PROTOBUF is where you've downloaded the protobuf sources
-# (e.g., by git clone). This is not needed for "make check".
-SRC_PROTOBUF=$(HOME)/src/protobuf
-
 # These files don't need to be kept, but can be useful for debugging:
 .PRECIOUS: %.pb.cc %.pb.h %_pb2.py
 
 # Protobuf code generator for C++
 %.pb.cc %.pb.h: %.proto
-	$(PROTOC) --cpp_out=. $?
+	$(PROTOC) $(PROTOC_I) --cpp_out=. $<
 
 # Protobuf code generator for Python
+
 %_pb2.py: %.proto
-	$(PROTOC) --python_out=. $?
+	$(PROTOC) $(PROTOC_I) --python_out=. $<
+
+plugin_pb2.py: $(SRC_PROTOBUF)/src/google/protobuf/compiler/plugin.proto \
+		$(SRC_PROTOBUF)/src/google/protobuf/descriptor.proto
+	$(PROTOC) $(PROTOC_I) --python_out=. $<
+
+descriptor_pb2.py: $(SRC_PROTOBUF)/src/google/protobuf/descriptor.proto
+	$(PROTOC) $(PROTOC_I) --python_out=. $<
+
+# Bootstrap rule for prolog plugin
+%_pb.pl: %.proto protoc-gen-prolog plugin_pb2.py descriptor_pb2.py
+	PATH=".:$$PATH" $(PROTOC) $(PROTOC_I) --prolog_out=. $< \
+		2>/tmp/protoc-gen-prolog.debug
 
 # Make a binary protobuf msg file (see
 # $(SRC_PROTOBUF)/src/google/protobuf/descriptor.proto) with a
 # FileDescriptorSet message, describing the .proto and all its
 # dependencies:
 %.proto.wire: %.proto
-	$(PROTOC) --include_imports --descriptor_set_out=$@ $?
+	$(PROTOC) $(PROTOC_I) --include_imports --descriptor_set_out=$@ $<
 
-descriptor.proto.wire: $(SRC_PROTOBUF)/src/google/protobuf/descriptor.proto
-	$(PROTOC) --include_imports --descriptor_set_out=$@ \
-		-I$(SRC_PROTOBUF)/src/google/protobuf \
-		descriptor.proto
+descriptor.proto.wire: \
+		$(SRC_PROTOBUF)/src/google/protobuf/descriptor.proto
+	$(PROTOC) $(PROTOC_I) --include_imports --descriptor_set_out=$@ descriptor.proto
+
+plugin.proto.wire: \
+		$(SRC_PROTOBUF)/src/google/protobuf/compiler/plugin.proto
+	$(PROTOC) $(PROTOC_I) --include_imports --descriptor_set_out=$@ plugin.proto
 
 foo.o: pb_vector.pb.h foo.cpp
+
+# Can use type -p with bash:
+PROTOC_WHICH:=$(shell which protoc)
+PROTOC_DIR:=$(shell dirname $(PROTOC_WHICH))
+PROTOC_LIB:=$(shell realpath $(PROTOC_DIR)/../lib)
 
 # foo: foo.cpp pb_vector.pb.cc pb_vector.pb.h
 foo: pb_vector.pb.o foo.o
 	@# To run, you might require setting LD_LIBRARY_PATH or specify -static
-	$(CXX) -o $@ $^ $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS)
+	@# for non-static: -Wl,-rpath=$(PROTOC_LIB)
+	$(CXX) -static -o $@ $^ $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS)
 
 tmp99.tmp: vector_demo.pl ../eventually_implies.pl
 	$(SWIPL) -s vector_demo.pl -g make_tmp99 --
@@ -137,17 +168,17 @@ docs:
 SRC_PROTOBUF=$(HOME)/src/protobuf
 
 %.proto.wiredump: %.proto.wire
-	$(PROTOC) -I. -I$(SRC_PROTOBUF)/src/google/protobuf \
+	$(PROTOC) $(PROTOC_I) \
 		--decode=google.protobuf.FileDescriptorSet \
 		descriptor.proto \
-		<$? >$@
+		<$< >$@
 
 # make SWIPL=$HOME/src/swipl-devel/build/src/swipl -C ~/src/swipl-devel/packages/protobufs/demo rebuild0 addressbook.segment # descriptor.segment
 %.proto.segment: descriptor_proto.pl descriptor_proto_expand.pl %.proto.wire
 	$(SWIPL) descriptor_proto.pl <$*.proto.wire >$@
 
-descriptor.proto.parse: descriptor.proto.wiredump parse_descriptor_proto_dump.pl
-	$(SWIPL) -g "parse_wiredump('descriptor.proto.wiredump')" \
+%.proto.parse: %.proto.wiredump parse_descriptor_proto_dump.pl
+	$(SWIPL) -g "parse_wiredump('$<')" \
 		-g halt parse_descriptor_proto_dump.pl >$@
 
 descriptor.proto.wirerawdump: descriptor.proto.wire
@@ -156,7 +187,7 @@ descriptor.proto.wirerawdump: descriptor.proto.wire
 # Assume you've cloned git@github.com:protocolbuffers/protobuf.git (fetch) to $(HOME)/src.
 # Note that ../golden_message.2.5.0 is the same as $(HOME)/src/protobuf/python/compatibility_tests/v2.5.0/tests/google/protobuf/internal/golden_message
 dump_golden:
-	$(PROTOC) -I$(HOME)/src/protobuf/src \
+	$(PROTOC) $(PROTOC_I) \
 		--decode=protobuf_unittest.TestAllTypes \
 		google/protobuf/unittest.proto \
 		<../golden_message.2.5.0

@@ -1,9 +1,16 @@
 % -*- mode: Prolog -*-
 
 %% Parse the output of protoc --decode=FileDescriptorSet
-%% It does not handle the general output of protoc --decode ... for
-%% that, use protoc --descriptor_set_out [--include_imports] and
-%% process that protobuf.
+%%
+%% To generate the file plugin.proto.wiredump
+%%    protoc --include_imports --descriptor_set_out=plugin.proto.wire \
+%%           -I. -I$(SRC_PROTOBUF)/src -I$(SRC_PROTOBUF)/src/google/protobuf -I$(SRC_PROTOBUF)/src/google/protobuf/compiler \
+%%           plugin.proto
+%%    protoc -I. -I$(SRC_PROTOBUF)/src -I$(SRC_PROTOBUF)/src/google/protobuf -I$(SRC_PROTOBUF)/src/google/protobuf/compiler \
+%%           --decode=google.protobuf.FileDescriptorSet \
+%%           descriptor.proto \
+%%           <plugin.proto.wire >plugin.proto.wiredump
+
 %%
 %% This code is used to bootstrap the protoc plugin.
 %% TODO: document bootstrap.
@@ -41,7 +48,7 @@ parse_wiredump(File, Term) :-
     read_file_to_codes(File, Codes, [encoding(octet),type(binary)]),
     phrase(parse_FileDescriptorSet([], Term), Codes).
 
-test_parse_round_trip(File) :-  % e.g., File = 'descriptor.proto.wiredump'
+test_parse_round_trip(File) :-  % e.g., File = 'plugin.proto.wiredump'
     phrase(parse_FileDescriptorSet([], File), Term),
     phrase(parse_FileDescriptorSet([], Term), Codes),
     string_codes(String, Codes),
@@ -59,10 +66,12 @@ parse_FileDescriptorSet(Indent, 'FileDescriptorSet'{file: File}) -->
 parse_FileDescriptorProto(Indent,
                           'FileDescriptorProto'{name:Name,
                                                 package:Package,
+                                                dependency:Dependency,
                                                 message_type:MessageType,
                                                 options:Options}) -->
     tag_colon_string(Indent, "name", Name),
     optional_tag_colon_string(Indent, "package", Package),
+    optional_tag_colon_string(Indent, "dependency", Dependency),
     sequence(name_braces(Indent, "message_type", parse_DescriptorProto), MessageType),
     optional_name_braces(Indent, "options", parse_FileOptions,
                          'FileOptions', Options).
