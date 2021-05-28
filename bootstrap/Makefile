@@ -57,27 +57,30 @@ PROTOC:=$(realpath $(HOME)/src/protobuf/src/protoc)
 # Requires having LD_LIBRARY_PATH=$(realpath ../../../../protobuf/src/.libs):
 # PROTOC:=$(realpath $(HOME)/src/protobuf/src/.libs/protoc)
 
-PROTOC_I=-I. -I$(SRC_PROTOBUF)/src -I$(SRC_PROTOBUF)/src/google/protobuf -I$(SRC_PROTOBUF)/src/google/protobuf/compiler
+PROTOC_I=-I. -I=../demo -I$(SRC_PROTOBUF)/src -I$(SRC_PROTOBUF)/src/google/protobuf -I$(SRC_PROTOBUF)/src/google/protobuf/compiler
 
 all: plugin.proto.wiredump plugin.proto.wire plugin.proto.parse plugin.proto.segment \
-	descriptor.proto.wiredump descriptor.proto.wire descriptor.proto.parse descriptor.proto.segment
+	descriptor.proto.wiredump descriptor.proto.wire descriptor.proto.parse descriptor.proto.segment \
+	addressbook_pb0.pl addressbook_pb.pl
 
 # Protobuf code generator for Python  # TODO: delete when no longer needed
 
 %_pb2.py: %.proto
 	$(PROTOC) $(PROTOC_I) --python_out=. $<
 
-plugin_pb2.py: $(SRC_PROTOBUF)/src/google/protobuf/compiler/plugin.proto \
+google/protobuf/compiler/plugin_pb2.py: $(SRC_PROTOBUF)/src/google/protobuf/compiler/plugin.proto \
 		$(SRC_PROTOBUF)/src/google/protobuf/descriptor.proto
 	$(PROTOC) $(PROTOC_I) --python_out=. $<
 
-descriptor_pb2.py: $(SRC_PROTOBUF)/src/google/protobuf/descriptor.proto
+google/protobuf/descriptor_pb2.py: $(SRC_PROTOBUF)/src/google/protobuf/descriptor.proto
 	$(PROTOC) $(PROTOC_I) --python_out=. $<
 
 # Bootstrap rule for prolog plugin
-%_pb.pl: %.proto protoc-gen-prolog plugin_pb2.py descriptor_pb2.py
-	PATH=".:$$PATH" $(PROTOC) $(PROTOC_I) --prolog_out=. $< \
-		2>/tmp/protoc-gen-prolog.debug
+addressbook_pb.pl: ../demo/addressbook.proto protoc-gen-prolog
+	PATH=".:$$PATH" $(PROTOC) $(PROTOC_I) --prolog_out=. $<
+
+addressbook_pb0.pl: ../demo/addressbook.proto protoc-gen-prolog0 google/protobuf/compiler/plugin_pb2.py google/protobuf/descriptor_pb2.py
+	PATH=".:$$PATH" $(PROTOC) $(PROTOC_I) --prolog0_out=. $<
 
 # Make a binary protobuf msg file (see
 # $(SRC_PROTOBUF)/src/google/protobuf/descriptor.proto) with a
@@ -118,8 +121,10 @@ descriptor.proto.wirerawdump: descriptor.proto.wire
 
 clean:
 	@# TODO: special handling for descriptor.* files
-	$(RM) -r foo *.tmp *.o *.pb.cc *.pb.h *_pb2.py doc/ ../TAGS \
-		*.proto.wire *.proto.wirerawdump *.proto.wiredump *.proto.parse *.proto.segment
+	$(RM) -r foo *.tmp *.o *.pb.cc *.pb.h *_pb2.py *_pb.pl *_pb0.pl doc/ ../TAGS \
+		*.proto.wire *.proto.wirerawdump *.proto.wiredump *.proto.parse \
+		google/protobuf/compiler/plugin_pb2.py google/protobuf/descriptor_pb2.py
+	-rmdir -p google/protobuf/compiler
 	git clean -ndxf  # Should find nothing.
 
 # For testing: this is what the build does:

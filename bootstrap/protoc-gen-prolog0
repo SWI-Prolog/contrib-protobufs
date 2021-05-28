@@ -1,0 +1,78 @@
+#!/usr/bin/env python3
+# -*- mode: Python -*-
+"""Bootstrap plugin for generating Prolog code for protobufs.
+As per https://developers.google.com/protocol-buffers/docs/reference/other
+it reads from stdin a `CodeGeneratorRequest` and outputs to stdout a
+`CodeGeneratorResponse`.
+
+This code will be replaced by Prolog code during the bootstrap process.
+
+This program must be named protoc-gen-prolog and must be in the PATH
+when protoc is run.
+"""
+
+# This file was formatted with:         yapf  -i protoc-gen-prolog0
+# Although this also does a decent job: black -S protoc-gen-prolog0
+
+# TODO: delete this code and replace with Prolog code
+
+from collections import namedtuple
+import sys
+from google.protobuf.compiler import plugin_pb2
+from google.protobuf import descriptor_pb2  # Don't actually need this - it's implicitly available from plugin_pb2
+
+ReqVersion = namedtuple('ReqVersion', ['major', 'minor', 'patch'])
+
+
+def main():
+    result = []
+    result += [f'ARGV: {sys.argv}']
+    request = plugin_pb2.CodeGeneratorRequest()
+    # sys.stdin.buffer is binary
+    request.ParseFromString(sys.stdin.buffer.read())
+    version = request.compiler_version
+    result += [
+        f'Compiler version: '
+        f'{version.major}.{version.minor}.{version.patch}{version.suffix}'
+    ]
+    req_version = ReqVersion(major=3, minor=6, patch=1)  # from Ubuntu PPA
+    assert (version.major > req_version.major
+            or (version.major == req_version.major
+                and version.minor > req_version.minor)
+            or (version.major == req_version.major
+                and version.minor == req_version.minor
+                and version.patch >= req_version.patch)), dict(
+                    compiler_version=version, required_version=req_version)
+    # No need for source_code_info ... can't delete source_code_info,
+    # so delete its contents (source_code_info.location):
+    for pf in request.proto_file:
+        del pf.source_code_info.location[:]
+    result += [f'{request}']
+
+    response = plugin_pb2.CodeGeneratorResponse(
+        # error = "Not yet implemented",
+        file=[], )
+    # request.parameter is for the various built-in generators. For details,
+    # scan for RegisterGenerator in ~/src/protobuf/src/google/protobuf/compiler/
+    for ftg in request.file_to_generate:
+        assert ftg.endswith('.proto')
+        ftb_base = ftg[:-len('.proto')]
+        result += [f'% Protobuf for "{ftg}" (base "{ftb_base}")']
+        f = response.File(
+            name=ftb_base + '_pb0.pl',
+            content='\n'.join(result) + '\n',
+        )
+        # The inputs are in topologically-sorted order, which may need
+        # to be processed; but only those within
+        # request.file_to_generate should be output. It is OK for the
+        # generated code to contain an "import" where the .proto file
+        # has an import, in the expectation that protoc has been
+        # explicitly called for all the dependencies.
+        if ftg in request.file_to_generate:
+            response.file.append(f)
+    # sys.stdout.buffer is binary
+    sys.stdout.buffer.write(response.SerializeToString())
+
+
+if __name__ == "__main__":
+    main()

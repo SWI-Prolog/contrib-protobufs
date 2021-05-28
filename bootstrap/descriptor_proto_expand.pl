@@ -16,17 +16,17 @@
 :- det(descriptor_proto_expand_FileDescriptorSet_preds/1).
 descriptor_proto_expand_FileDescriptorSet_preds(Preds) :-
     Preds = [
-     proto_package/3,                 %   proto_package(Package, FileName, Options)
-     proto_message_type/3,            %   proto_message_type(       Fqn,     Package, Name)
-     proto_field_name/4,              %   proto_field_name(         Fqn,     FieldNumber, FieldName, FqnName),
-     proto_field_json_name/2,         %   proto_field_json_name(    FqnName, JsonName)
-     proto_field_label/2,             %   proto_field_label(        FqnName, LabelRepeatOptional) % LABEL_OPTIONAL, LABEL_REQUIRED, LABEL_REPEATED
-     proto_field_type/2,              %   proto_field_type(         FqnName, Type) % TYPE_INT32, TYPE_MESSAGE, etc
-     proto_field_type_name/2,         %   proto_field_type_name(    FqnName, TypeName)
-     proto_field_default_value/2,     %   proto_field_default_value(FqnName, DefaultValue)
-     proto_field_option_packed/1,     %   proto_field_option_packed(FqnName)
-     proto_enum_type/3,               %   proto_enum_type(          FqnName, Fqn, Name)
-     proto_enum_value/3               %   proto_enum_value(         FqnName, Name, Number)
+     protobufs:package/3,                 %   protobufs:package(Package, FileName, Options)
+     protobufs:message_type/3,            %   protobufs:message_type(       Fqn,     Package, Name)
+     protobufs:field_name/4,              %   protobufs:field_name(         Fqn,     FieldNumber, FieldName, FqnName),
+     protobufs:field_json_name/2,         %   protobufs:field_json_name(    FqnName, JsonName)
+     protobufs:field_label/2,             %   protobufs:field_label(        FqnName, LabelRepeatOptional) % LABEL_OPTIONAL, LABEL_REQUIRED, LABEL_REPEATED
+     protobufs:field_type/2,              %   protobufs:field_type(         FqnName, Type) % TYPE_INT32, TYPE_MESSAGE, etc
+     protobufs:field_type_name/2,         %   protobufs:field_type_name(    FqnName, TypeName)
+     protobufs:field_default_value/2,     %   protobufs:field_default_value(FqnName, DefaultValue)
+     protobufs:field_option_packed/1,     %   protobufs:field_option_packed(FqnName)
+     protobufs:enum_type/3,               %   protobufs:enum_type(          FqnName, Fqn, Name)
+     protobufs:enum_value/3               %   protobufs:enum_value(         FqnName, Name, Number)
             ].
 
 :- det(descriptor_proto_expand_FileDescriptorSet/2).
@@ -106,7 +106,7 @@ descriptor_proto_expand_FileDescriptorProto(File) -->
                      }) },
     { assertion(File_extension == []) }, % TODO: handle this?
     { add_to_fqn('', File_package, Package) },
-    [ proto_package(Package, File_name, File_options) ],
+    [ protobufs:package(Package, File_name, File_options) ],
     sequence(expand_DescriptorProto(Package), File_message_type),
     sequence(expand_EnumDescriptorProto(Package), File_enum_type).
 
@@ -126,7 +126,7 @@ expand_DescriptorProto(Fqn, MessageType) -->
                       reserved_name:   []      -_
                      }) },
     { add_to_fqn(Fqn, MessageType_name, FqnName) },
-    [ proto_message_type(FqnName, Fqn, MessageType_name) ],
+    [ protobufs:message_type(FqnName, Fqn, MessageType_name) ],
     sequence(expand_FieldDescriptorProto(FqnName), MessageType_field),
     sequence(expand_DescriptorProto(FqnName), MessageType_nested_type),
     sequence(expand_EnumDescriptorProto(FqnName), MessageType_enum_type).
@@ -148,12 +148,12 @@ expand_FieldDescriptorProto(Fqn, Field) -->
                       proto3_optional: _                -_
                      }) },
     { add_to_fqn(Fqn, Field_name, FqnName) },
-    [ proto_field_name(Fqn, Field_number, Field_name, FqnName) ],
-    [ proto_field_json_name(FqnName, Field_json_name) ],
-    [ proto_field_label(FqnName, Field_label) ],
-    [ proto_field_type(FqnName, Field_type) ],
-    [ proto_field_type_name(FqnName, Field_type_name) ],
-    [ proto_field_default_value(FqnName, Field_default_value) ],
+    [ protobufs:field_name(Fqn, Field_number, Field_name, FqnName) ],
+    [ protobufs:field_json_name(FqnName, Field_json_name) ],
+    [ protobufs:field_label(FqnName, Field_label) ],
+    [ protobufs:field_type(FqnName, Field_type) ],
+    [ protobufs:field_type_name(FqnName, Field_type_name) ],
+    [ protobufs:field_default_value(FqnName, Field_default_value) ],
     expand_FieldOptions(FqnName, Field_options).
 
 :- det(expand_FieldOptions//2).
@@ -169,7 +169,7 @@ expand_FieldOptions(FqnName, Options) -->
                       uninterpreted_option: _     -_
                      }) },
     (   { Option_packed = true }
-    ->  [ proto_field_option_packed(FqnName) ]
+    ->  [ protobufs:field_option_packed(FqnName) ]
     ;   [ ]
     ).
 
@@ -184,7 +184,7 @@ expand_EnumDescriptorProto(Fqn, EnumType) -->
                       reserved_name:  _  -_
                       }) },
     { add_to_fqn(Fqn, EnumType_name, FqnName) },
-    [ proto_enum_type(FqnName, Fqn, EnumType_name) ],
+    [ protobufs:enum_type(FqnName, Fqn, EnumType_name) ],
     sequence(expand_EnumValueDescriptorProto(FqnName), EnumType_value).
 
 :- det(expand_EnumValueDescriptorProto//2).
@@ -195,7 +195,7 @@ expand_EnumValueDescriptorProto(Fqn, Value) -->
                       number:  0-Value_number,
                       options: _-_
                       }) },
-    [ proto_enum_value(Fqn, Value_name, Value_number) ].
+    [ protobufs:enum_value(Fqn, Value_name, Value_number) ].
 
 add_to_fqn(Fqn, Name, FqnName) :-
     atomic_list_concat([Fqn, Name], '.', FqnName).

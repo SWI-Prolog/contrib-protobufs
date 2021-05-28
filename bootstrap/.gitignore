@@ -1,3 +1,6 @@
 *.proto.wiredump
 *.proto.parse
 *.proto.segment
+*_pb0.pl
+# *_pb.pl
+*_pb2.py
