@@ -14,10 +14,8 @@
 # If you're having problems with the gcc flags, you might need to set
 # PKGCONFIG_PATH. For example, if you install the protobuf compiler in
 # $HOME/.local (when building with ./configure --prefix=$HOME/.local),
-# then set PKG_CONFIG_PATH=$HOME/.local/lib/pkgconfig and also set
-# LD_LIBRARY_PATH=$HOME/.local/lib
-
-# You might also need to set LD_LIBRARY_PATH or change the rule for
+# then set PKG_CONFIG_PATH=$HOME/.local/lib/pkgconfig and possibly
+# also set LD_LIBRARY_PATH=$HOME/.local/lib or change the rule for
 # "foo" to be: $(CXX) -static -o $@ ...
 
 # This demo was tested with protoc versions 3.6.1 and 3.17.1
@@ -28,47 +26,28 @@
 
 # Naming conventions - see README.md section "descriptor.proto and friends"
 
-.SUFFIXES: .proto .cpp .cc .o .pl .py .wire .wiredump .wirerawdump .segment
-
 .DELETE_ON_ERROR: # Any non-zero return code deletes the target file(s)
 
-.PHONY: FORCE check clean docs
-.PHONY: test_all test_basic_usage test_segment_messages test_send_command test_send_precompiled_command
+.PHONY: FORCE check clean test_all
+.PHONY: test_all test_basic_usage test_send_command test_send_precompiled_command
 
 .DEFAULT_GOAL=test_all
 
-test_all: check test_basic_usage test_segment_messages test_send_command test_send_precompiled_command other_tests \
-	addressbook.proto.segment descriptor.proto.segment
+test_all: check test_basic_usage test_send_command test_send_precompiled_command other_tests
 
-# SRC_PROTOBUF is where you've downloaded the protobuf sources
-# (e.g., by git clone). This is not needed for "make check".
-SRC_PROTOBUF=$(HOME)/src/protobuf
+SWIPL=swipl
 
-# SHELL:=/bin/bash
+PROTOC=protoc
+PROTOC_I=-I.
 
-# PROTOC=$(shell type -p protoc)
-# PROTOC=protoc
-#  Requires having done "make" in ~/src/protobufs:
-PROTOC:=$(realpath ../../../../protobuf/src/protoc)
-# Requires having LD_LIBRARY_PATH=$(realpath ../../../../protobuf/src/.libs):
-# PROTOC:=$(realpath ../../../../protobuf/src/.libs/protoc)
-
-PROTOC_I=-I. -I$(SRC_PROTOBUF)/src -I$(SRC_PROTOBUF)/src/google/protobuf -I$(SRC_PROTOBUF)/src/google/protobuf/compiler
-
-# SWIPL=swipl # DO NOT SUBMIT
-# DO NOT SUBMIT:
-SWIPL=$(HOME)/src/swipl-devel/build/src/swipl
-
-# The following correspond to the default rules in GNU Make 4.2.1
-# (There are no *.c files, only C++)
-# CXX=g++
 RM=rm -f
 
-# The following is essentially GNU Make's built-in rule::
+# This is essentially GNU Make 4.2.1 built-in rule:
+# CXX=g++
 # %o: %.cpp
 # 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $^
 
-# -Wall produces warnings from the generated *.pb.cc files
+# Don't specify -Wall -- it produces warnings from the generated *.pb.cc files
 CFLAGS=-O3
 CXXFLAGS=-O3
 # flags from pkg-config: -pthread -lprotobuf -lpthread
@@ -82,38 +61,6 @@ LDFLAGS:=$(shell pkg-config --libs protobuf)
 %.pb.cc %.pb.h: %.proto
 	$(PROTOC) $(PROTOC_I) --cpp_out=. $<
 
-# Protobuf code generator for Python
-
-%_pb2.py: %.proto
-	$(PROTOC) $(PROTOC_I) --python_out=. $<
-
-plugin_pb2.py: $(SRC_PROTOBUF)/src/google/protobuf/compiler/plugin.proto \
-		$(SRC_PROTOBUF)/src/google/protobuf/descriptor.proto
-	$(PROTOC) $(PROTOC_I) --python_out=. $<
-
-descriptor_pb2.py: $(SRC_PROTOBUF)/src/google/protobuf/descriptor.proto
-	$(PROTOC) $(PROTOC_I) --python_out=. $<
-
-# Bootstrap rule for prolog plugin
-%_pb.pl: %.proto protoc-gen-prolog plugin_pb2.py descriptor_pb2.py
-	PATH=".:$$PATH" $(PROTOC) $(PROTOC_I) --prolog_out=. $< \
-		2>/tmp/protoc-gen-prolog.debug
-
-# Make a binary protobuf msg file (see
-# $(SRC_PROTOBUF)/src/google/protobuf/descriptor.proto) with a
-# FileDescriptorSet message, describing the .proto and all its
-# dependencies:
-%.proto.wire: %.proto
-	$(PROTOC) $(PROTOC_I) --include_imports --descriptor_set_out=$@ $<
-
-descriptor.proto.wire: \
-		$(SRC_PROTOBUF)/src/google/protobuf/descriptor.proto
-	$(PROTOC) $(PROTOC_I) --include_imports --descriptor_set_out=$@ descriptor.proto
-
-plugin.proto.wire: \
-		$(SRC_PROTOBUF)/src/google/protobuf/compiler/plugin.proto
-	$(PROTOC) $(PROTOC_I) --include_imports --descriptor_set_out=$@ plugin.proto
-
 foo.o: pb_vector.pb.h foo.cpp
 
 # Can use type -p with bash:
@@ -125,7 +72,8 @@ PROTOC_LIB:=$(shell realpath $(PROTOC_DIR)/../lib)
 foo: pb_vector.pb.o foo.o
 	@# To run, you might require setting LD_LIBRARY_PATH or specify -static
 	@# for non-static: -Wl,-rpath=$(PROTOC_LIB)
-	$(CXX) -static -o $@ $^ $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS)
+	$(CXX) -Wl,-rpath=$(PROTOC_LIB) -o $@ $^ $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS)
+	@# $(CXX) -static -o $@ $^ $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS)
 
 tmp99.tmp: vector_demo.pl ../eventually_implies.pl
 	$(SWIPL) -s vector_demo.pl -g make_tmp99 --
@@ -139,12 +87,6 @@ check: foo tmp99.tmp FORCE
 test_basic_usage: vector_demo.pl FORCE
 	$(SWIPL) -g test_basic_usage -g halt vector_demo.pl
 
-# Run the protobuf_segment_messages test.
-# See also rules  descriptor.proto.wirerawdump, descriptor.proto.wiredump
-
-test_segment_messages: descriptor.proto.wire vector_demo.pl FORCE
-	$(SWIPL) -g test_segment_messages -g halt vector_demo.pl
-
 test_send_command: vector_demo.pl FORCE
 	$(SWIPL) -g test_send_command -g halt vector_demo.pl
 
@@ -153,36 +95,8 @@ test_send_precompiled_command: vector_demo.pl FORCE
 
 clean:
 	@# TODO: special handling for descriptor.* files
-	$(RM) -r foo *.tmp *.o *.pb.cc *.pb.h *_pb2.py doc/ ../TAGS \
-		*.proto.wire *.proto.wirerawdump *.proto.wiredump descriptor.proto.parse
+	$(RM) -r foo *.tmp *.o *.pb.cc *.pb.h *_pb2.py
 	git clean -dxf  # Should find nothing.
-
-# Generate the documentation from ../protobufs.pl
-# The result is in ../doc/protobufs.html
-docs:
-	cd .. && $(SWIPL) -g 'use_module(library(doc_files))' \
-		-g 'doc_save(.,[])' -g halt protobufs.pl
-
-# TODO: remove the following
-
-SRC_PROTOBUF=$(HOME)/src/protobuf
-
-%.proto.wiredump: %.proto.wire
-	$(PROTOC) $(PROTOC_I) \
-		--decode=google.protobuf.FileDescriptorSet \
-		descriptor.proto \
-		<$< >$@
-
-# make SWIPL=$HOME/src/swipl-devel/build/src/swipl -C ~/src/swipl-devel/packages/protobufs/demo rebuild0 addressbook.segment # descriptor.segment
-%.proto.segment: descriptor_proto.pl descriptor_proto_expand.pl %.proto.wire
-	$(SWIPL) descriptor_proto.pl <$*.proto.wire >$@
-
-%.proto.parse: %.proto.wiredump parse_descriptor_proto_dump.pl
-	$(SWIPL) -g "parse_wiredump('$<')" \
-		-g halt parse_descriptor_proto_dump.pl >$@
-
-descriptor.proto.wirerawdump: descriptor.proto.wire
-	$(PROTOC) --decode_raw <descriptor.proto.wire >$@
 
 # Assume you've cloned git@github.com:protocolbuffers/protobuf.git (fetch) to $(HOME)/src.
 # Note that ../golden_message.2.5.0 is the same as $(HOME)/src/protobuf/python/compatibility_tests/v2.5.0/tests/google/protobuf/internal/golden_message
@@ -191,42 +105,6 @@ dump_golden:
 		--decode=protobuf_unittest.TestAllTypes \
 		google/protobuf/unittest.proto \
 		<../golden_message.2.5.0
-
-# For testing: this is what the build does:
-
-.PHONY: test_protobufs
-test_protobufs:
-	$(SWIPL) "-p" "foreign=" "-f" "none" "--no-packs" "-s" ../test_protobufs.pl "-g" "test_protobufs" "-t" "halt"
-
-# For looking at the generated documentation.  This assumes that
-# you're working in ~/src/contrib-protobufs and that there's also
-# ~/src/swipl-devel (and you might wish to stash
-# ~/src/swipl-devel/packages/protobufs somewhere).
-# Also, cmake doesn't seem to play nicely with symlinks,
-# so we can't just do
-#    ln -s $(HOME)/src/contrib-protobufs $(HOME)/src/swipl-devel/packages/protobufs
-
-.PHONY: rebuild rebuild_clean rebuild other_tests
-
-rebuild_clean:
-	cd ../../.. && git clean -dxf
-	$(MAKE) rebuild
-
-rebuild:
-	cd ../../.. && \
-		mkdir -p build && \
-		cd build && \
-		cmake -G Ninja .. && \
-		ninja && \
-		ctest -j8
-	@# gio open $(HOME)/src/swipl-devel/build/packages/protobufs/protobufs.html
-
-rebuild0: # same as rebuild but without the test
-	cd ../../.. && \
-		mkdir -p build && \
-		cd build && \
-		cmake -G Ninja .. && \
-		ninja
 
 other_tests:
 	@# "ctest -V -R protobufs" is envoked by "test_protobufs"
@@ -237,16 +115,3 @@ other_tests:
 testx:
 	cd ../../../build && ninja
 	make SWIPL=$(HOME)/src/swipl-devel/build/src/swipl $(HOME)/src/swipl-devel/packages/protobufs/demo test_all
-
-.PHONY: tar
-tar:
-	cd ../../.. && tar --create --bzip2 --file ~/Downloads/contrib-protobufs-$$(date +%Y-%m-%d-%H-%M).tbz2 packages/protobufs
-
-.PHONY: etags
-etags:	../TAGS
-../TAGS: ../*.pl ./*.pl ../interop/*.pl
-	etags -l prolog -o $@ ../*.pl ./*.pl ../interop/*.pl
-
-.PHONY: tkdiff
-tkdiff:
-	git difftool --tool=tkdiff --no-prompt

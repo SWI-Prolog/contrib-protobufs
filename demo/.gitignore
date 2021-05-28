@@ -1,5 +1,3 @@
-*.proto.wiredump
 *_pb.pl
-*.proto.parse
 foo
 tmp99.tmp

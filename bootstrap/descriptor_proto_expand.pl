@@ -17,16 +17,16 @@
 descriptor_proto_expand_FileDescriptorSet_preds(Preds) :-
     Preds = [
      proto_package/3,                 %   proto_package(Package, FileName, Options)
-     proto_message_type/3,            %   proto_message_type(           Fqn, Package, Name)
-     proto_field_name/4,              %   proto_field_name(             Fqn, FieldNumber, FieldName, FqnName),
-     proto_field_json_name/2,         %   proto_field_json_name(        FqnName, JsonName)
-     proto_field_label/2,             %   proto_field_label(            FqnName, LabelRepeatOptional) % LABEL_OPTIONAL, LABEL_REQUIRED, LABEL_REPEATED
-     proto_field_type/2,              %   proto_field_type(             FqnName, Type) % TYPE_INT32, TYPE_MESSAGE, etc
-     proto_field_type_name/2,         %   proto_field_type_name(        FqnName, TypeName)
-     proto_field_default_value/2,     %   proto_field_default_value(    FqnName, DefaultValue)
-     proto_field_option_packed/1,     %   proto_field_option_packed(    FqnName)
-     proto_enum_type/3,               %   proto_enum_type(              FqnName, Fqn, Name)
-     proto_enum_value/3               %   proto_enum_value(             FqnName, Name, Number)
+     proto_message_type/3,            %   proto_message_type(       Fqn,     Package, Name)
+     proto_field_name/4,              %   proto_field_name(         Fqn,     FieldNumber, FieldName, FqnName),
+     proto_field_json_name/2,         %   proto_field_json_name(    FqnName, JsonName)
+     proto_field_label/2,             %   proto_field_label(        FqnName, LabelRepeatOptional) % LABEL_OPTIONAL, LABEL_REQUIRED, LABEL_REPEATED
+     proto_field_type/2,              %   proto_field_type(         FqnName, Type) % TYPE_INT32, TYPE_MESSAGE, etc
+     proto_field_type_name/2,         %   proto_field_type_name(    FqnName, TypeName)
+     proto_field_default_value/2,     %   proto_field_default_value(FqnName, DefaultValue)
+     proto_field_option_packed/1,     %   proto_field_option_packed(FqnName)
+     proto_enum_type/3,               %   proto_enum_type(          FqnName, Fqn, Name)
+     proto_enum_value/3               %   proto_enum_value(         FqnName, Name, Number)
             ].
 
 :- det(descriptor_proto_expand_FileDescriptorSet/2).

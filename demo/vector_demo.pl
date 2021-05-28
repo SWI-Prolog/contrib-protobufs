@@ -14,7 +14,6 @@
            make_tmp99/0,
            test_basic_usage/0,
            test_basic_usage/1,
-           test_segment_messages/0,
            test_send_command/0,
            test_send_command/1,
            test_send_precompiled_command/0,
@@ -378,23 +377,6 @@ test_xml :-
     print_term('Segments'=Segments, [right_margin(160)]), nl,
     format('WireCodes: ~q~n', [WireCodes]),
     print_term('Template'=Template, [right_margin(160)]), nl.
-
-%! test_segment_messages is det.
-% Tests round-trip of segment_protobuf_segment_message/2,
-% using the protobuf wire form of descriptor.proto.
-% You may wish to compare the contents of =Segments= with
-% the output from protoc --decode_raw
-test_segment_messages :-
-    read_file_to_codes('descriptor.proto.wire', WireStream, [encoding(octet),type(binary)]),
-    protobuf_segment_message(Segments, WireStream),
-    % Check that it reverses:
-    protobuf_segment_message(Segments, WireStream2),
-    assertion(WireStream == WireStream2),
-    Segments = [message(1, MessageSegments)],
-    length(MessageSegments, MessageSegmentsLen),
-    format('test_segment_messages succeeded with ~d segment(s) in the message.~n', [MessageSegmentsLen]),
-    % Don't print it out in all its glory because it's rather long.
-    true. % print_term(Segments, [indent_arguments(4), tab_width(0), right_margin(88)]), nl.
 
 
 % A simple predicate to help in converting segments to a template.

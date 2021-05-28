@@ -25,10 +25,7 @@ swipl_examples(
                demo/README.md
                demo/addressbook.proto
                demo/addressbook2.proto
-               demo/descriptor_proto.pl
-               demo/descriptor_proto_expand.pl
                demo/foo.cpp
-               demo/parse_descriptor_proto_dump.pl
                demo/pb_vector.proto
                demo/vector_demo.pl
                SUBDIR demo
