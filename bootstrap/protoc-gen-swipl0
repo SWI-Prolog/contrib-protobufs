@@ -7,12 +7,12 @@ it reads from stdin a `CodeGeneratorRequest` and outputs to stdout a
 
 This code will be replaced by Prolog code during the bootstrap process.
 
-This program must be named protoc-gen-prolog and must be in the PATH
+This program must be named protoc-gen-swipl and must be in the PATH
 when protoc is run.
 """
 
-# This file was formatted with:         yapf  -i protoc-gen-prolog0
-# Although this also does a decent job: black -S protoc-gen-prolog0
+# This file was formatted with:         yapf  -i protoc-gen-swipl0
+# Although this also does a decent job: black -S protoc-gen-swipl0
 
 # TODO: delete this code and replace with Prolog code
 

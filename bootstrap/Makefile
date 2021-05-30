@@ -76,11 +76,11 @@ google/protobuf/descriptor_pb2.py: $(SRC_PROTOBUF)/src/google/protobuf/descripto
 	$(PROTOC) $(PROTOC_I) --python_out=. $<
 
 # Bootstrap rule for prolog plugin
-addressbook_pb.pl: ../demo/addressbook.proto protoc-gen-prolog
-	PATH=".:$$PATH" $(PROTOC) $(PROTOC_I) --prolog_out=. $<
+addressbook_pb.pl: ../demo/addressbook.proto protoc-gen-swipl
+	PATH=".:$$PATH" $(PROTOC) $(PROTOC_I) --swipl_out=. $<
 
-addressbook_pb0.pl: ../demo/addressbook.proto protoc-gen-prolog0 google/protobuf/compiler/plugin_pb2.py google/protobuf/descriptor_pb2.py
-	PATH=".:$$PATH" $(PROTOC) $(PROTOC_I) --prolog0_out=. $<
+addressbook_pb0.pl: ../demo/addressbook.proto protoc-gen-swipl0 google/protobuf/compiler/plugin_pb2.py google/protobuf/descriptor_pb2.py
+	PATH=".:$$PATH" $(PROTOC) $(PROTOC_I) --swipl0_out=. $<
 
 # Make a binary protobuf msg file (see
 # $(SRC_PROTOBUF)/src/google/protobuf/descriptor.proto) with a

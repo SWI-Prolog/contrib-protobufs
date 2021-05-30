@@ -57,11 +57,11 @@ generate Prolog code for easy handling of protobufs.
 
 ## protoc plugin
 
-We can create a plugin by having an executable named protoc-gen-prolog
+We can create a plugin by having an executable named `protoc-gen-swipl`
 that is in the `PATH`, which reads a `CodeGeneratorRequest` from stdin
 (defined in `src/protobuf/src/google/protobuf/compiler/plugin.proto`)
 and outputs to stdout a `CodeGeneratorResponse` ... to get this
-plugin, use `protoc --prolog_out=DIR`.
+plugin, use `protoc --swipl_out=DIR`.
 
 See also
 [https://chromium.googlesource.com/external/github.com/protocolbuffers/protobuf/+/refs/heads/master/docs/implementing_proto3_presence.md](How To Implement Field Presence for Proto3).

@@ -1,7 +1,7 @@
-# Protobufs meta-data for plugin.proto, descriptor.proto (used by protoc-gen-prolog)
+# Protobufs meta-data for plugin.proto, descriptor.proto (used by protoc-gen-swipl)
 
 The two files here (`plugin_pb.pl` and `descriptor_pb.pl` are supposed
-to be generated using `protoc-gen-prolog`, but they're part of the
+to be generated using `protoc-gen-swipl`, but they're part of the
 bootstrap process, so the process is a bit more involved.
 
 Here's the result of running "make" in the parent directory
