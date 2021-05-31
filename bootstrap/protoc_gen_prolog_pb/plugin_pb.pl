@@ -8,32 +8,32 @@
 :- module(plugin_pb, []).
 
 :- discontiguous
-    protobufs:package/3,
-    protobufs:message_type/3,
-    protobufs:field_name/4,
-    protobufs:field_json_name/2,
-    protobufs:field_label/2,
-    protobufs:field_type/2,
-    protobufs:field_type_name/2,
-    protobufs:field_default_value/2,
-    protobufs:field_option_packed/1,
-    protobufs:enum_type/3,
-    protobufs:enum_value/3.
+    protobufs:proto_meta_package/3,
+    protobufs:proto_meta_message_type/3,
+    protobufs:proto_meta_field_name/4,
+    protobufs:proto_meta_field_json_name/2,
+    protobufs:proto_meta_field_label/2,
+    protobufs:proto_meta_field_type/2,
+    protobufs:proto_meta_field_type_name/2,
+    protobufs:proto_meta_field_default_value/2,
+    protobufs:proto_meta_field_option_packed/1,
+    protobufs:proto_meta_enum_type/3,
+    protobufs:proto_meta_enum_value/3.
 
 :- multifile
-    protobufs:package/3,
-    protobufs:message_type/3,
-    protobufs:field_name/4,
-    protobufs:field_json_name/2,
-    protobufs:field_label/2,
-    protobufs:field_type/2,
-    protobufs:field_type_name/2,
-    protobufs:field_default_value/2,
-    protobufs:field_option_packed/1,
-    protobufs:enum_type/3,
-    protobufs:enum_value/3.
+    protobufs:proto_meta_package/3,
+    protobufs:proto_meta_message_type/3,
+    protobufs:proto_meta_field_name/4,
+    protobufs:proto_meta_field_json_name/2,
+    protobufs:proto_meta_field_label/2,
+    protobufs:proto_meta_field_type/2,
+    protobufs:proto_meta_field_type_name/2,
+    protobufs:proto_meta_field_default_value/2,
+    protobufs:proto_meta_field_option_packed/1,
+    protobufs:proto_meta_enum_type/3,
+    protobufs:proto_meta_enum_value/3.
 
-protobufs:package('.google.protobuf.compiler',
+protobufs:proto_meta_package('.google.protobuf.compiler',
               'plugin.proto',
               'FileOptions'{ cc_enable_arenas:'',
                              csharp_namespace:'',
@@ -44,123 +44,123 @@ protobufs:package('.google.protobuf.compiler',
                              optimize_for:''
                            }).
 
-protobufs:message_type(          '.google.protobuf.compiler.Version'                                        ,'.google.protobuf.compiler','Version').
+protobufs:proto_meta_message_type(          '.google.protobuf.compiler.Version'                                        ,'.google.protobuf.compiler','Version').
 
-  protobufs:field_name(          '.google.protobuf.compiler.Version'                                        ,1,major,'.google.protobuf.compiler.Version.major').
-  protobufs:field_json_name(     '.google.protobuf.compiler.Version.major'                                  ,major).
-  protobufs:field_label(         '.google.protobuf.compiler.Version.major'                                  ,'LABEL_OPTIONAL').
-  protobufs:field_type(          '.google.protobuf.compiler.Version.major'                                  ,'TYPE_INT32').
-  protobufs:field_type_name(     '.google.protobuf.compiler.Version.major'                                  ,'').
-  protobufs:field_default_value( '.google.protobuf.compiler.Version.major'                                  ,'').
+  protobufs:proto_meta_field_name(          '.google.protobuf.compiler.Version'                                        ,1,major,'.google.protobuf.compiler.Version.major').
+  protobufs:proto_meta_field_json_name(     '.google.protobuf.compiler.Version.major'                                  ,major).
+  protobufs:proto_meta_field_label(         '.google.protobuf.compiler.Version.major'                                  ,'LABEL_OPTIONAL').
+  protobufs:proto_meta_field_type(          '.google.protobuf.compiler.Version.major'                                  ,'TYPE_INT32').
+  protobufs:proto_meta_field_type_name(     '.google.protobuf.compiler.Version.major'                                  ,'').
+  protobufs:proto_meta_field_default_value( '.google.protobuf.compiler.Version.major'                                  ,'').
 
-  protobufs:field_name(          '.google.protobuf.compiler.Version'                                        ,2,minor,'.google.protobuf.compiler.Version.minor').
-  protobufs:field_json_name(     '.google.protobuf.compiler.Version.minor'                                  ,minor).
-  protobufs:field_label(         '.google.protobuf.compiler.Version.minor'                                  ,'LABEL_OPTIONAL').
-  protobufs:field_type(          '.google.protobuf.compiler.Version.minor'                                  ,'TYPE_INT32').
-  protobufs:field_type_name(     '.google.protobuf.compiler.Version.minor'                                  ,'').
-  protobufs:field_default_value( '.google.protobuf.compiler.Version.minor'                                  ,'').
+  protobufs:proto_meta_field_name(          '.google.protobuf.compiler.Version'                                        ,2,minor,'.google.protobuf.compiler.Version.minor').
+  protobufs:proto_meta_field_json_name(     '.google.protobuf.compiler.Version.minor'                                  ,minor).
+  protobufs:proto_meta_field_label(         '.google.protobuf.compiler.Version.minor'                                  ,'LABEL_OPTIONAL').
+  protobufs:proto_meta_field_type(          '.google.protobuf.compiler.Version.minor'                                  ,'TYPE_INT32').
+  protobufs:proto_meta_field_type_name(     '.google.protobuf.compiler.Version.minor'                                  ,'').
+  protobufs:proto_meta_field_default_value( '.google.protobuf.compiler.Version.minor'                                  ,'').
 
-  protobufs:field_name(          '.google.protobuf.compiler.Version'                                        ,3,patch,'.google.protobuf.compiler.Version.patch').
-  protobufs:field_json_name(     '.google.protobuf.compiler.Version.patch'                                  ,patch).
-  protobufs:field_label(         '.google.protobuf.compiler.Version.patch'                                  ,'LABEL_OPTIONAL').
-  protobufs:field_type(          '.google.protobuf.compiler.Version.patch'                                  ,'TYPE_INT32').
-  protobufs:field_type_name(     '.google.protobuf.compiler.Version.patch'                                  ,'').
-  protobufs:field_default_value( '.google.protobuf.compiler.Version.patch'                                  ,'').
+  protobufs:proto_meta_field_name(          '.google.protobuf.compiler.Version'                                        ,3,patch,'.google.protobuf.compiler.Version.patch').
+  protobufs:proto_meta_field_json_name(     '.google.protobuf.compiler.Version.patch'                                  ,patch).
+  protobufs:proto_meta_field_label(         '.google.protobuf.compiler.Version.patch'                                  ,'LABEL_OPTIONAL').
+  protobufs:proto_meta_field_type(          '.google.protobuf.compiler.Version.patch'                                  ,'TYPE_INT32').
+  protobufs:proto_meta_field_type_name(     '.google.protobuf.compiler.Version.patch'                                  ,'').
+  protobufs:proto_meta_field_default_value( '.google.protobuf.compiler.Version.patch'                                  ,'').
 
-  protobufs:field_name(          '.google.protobuf.compiler.Version'                                        ,4,suffix,'.google.protobuf.compiler.Version.suffix').
-  protobufs:field_json_name(     '.google.protobuf.compiler.Version.suffix'                                 ,suffix).
-  protobufs:field_label(         '.google.protobuf.compiler.Version.suffix'                                 ,'LABEL_OPTIONAL').
-  protobufs:field_type(          '.google.protobuf.compiler.Version.suffix'                                 ,'TYPE_STRING').
-  protobufs:field_type_name(     '.google.protobuf.compiler.Version.suffix'                                 ,'').
-  protobufs:field_default_value( '.google.protobuf.compiler.Version.suffix'                                 ,'').
+  protobufs:proto_meta_field_name(          '.google.protobuf.compiler.Version'                                        ,4,suffix,'.google.protobuf.compiler.Version.suffix').
+  protobufs:proto_meta_field_json_name(     '.google.protobuf.compiler.Version.suffix'                                 ,suffix).
+  protobufs:proto_meta_field_label(         '.google.protobuf.compiler.Version.suffix'                                 ,'LABEL_OPTIONAL').
+  protobufs:proto_meta_field_type(          '.google.protobuf.compiler.Version.suffix'                                 ,'TYPE_STRING').
+  protobufs:proto_meta_field_type_name(     '.google.protobuf.compiler.Version.suffix'                                 ,'').
+  protobufs:proto_meta_field_default_value( '.google.protobuf.compiler.Version.suffix'                                 ,'').
 
-protobufs:message_type(          '.google.protobuf.compiler.CodeGeneratorRequest'                           ,'.google.protobuf.compiler','CodeGeneratorRequest').
+protobufs:proto_meta_message_type(          '.google.protobuf.compiler.CodeGeneratorRequest'                           ,'.google.protobuf.compiler','CodeGeneratorRequest').
 
-  protobufs:field_name(          '.google.protobuf.compiler.CodeGeneratorRequest'                           ,1,file_to_generate,'.google.protobuf.compiler.CodeGeneratorRequest.file_to_generate').
-  protobufs:field_json_name(     '.google.protobuf.compiler.CodeGeneratorRequest.file_to_generate'          ,fileToGenerate).
-  protobufs:field_label(         '.google.protobuf.compiler.CodeGeneratorRequest.file_to_generate'          ,'LABEL_REPEATED').
-  protobufs:field_type(          '.google.protobuf.compiler.CodeGeneratorRequest.file_to_generate'          ,'TYPE_STRING').
-  protobufs:field_type_name(     '.google.protobuf.compiler.CodeGeneratorRequest.file_to_generate'          ,'').
-  protobufs:field_default_value( '.google.protobuf.compiler.CodeGeneratorRequest.file_to_generate'          ,'').
+  protobufs:proto_meta_field_name(          '.google.protobuf.compiler.CodeGeneratorRequest'                           ,1,file_to_generate,'.google.protobuf.compiler.CodeGeneratorRequest.file_to_generate').
+  protobufs:proto_meta_field_json_name(     '.google.protobuf.compiler.CodeGeneratorRequest.file_to_generate'          ,fileToGenerate).
+  protobufs:proto_meta_field_label(         '.google.protobuf.compiler.CodeGeneratorRequest.file_to_generate'          ,'LABEL_REPEATED').
+  protobufs:proto_meta_field_type(          '.google.protobuf.compiler.CodeGeneratorRequest.file_to_generate'          ,'TYPE_STRING').
+  protobufs:proto_meta_field_type_name(     '.google.protobuf.compiler.CodeGeneratorRequest.file_to_generate'          ,'').
+  protobufs:proto_meta_field_default_value( '.google.protobuf.compiler.CodeGeneratorRequest.file_to_generate'          ,'').
 
-  protobufs:field_name(          '.google.protobuf.compiler.CodeGeneratorRequest'                           ,2,parameter,'.google.protobuf.compiler.CodeGeneratorRequest.parameter').
-  protobufs:field_json_name(     '.google.protobuf.compiler.CodeGeneratorRequest.parameter'                 ,parameter).
-  protobufs:field_label(         '.google.protobuf.compiler.CodeGeneratorRequest.parameter'                 ,'LABEL_OPTIONAL').
-  protobufs:field_type(          '.google.protobuf.compiler.CodeGeneratorRequest.parameter'                 ,'TYPE_STRING').
-  protobufs:field_type_name(     '.google.protobuf.compiler.CodeGeneratorRequest.parameter'                 ,'').
-  protobufs:field_default_value( '.google.protobuf.compiler.CodeGeneratorRequest.parameter'                 ,'').
+  protobufs:proto_meta_field_name(          '.google.protobuf.compiler.CodeGeneratorRequest'                           ,2,parameter,'.google.protobuf.compiler.CodeGeneratorRequest.parameter').
+  protobufs:proto_meta_field_json_name(     '.google.protobuf.compiler.CodeGeneratorRequest.parameter'                 ,parameter).
+  protobufs:proto_meta_field_label(         '.google.protobuf.compiler.CodeGeneratorRequest.parameter'                 ,'LABEL_OPTIONAL').
+  protobufs:proto_meta_field_type(          '.google.protobuf.compiler.CodeGeneratorRequest.parameter'                 ,'TYPE_STRING').
+  protobufs:proto_meta_field_type_name(     '.google.protobuf.compiler.CodeGeneratorRequest.parameter'                 ,'').
+  protobufs:proto_meta_field_default_value( '.google.protobuf.compiler.CodeGeneratorRequest.parameter'                 ,'').
 
-  protobufs:field_name(          '.google.protobuf.compiler.CodeGeneratorRequest'                           ,15,proto_file,'.google.protobuf.compiler.CodeGeneratorRequest.proto_file').
-  protobufs:field_json_name(     '.google.protobuf.compiler.CodeGeneratorRequest.proto_file'                ,protoFile).
-  protobufs:field_label(         '.google.protobuf.compiler.CodeGeneratorRequest.proto_file'                ,'LABEL_REPEATED').
-  protobufs:field_type(          '.google.protobuf.compiler.CodeGeneratorRequest.proto_file'                ,'TYPE_MESSAGE').
-  protobufs:field_type_name(     '.google.protobuf.compiler.CodeGeneratorRequest.proto_file'                ,'.google.protobuf.FileDescriptorProto').
-  protobufs:field_default_value( '.google.protobuf.compiler.CodeGeneratorRequest.proto_file'                ,'').
+  protobufs:proto_meta_field_name(          '.google.protobuf.compiler.CodeGeneratorRequest'                           ,15,proto_file,'.google.protobuf.compiler.CodeGeneratorRequest.proto_file').
+  protobufs:proto_meta_field_json_name(     '.google.protobuf.compiler.CodeGeneratorRequest.proto_file'                ,protoFile).
+  protobufs:proto_meta_field_label(         '.google.protobuf.compiler.CodeGeneratorRequest.proto_file'                ,'LABEL_REPEATED').
+  protobufs:proto_meta_field_type(          '.google.protobuf.compiler.CodeGeneratorRequest.proto_file'                ,'TYPE_MESSAGE').
+  protobufs:proto_meta_field_type_name(     '.google.protobuf.compiler.CodeGeneratorRequest.proto_file'                ,'.google.protobuf.FileDescriptorProto').
+  protobufs:proto_meta_field_default_value( '.google.protobuf.compiler.CodeGeneratorRequest.proto_file'                ,'').
 
-  protobufs:field_name(          '.google.protobuf.compiler.CodeGeneratorRequest'                           ,3,compiler_version,'.google.protobuf.compiler.CodeGeneratorRequest.compiler_version').
-  protobufs:field_json_name(     '.google.protobuf.compiler.CodeGeneratorRequest.compiler_version'          ,compilerVersion).
-  protobufs:field_label(         '.google.protobuf.compiler.CodeGeneratorRequest.compiler_version'          ,'LABEL_OPTIONAL').
-  protobufs:field_type(          '.google.protobuf.compiler.CodeGeneratorRequest.compiler_version'          ,'TYPE_MESSAGE').
-  protobufs:field_type_name(     '.google.protobuf.compiler.CodeGeneratorRequest.compiler_version'          ,'.google.protobuf.compiler.Version').
-  protobufs:field_default_value( '.google.protobuf.compiler.CodeGeneratorRequest.compiler_version'          ,'').
+  protobufs:proto_meta_field_name(          '.google.protobuf.compiler.CodeGeneratorRequest'                           ,3,compiler_version,'.google.protobuf.compiler.CodeGeneratorRequest.compiler_version').
+  protobufs:proto_meta_field_json_name(     '.google.protobuf.compiler.CodeGeneratorRequest.compiler_version'          ,compilerVersion).
+  protobufs:proto_meta_field_label(         '.google.protobuf.compiler.CodeGeneratorRequest.compiler_version'          ,'LABEL_OPTIONAL').
+  protobufs:proto_meta_field_type(          '.google.protobuf.compiler.CodeGeneratorRequest.compiler_version'          ,'TYPE_MESSAGE').
+  protobufs:proto_meta_field_type_name(     '.google.protobuf.compiler.CodeGeneratorRequest.compiler_version'          ,'.google.protobuf.compiler.Version').
+  protobufs:proto_meta_field_default_value( '.google.protobuf.compiler.CodeGeneratorRequest.compiler_version'          ,'').
 
-protobufs:message_type(          '.google.protobuf.compiler.CodeGeneratorResponse'                          ,'.google.protobuf.compiler','CodeGeneratorResponse').
+protobufs:proto_meta_message_type(          '.google.protobuf.compiler.CodeGeneratorResponse'                          ,'.google.protobuf.compiler','CodeGeneratorResponse').
 
-  protobufs:field_name(          '.google.protobuf.compiler.CodeGeneratorResponse'                          ,1,error,'.google.protobuf.compiler.CodeGeneratorResponse.error').
-  protobufs:field_json_name(     '.google.protobuf.compiler.CodeGeneratorResponse.error'                    ,error).
-  protobufs:field_label(         '.google.protobuf.compiler.CodeGeneratorResponse.error'                    ,'LABEL_OPTIONAL').
-  protobufs:field_type(          '.google.protobuf.compiler.CodeGeneratorResponse.error'                    ,'TYPE_STRING').
-  protobufs:field_type_name(     '.google.protobuf.compiler.CodeGeneratorResponse.error'                    ,'').
-  protobufs:field_default_value( '.google.protobuf.compiler.CodeGeneratorResponse.error'                    ,'').
+  protobufs:proto_meta_field_name(          '.google.protobuf.compiler.CodeGeneratorResponse'                          ,1,error,'.google.protobuf.compiler.CodeGeneratorResponse.error').
+  protobufs:proto_meta_field_json_name(     '.google.protobuf.compiler.CodeGeneratorResponse.error'                    ,error).
+  protobufs:proto_meta_field_label(         '.google.protobuf.compiler.CodeGeneratorResponse.error'                    ,'LABEL_OPTIONAL').
+  protobufs:proto_meta_field_type(          '.google.protobuf.compiler.CodeGeneratorResponse.error'                    ,'TYPE_STRING').
+  protobufs:proto_meta_field_type_name(     '.google.protobuf.compiler.CodeGeneratorResponse.error'                    ,'').
+  protobufs:proto_meta_field_default_value( '.google.protobuf.compiler.CodeGeneratorResponse.error'                    ,'').
 
-  protobufs:field_name(          '.google.protobuf.compiler.CodeGeneratorResponse'                          ,2,supported_features,'.google.protobuf.compiler.CodeGeneratorResponse.supported_features').
-  protobufs:field_json_name(     '.google.protobuf.compiler.CodeGeneratorResponse.supported_features'       ,supportedFeatures).
-  protobufs:field_label(         '.google.protobuf.compiler.CodeGeneratorResponse.supported_features'       ,'LABEL_OPTIONAL').
-  protobufs:field_type(          '.google.protobuf.compiler.CodeGeneratorResponse.supported_features'       ,'TYPE_UINT64').
-  protobufs:field_type_name(     '.google.protobuf.compiler.CodeGeneratorResponse.supported_features'       ,'').
-  protobufs:field_default_value( '.google.protobuf.compiler.CodeGeneratorResponse.supported_features'       ,'').
+  protobufs:proto_meta_field_name(          '.google.protobuf.compiler.CodeGeneratorResponse'                          ,2,supported_features,'.google.protobuf.compiler.CodeGeneratorResponse.supported_features').
+  protobufs:proto_meta_field_json_name(     '.google.protobuf.compiler.CodeGeneratorResponse.supported_features'       ,supportedFeatures).
+  protobufs:proto_meta_field_label(         '.google.protobuf.compiler.CodeGeneratorResponse.supported_features'       ,'LABEL_OPTIONAL').
+  protobufs:proto_meta_field_type(          '.google.protobuf.compiler.CodeGeneratorResponse.supported_features'       ,'TYPE_UINT64').
+  protobufs:proto_meta_field_type_name(     '.google.protobuf.compiler.CodeGeneratorResponse.supported_features'       ,'').
+  protobufs:proto_meta_field_default_value( '.google.protobuf.compiler.CodeGeneratorResponse.supported_features'       ,'').
 
-  protobufs:field_name(          '.google.protobuf.compiler.CodeGeneratorResponse'                          ,15,file,'.google.protobuf.compiler.CodeGeneratorResponse.file').
-  protobufs:field_json_name(     '.google.protobuf.compiler.CodeGeneratorResponse.file'                     ,file).
-  protobufs:field_label(         '.google.protobuf.compiler.CodeGeneratorResponse.file'                     ,'LABEL_REPEATED').
-  protobufs:field_type(          '.google.protobuf.compiler.CodeGeneratorResponse.file'                     ,'TYPE_MESSAGE').
-  protobufs:field_type_name(     '.google.protobuf.compiler.CodeGeneratorResponse.file'                     ,'.google.protobuf.compiler.CodeGeneratorResponse.File').
-  protobufs:field_default_value( '.google.protobuf.compiler.CodeGeneratorResponse.file'                     ,'').
+  protobufs:proto_meta_field_name(          '.google.protobuf.compiler.CodeGeneratorResponse'                          ,15,file,'.google.protobuf.compiler.CodeGeneratorResponse.file').
+  protobufs:proto_meta_field_json_name(     '.google.protobuf.compiler.CodeGeneratorResponse.file'                     ,file).
+  protobufs:proto_meta_field_label(         '.google.protobuf.compiler.CodeGeneratorResponse.file'                     ,'LABEL_REPEATED').
+  protobufs:proto_meta_field_type(          '.google.protobuf.compiler.CodeGeneratorResponse.file'                     ,'TYPE_MESSAGE').
+  protobufs:proto_meta_field_type_name(     '.google.protobuf.compiler.CodeGeneratorResponse.file'                     ,'.google.protobuf.compiler.CodeGeneratorResponse.File').
+  protobufs:proto_meta_field_default_value( '.google.protobuf.compiler.CodeGeneratorResponse.file'                     ,'').
 
-protobufs:message_type(          '.google.protobuf.compiler.CodeGeneratorResponse.File'                     ,'.google.protobuf.compiler.CodeGeneratorResponse','File').
+protobufs:proto_meta_message_type(          '.google.protobuf.compiler.CodeGeneratorResponse.File'                     ,'.google.protobuf.compiler.CodeGeneratorResponse','File').
 
-  protobufs:field_name(          '.google.protobuf.compiler.CodeGeneratorResponse.File'                     ,1,name,'.google.protobuf.compiler.CodeGeneratorResponse.File.name').
-  protobufs:field_json_name(     '.google.protobuf.compiler.CodeGeneratorResponse.File.name'                ,name).
-  protobufs:field_label(         '.google.protobuf.compiler.CodeGeneratorResponse.File.name'                ,'LABEL_OPTIONAL').
-  protobufs:field_type(          '.google.protobuf.compiler.CodeGeneratorResponse.File.name'                ,'TYPE_STRING').
-  protobufs:field_type_name(     '.google.protobuf.compiler.CodeGeneratorResponse.File.name'                ,'').
-  protobufs:field_default_value( '.google.protobuf.compiler.CodeGeneratorResponse.File.name'                ,'').
+  protobufs:proto_meta_field_name(          '.google.protobuf.compiler.CodeGeneratorResponse.File'                     ,1,name,'.google.protobuf.compiler.CodeGeneratorResponse.File.name').
+  protobufs:proto_meta_field_json_name(     '.google.protobuf.compiler.CodeGeneratorResponse.File.name'                ,name).
+  protobufs:proto_meta_field_label(         '.google.protobuf.compiler.CodeGeneratorResponse.File.name'                ,'LABEL_OPTIONAL').
+  protobufs:proto_meta_field_type(          '.google.protobuf.compiler.CodeGeneratorResponse.File.name'                ,'TYPE_STRING').
+  protobufs:proto_meta_field_type_name(     '.google.protobuf.compiler.CodeGeneratorResponse.File.name'                ,'').
+  protobufs:proto_meta_field_default_value( '.google.protobuf.compiler.CodeGeneratorResponse.File.name'                ,'').
 
-  protobufs:field_name(          '.google.protobuf.compiler.CodeGeneratorResponse.File'                     ,2,insertion_point,'.google.protobuf.compiler.CodeGeneratorResponse.File.insertion_point').
-  protobufs:field_json_name(     '.google.protobuf.compiler.CodeGeneratorResponse.File.insertion_point'     ,insertionPoint).
-  protobufs:field_label(         '.google.protobuf.compiler.CodeGeneratorResponse.File.insertion_point'     ,'LABEL_OPTIONAL').
-  protobufs:field_type(          '.google.protobuf.compiler.CodeGeneratorResponse.File.insertion_point'     ,'TYPE_STRING').
-  protobufs:field_type_name(     '.google.protobuf.compiler.CodeGeneratorResponse.File.insertion_point'     ,'').
-  protobufs:field_default_value( '.google.protobuf.compiler.CodeGeneratorResponse.File.insertion_point'     ,'').
+  protobufs:proto_meta_field_name(          '.google.protobuf.compiler.CodeGeneratorResponse.File'                     ,2,insertion_point,'.google.protobuf.compiler.CodeGeneratorResponse.File.insertion_point').
+  protobufs:proto_meta_field_json_name(     '.google.protobuf.compiler.CodeGeneratorResponse.File.insertion_point'     ,insertionPoint).
+  protobufs:proto_meta_field_label(         '.google.protobuf.compiler.CodeGeneratorResponse.File.insertion_point'     ,'LABEL_OPTIONAL').
+  protobufs:proto_meta_field_type(          '.google.protobuf.compiler.CodeGeneratorResponse.File.insertion_point'     ,'TYPE_STRING').
+  protobufs:proto_meta_field_type_name(     '.google.protobuf.compiler.CodeGeneratorResponse.File.insertion_point'     ,'').
+  protobufs:proto_meta_field_default_value( '.google.protobuf.compiler.CodeGeneratorResponse.File.insertion_point'     ,'').
 
-  protobufs:field_name(          '.google.protobuf.compiler.CodeGeneratorResponse.File'                     ,15,content,'.google.protobuf.compiler.CodeGeneratorResponse.File.content').
-  protobufs:field_json_name(     '.google.protobuf.compiler.CodeGeneratorResponse.File.content'             ,content).
-  protobufs:field_label(         '.google.protobuf.compiler.CodeGeneratorResponse.File.content'             ,'LABEL_OPTIONAL').
-  protobufs:field_type(          '.google.protobuf.compiler.CodeGeneratorResponse.File.content'             ,'TYPE_STRING').
-  protobufs:field_type_name(     '.google.protobuf.compiler.CodeGeneratorResponse.File.content'             ,'').
-  protobufs:field_default_value( '.google.protobuf.compiler.CodeGeneratorResponse.File.content'             ,'').
+  protobufs:proto_meta_field_name(          '.google.protobuf.compiler.CodeGeneratorResponse.File'                     ,15,content,'.google.protobuf.compiler.CodeGeneratorResponse.File.content').
+  protobufs:proto_meta_field_json_name(     '.google.protobuf.compiler.CodeGeneratorResponse.File.content'             ,content).
+  protobufs:proto_meta_field_label(         '.google.protobuf.compiler.CodeGeneratorResponse.File.content'             ,'LABEL_OPTIONAL').
+  protobufs:proto_meta_field_type(          '.google.protobuf.compiler.CodeGeneratorResponse.File.content'             ,'TYPE_STRING').
+  protobufs:proto_meta_field_type_name(     '.google.protobuf.compiler.CodeGeneratorResponse.File.content'             ,'').
+  protobufs:proto_meta_field_default_value( '.google.protobuf.compiler.CodeGeneratorResponse.File.content'             ,'').
 
-  protobufs:field_name(          '.google.protobuf.compiler.CodeGeneratorResponse.File'                     ,
+  protobufs:proto_meta_field_name(          '.google.protobuf.compiler.CodeGeneratorResponse.File'                     ,
 		   16                                                                                   ,
 		   generated_code_info                                                                  ,
                                  '.google.protobuf.compiler.CodeGeneratorResponse.File.generated_code_info').
-  protobufs:field_json_name(     '.google.protobuf.compiler.CodeGeneratorResponse.File.generated_code_info' ,generatedCodeInfo).
-  protobufs:field_label(         '.google.protobuf.compiler.CodeGeneratorResponse.File.generated_code_info' ,'LABEL_OPTIONAL').
-  protobufs:field_type(          '.google.protobuf.compiler.CodeGeneratorResponse.File.generated_code_info' ,'TYPE_MESSAGE').
-  protobufs:field_type_name(     '.google.protobuf.compiler.CodeGeneratorResponse.File.generated_code_info' ,'.google.protobuf.GeneratedCodeInfo').
-  protobufs:field_default_value( '.google.protobuf.compiler.CodeGeneratorResponse.File.generated_code_info' ,'').
-  protobufs:enum_type(           '.google.protobuf.compiler.CodeGeneratorResponse.Feature'                  ,'.google.protobuf.compiler.CodeGeneratorResponse','Feature').
-  protobufs:enum_value(          '.google.protobuf.compiler.CodeGeneratorResponse.Feature'                  ,'FEATURE_NONE',0).
-  protobufs:enum_value(          '.google.protobuf.compiler.CodeGeneratorResponse.Feature'                  ,'FEATURE_PROTO3_OPTIONAL',1).
+  protobufs:proto_meta_field_json_name(     '.google.protobuf.compiler.CodeGeneratorResponse.File.generated_code_info' ,generatedCodeInfo).
+  protobufs:proto_meta_field_label(         '.google.protobuf.compiler.CodeGeneratorResponse.File.generated_code_info' ,'LABEL_OPTIONAL').
+  protobufs:proto_meta_field_type(          '.google.protobuf.compiler.CodeGeneratorResponse.File.generated_code_info' ,'TYPE_MESSAGE').
+  protobufs:proto_meta_field_type_name(     '.google.protobuf.compiler.CodeGeneratorResponse.File.generated_code_info' ,'.google.protobuf.GeneratedCodeInfo').
+  protobufs:proto_meta_field_default_value( '.google.protobuf.compiler.CodeGeneratorResponse.File.generated_code_info' ,'').
+  protobufs:proto_meta_enum_type(           '.google.protobuf.compiler.CodeGeneratorResponse.Feature'                  ,'.google.protobuf.compiler.CodeGeneratorResponse','Feature').
+  protobufs:proto_meta_enum_value(          '.google.protobuf.compiler.CodeGeneratorResponse.Feature'                  ,'FEATURE_NONE',0).
+  protobufs:proto_meta_enum_value(          '.google.protobuf.compiler.CodeGeneratorResponse.Feature'                  ,'FEATURE_PROTO3_OPTIONAL',1).
 
 end_of_file.

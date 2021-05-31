@@ -21,17 +21,17 @@
 :- module(descriptor_proto,
     [ % Term expansion of descriptor_proto/1 creates the following facts
       % see descriptor_proto_expand.pl
-     protobufs:package/3,
-     protobufs:message_type/3,
-     protobufs:field_name/4,
-     protobufs:field_json_name/2,
-     protobufs:field_label/2,
-     protobufs:field_type/2,
-     protobufs:field_type_name/2,
-     protobufs:field_default_value/2,
-     protobufs:field_option_packed/1,
-     protobufs:enum_type/3,
-     protobufs:enum_value/3,
+     protobufs:proto_meta_package/3,
+     protobufs:proto_meta_message_type/3,
+     protobufs:proto_meta_field_name/4,
+     protobufs:proto_meta_field_json_name/2,
+     protobufs:proto_meta_field_label/2,
+     protobufs:proto_meta_field_type/2,
+     protobufs:proto_meta_field_type_name/2,
+     protobufs:proto_meta_field_default_value/2,
+     protobufs:proto_meta_field_option_packed/1,
+     protobufs:proto_meta_enum_type/3,
+     protobufs:proto_meta_enum_value/3,
      main/0
     ]).
 
@@ -58,8 +58,8 @@ write_metadata(field_and_value(file,repeat,FileDescriptor)) =>
 
 :- det(sanity_check/0).
 sanity_check :-
-    forall(protobufs:field_name(Fqn, Num, FN, FqnN), protobufs:field_label(FqnN, _LabelRepeatOptional)),
-    forall(protobufs:field_name(Fqn, Num, FN, FqnN), protobufs:field_type_name(FqnN, _Type)).
+    forall(protobufs:proto_meta_field_name(Fqn, Num, FN, FqnN), protobufs:proto_meta_field_label(FqnN, _LabelRepeatOptional)),
+    forall(protobufs:proto_meta_field_name(Fqn, Num, FN, FqnN), protobufs:proto_meta_field_type_name(FqnN, _Type)).
 
 :- det(print_term_cleaned/3).
 %! print_term_cleaned(+Term, +Options, -TermStr) is det.

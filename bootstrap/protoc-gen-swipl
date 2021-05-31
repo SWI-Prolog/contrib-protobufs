@@ -53,6 +53,12 @@ main2(Argv, FileName) :-
                [ProtocVersion.major, ProtocVersion.minor, ProtocVersion.patch, ProtocVersion.suffix])
     ),
     format('prototoc_gen_swipl_args(~q).~n', [Argv]),
+    get_time(Time),
+    stamp_date_time(Time, DateUtc, 'UTC'),
+    stamp_date_time(Time, DateLocal, local),
+    format_time(atom(TS_utc), '%FT%T%z', DateUtc, posix),
+    format_time(atom(TS_local), '%FT%T%z', DateLocal, posix),
+    format('protoc_run_time(~q, ~q).~n', [TS_utc, TS_local]),
     format('file_to_generate(~q).~n', [Request.file_to_generate]),
     format('~n', []),
     generated_preds(Preds),
@@ -69,6 +75,7 @@ main2(Argv, FileName) :-
     print_term(Request, [indent_arguments(4),output(current_output)]),
     format(').~n', []),
     format('request_wire_stream(~q).~n', [RequestWireStream]),
+    format('~nend_of_file.~n', []),
     Request.file_to_generate = [FileName|_]. % DO NOT SUBMIT
 
 nb_set_dict_value(Key, Value, Dict) :-
@@ -76,17 +83,17 @@ nb_set_dict_value(Key, Value, Dict) :-
 
 generated_preds(Preds) :-
         Preds = [
-     'protobufs:package/3,             %   protobufs:package(Package, FileName, Options)',
-     'protobufs:message_type/3,        %   protobufs:message_type(       Fqn,     Package, Name)',
-     'protobufs:field_name/4,          %   protobufs:field_name(         Fqn,     FieldNumber, FieldName, FqnName)',
-     'protobufs:field_json_name/2,     %   protobufs:field_json_name(    FqnName, JsonName)',
-     'protobufs:field_label/2,         %   protobufs:field_label(        FqnName, LabelRepeatOptional) % LABEL_OPTIONAL, LABEL_REQUIRED, LABEL_REPEATED',
-     'protobufs:field_type/2,          %   protobufs:field_type(         FqnName, Type) % TYPE_INT32, TYPE_MESSAGE, etc',
-     'protobufs:field_type_name/2,     %   protobufs:field_type_name(    FqnName, TypeName)',
-     'protobufs:field_default_value/2, %   protobufs:field_default_value(FqnName, DefaultValue)',
-     'protobufs:field_option_packed/1, %   protobufs:field_option_packed(FqnName)',
-     'protobufs:enum_type/3,           %   protobufs:enum_type(          FqnName, Fqn, Name)',
-     'protobufs:enum_value/3.          %   protobufs:enum_value(         FqnName, Name, Number)'
+     'protobufs:proto_meta_package/3,             %   protobufs:proto_meta_package(Package, FileName, Options)',
+     'protobufs:proto_meta_message_type/3,        %   protobufs:proto_meta_message_type(       Fqn,     Package, Name)',
+     'protobufs:proto_meta_field_name/4,          %   protobufs:proto_meta_field_name(         Fqn,     FieldNumber, FieldName, FqnName)',
+     'protobufs:proto_meta_field_json_name/2,     %   protobufs:proto_meta_field_json_name(    FqnName, JsonName)',
+     'protobufs:proto_meta_field_label/2,         %   protobufs:proto_meta_field_label(        FqnName, LabelRepeatOptional) % LABEL_OPTIONAL, LABEL_REQUIRED, LABEL_REPEATED',
+     'protobufs:proto_meta_field_type/2,          %   protobufs:proto_meta_field_type(         FqnName, Type) % TYPE_INT32, TYPE_MESSAGE, etc',
+     'protobufs:proto_meta_field_type_name/2,     %   protobufs:proto_meta_field_type_name(    FqnName, TypeName)',
+     'protobufs:proto_meta_field_default_value/2, %   protobufs:proto_meta_field_default_value(FqnName, DefaultValue)',
+     'protobufs:proto_meta_field_option_packed/1, %   protobufs:proto_meta_field_option_packed(FqnName)',
+     'protobufs:proto_meta_enum_type/3,           %   protobufs:proto_meta_enum_type(          FqnName, Fqn, Name)',
+     'protobufs:proto_meta_enum_value/3.          %   protobufs:proto_meta_enum_value(         FqnName, Name, Number)'
             ].
 
 % TODO: update this documentation:

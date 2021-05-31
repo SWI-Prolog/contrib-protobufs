@@ -711,17 +711,17 @@ tag_and_codes(Tag, Codes) -->
 % TODO: rename to protobufs:protobuf_meta_package/3 etc.  DO NOT SUBMIT
 
 :- multifile
-     protobufs:package/3,             %   protobufs:package(Package, FileName, Options)
-     protobufs:message_type/3,        %   protobufs:message_type(       Fqn,     Package, Name)
-     protobufs:field_name/4,          %   protobufs:field_name(         Fqn,     FieldNumber, FieldName, FqnName),
-     protobufs:field_json_name/2,     %   protobufs:field_json_name(    FqnName, JsonName)
-     protobufs:field_label/2,         %   protobufs:field_label(        FqnName, LabelRepeatOptional) % LABEL_OPTIONAL, LABEL_REQUIRED, LABEL_REPEATED
-     protobufs:field_type/2,          %   protobufs:field_type(         FqnName, Type) % TYPE_INT32, TYPE_MESSAGE, etc
-     protobufs:field_type_name/2,     %   protobufs:field_type_name(    FqnName, TypeName)
-     protobufs:field_default_value/2, %   protobufs:field_default_value(FqnName, DefaultValue)
-     protobufs:field_option_packed/1, %   protobufs:field_option_packed(FqnName)
-     protobufs:enum_type/3,           %   protobufs:enum_type(          FqnName, Fqn, Name)
-     protobufs:enum_value/3.          %   protobufs:enum_value(         FqnName, Name, Number)
+     protobufs:proto_meta_package/3,             %   protobufs:proto_meta_package(Package, FileName, Options)
+     protobufs:proto_meta_message_type/3,        %   protobufs:proto_meta_message_type(       Fqn,     Package, Name)
+     protobufs:proto_meta_field_name/4,          %   protobufs:proto_meta_field_name(         Fqn,     FieldNumber, FieldName, FqnName),
+     protobufs:proto_meta_field_json_name/2,     %   protobufs:proto_meta_field_json_name(    FqnName, JsonName)
+     protobufs:proto_meta_field_label/2,         %   protobufs:proto_meta_field_label(        FqnName, LabelRepeatOptional) % LABEL_OPTIONAL, LABEL_REQUIRED, LABEL_REPEATED
+     protobufs:proto_meta_field_type/2,          %   protobufs:proto_meta_field_type(         FqnName, Type) % TYPE_INT32, TYPE_MESSAGE, etc
+     protobufs:proto_meta_field_type_name/2,     %   protobufs:proto_meta_field_type_name(    FqnName, TypeName)
+     protobufs:proto_meta_field_default_value/2, %   protobufs:proto_meta_field_default_value(FqnName, DefaultValue)
+     protobufs:proto_meta_field_option_packed/1, %   protobufs:proto_meta_field_option_packed(FqnName)
+     protobufs:proto_meta_enum_type/3,           %   protobufs:proto_meta_enum_type(          FqnName, Fqn, Name)
+     protobufs:proto_meta_enum_value/3.          %   protobufs:proto_meta_enum_value(         FqnName, Name, Number)
 
 %! protobuf_parse_from_codes(+WireCodes:list, +MessageType:atom, -Term) is semidet.
 %
@@ -738,7 +738,7 @@ tag_and_codes(Tag, Codes) -->
 %        For example, if the =package= is =google.protobuf= and the
 %        message is =FileDescriptorSet=, then you would use
 %        ='.google.protobuf.FileDescriptorSet'=. You can see the message
-%        names by looking at =protobufs:message_type(MessageType, _, _)=.
+%        names by looking at =protobufs:proto_meta_message_type(MessageType, _, _)=.
 % @param Term The generated term.
 protobuf_parse_from_codes(WireCodes, MessageType, Term) :-
     protobuf_segment_message(Segments, WireCodes),
@@ -839,7 +839,7 @@ convert_segment('TYPE_UINT32', _ContextType, Segment0, Value) =>
 convert_segment('TYPE_ENUM', ContextType, Segment0, Value) =>
     Segment = varint(_,Value0),
     protobuf_segment_convert(Segment0, Segment), !,
-    protobufs:enum_value(ContextType, Value, Value0). % meta data TODO: rename to protobuf_meta_enum_value
+    protobufs:proto_meta_enum_value(ContextType, Value, Value0). % meta data TODO: rename to protobuf_meta_enum_value
 convert_segment('TYPE_SFIXED32', _ContextType, Segment0, Value) =>
     Segment = fixed32(_,Codes),
     protobuf_segment_convert(Segment0, Segment), !,
@@ -908,39 +908,39 @@ combine_fields_repeat(Fields, _Field, Values, RestFields) => Values = [], RestFi
 %! field_and_type(+ContextType:atom, +Tag:int, -FieldName:atom, -FqnName:atom, -ContextType2:atom, -RepeatOptional:atom, -Type:atom) is det.
 % Lookup a =ContextType= and =Tag= to get the field name, type, etc.
 field_and_type(ContextType, Tag, FieldName, FqnName, ContextType2, RepeatOptional, Type) =>
-    protobufs:field_name(ContextType, Tag, FieldName, FqnName),
-    protobufs:field_type_name(FqnName, ContextType2),
+    protobufs:proto_meta_field_name(ContextType, Tag, FieldName, FqnName),
+    protobufs:proto_meta_field_type_name(FqnName, ContextType2),
     fqn_repeat_optional(FqnName, RepeatOptional),
-    protobufs:field_type(FqnName, Type).
+    protobufs:proto_meta_field_type(FqnName, Type).
 
 %! fqn_repeat_optional(+FqnName:atom, -RepeatOptional:atom) is det.
-% Lookup up protobufs:field_label(FqnName, _), protobufs:field_option_packed(FqnName)
+% Lookup up protobufs:proto_meta_field_label(FqnName, _), protobufs:proto_meta_field_option_packed(FqnName)
 % and set RepeatOptional to one of
 % =norepeat=, =repeat=, =repeat_packed=.
 fqn_repeat_optional(FqnName, RepeatOptional) =>
-    protobufs:field_label(FqnName, LabelRepeatOptional),
-    % protobufs:enum_value('.google.protobuf.FieldDescriptorProto.Label', 'LABEL_REPEATED', _).
+    protobufs:proto_meta_field_label(FqnName, LabelRepeatOptional),
+    % protobufs:proto_meta_enum_value('.google.protobuf.FieldDescriptorProto.Label', 'LABEL_REPEATED', _).
     (   LabelRepeatOptional = 'LABEL_REPEATED',
-        protobufs:field_option_packed(FqnName)
+        protobufs:proto_meta_field_option_packed(FqnName)
     ->  RepeatOptional = repeat_packed
-    ;   \+ protobufs:field_option_packed(FqnName), % validity check
+    ;   \+ protobufs:proto_meta_field_option_packed(FqnName), % validity check
         fqn_repeat_optional_2(LabelRepeatOptional, RepeatOptional)
     ).
 
 :- det(fqn_repeat_optional_2/2).
 %! fqn_repeat_optional_2(+DescriptorLabelEnum:atom, -RepeatOrEmpty:atom) is det.
 % Map the descriptor "label" to 'repeat' or 'norepeat'.
-% From protobufs:enum_value('.google.protobuf.FieldDescriptorProto.Label', Label, _).
+% From protobufs:proto_meta_enum_value('.google.protobuf.FieldDescriptorProto.Label', Label, _).
 fqn_repeat_optional_2('LABEL_OPTIONAL', norepeat).
 fqn_repeat_optional_2('LABEL_REQUIRED', norepeat).
 fqn_repeat_optional_2('LABEL_REPEATED', repeat).
 
 %! field_descriptor_label_repeated(+Label:atom) is semidet.
-% From protobufs:enum_value('.google.protobuf.FieldDescriptorProto.Label', 'LABEL_REPEATED', _).
+% From protobufs:proto_meta_enum_value('.google.protobuf.FieldDescriptorProto.Label', 'LABEL_REPEATED', _).
 field_descriptor_label_repeated('LABEL_REPEATED').
 
 %! field_descriptor_label_single(+Label:atom) is semidet.
-% From protobufs:enum_value('.google.protobuf.FieldDescriptorProto.Label', Label, _).
+% From protobufs:proto_meta_enum_value('.google.protobuf.FieldDescriptorProto.Label', Label, _).
 field_descriptor_label_single('LABEL_OPTIONAL').
 field_descriptor_label_single('LABEL_REQUIRED').
 
