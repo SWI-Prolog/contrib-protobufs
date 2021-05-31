@@ -90,12 +90,12 @@ protobufs:message_type(          '.google.protobuf.compiler.CodeGeneratorRequest
   protobufs:field_type_name(     '.google.protobuf.compiler.CodeGeneratorRequest.parameter'                 ,'').
   protobufs:field_default_value( '.google.protobuf.compiler.CodeGeneratorRequest.parameter'                 ,'').
 
-  protobufs:field_name(          '.google.protobuf.compiler.CodeGeneratorRequest'                           ,15,protobufs:file,'.google.protobuf.compiler.CodeGeneratorRequest.protobufs:file').
-  protobufs:field_json_name(     '.google.protobuf.compiler.CodeGeneratorRequest.protobufs:file'                ,protoFile).
-  protobufs:field_label(         '.google.protobuf.compiler.CodeGeneratorRequest.protobufs:file'                ,'LABEL_REPEATED').
-  protobufs:field_type(          '.google.protobuf.compiler.CodeGeneratorRequest.protobufs:file'                ,'TYPE_MESSAGE').
-  protobufs:field_type_name(     '.google.protobuf.compiler.CodeGeneratorRequest.protobufs:file'                ,'.google.protobuf.FileDescriptorProto').
-  protobufs:field_default_value( '.google.protobuf.compiler.CodeGeneratorRequest.protobufs:file'                ,'').
+  protobufs:field_name(          '.google.protobuf.compiler.CodeGeneratorRequest'                           ,15,proto_file,'.google.protobuf.compiler.CodeGeneratorRequest.proto_file').
+  protobufs:field_json_name(     '.google.protobuf.compiler.CodeGeneratorRequest.proto_file'                ,protoFile).
+  protobufs:field_label(         '.google.protobuf.compiler.CodeGeneratorRequest.proto_file'                ,'LABEL_REPEATED').
+  protobufs:field_type(          '.google.protobuf.compiler.CodeGeneratorRequest.proto_file'                ,'TYPE_MESSAGE').
+  protobufs:field_type_name(     '.google.protobuf.compiler.CodeGeneratorRequest.proto_file'                ,'.google.protobuf.FileDescriptorProto').
+  protobufs:field_default_value( '.google.protobuf.compiler.CodeGeneratorRequest.proto_file'                ,'').
 
   protobufs:field_name(          '.google.protobuf.compiler.CodeGeneratorRequest'                           ,3,compiler_version,'.google.protobuf.compiler.CodeGeneratorRequest.compiler_version').
   protobufs:field_json_name(     '.google.protobuf.compiler.CodeGeneratorRequest.compiler_version'          ,compilerVersion).

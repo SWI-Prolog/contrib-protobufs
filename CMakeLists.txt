@@ -12,6 +12,14 @@ swipl_plugin(
     C_SOURCES protobufs.c
     PL_LIBS protobufs.pl)
 
+# TODO: the following doesn't do anything):
+install(FILES bootstrap/protoc-gen-swipl DESTINATION ${SWIPL_INSTALL_PREFIX})
+
+# TODO: remove the following
+swipl_examples(bootstrap/protoc-gen-swipl
+               SUBDIR protoc
+               )
+
 swipl_examples(
                some_message.proto
                some_message.py

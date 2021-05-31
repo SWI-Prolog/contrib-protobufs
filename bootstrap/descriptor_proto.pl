@@ -46,15 +46,8 @@ main :-
     sanity_check,
     set_stream(user_input, encoding(octet)),
     set_stream(user_input, type(binary)),
-    read_stream_to_codes(user_input, WireFormat),
-    protobuf_segment_message(Segments, WireFormat),
-    % protobuf_segment_message/2 can leave choicepoints, and we don't
-    % want to backtrack through all the possibilities because that
-    % leads to combinatoric explosion; instead use
-    % protobuf_segment_convert/2 to change segments that were guessed
-    % incorrectly.
-    !, % don't use any other possible Segments - let protobuf_segment_convert/2 do the job
-    maplist(segment_to_term('.google.protobuf.FileDescriptorSet'), Segments, Msg),
+    read_stream_to_codes(user_input, WireCodes),
+    protobuf_parse_from_codes(WireCodes, '.google.protobuf.FileDescriptorSet', Msg),
     maplist(write_metadata, Msg).
 
 write_metadata(field_and_value(file,repeat,FileDescriptor)) =>
@@ -68,193 +61,13 @@ sanity_check :-
     forall(protobufs:field_name(Fqn, Num, FN, FqnN), protobufs:field_label(FqnN, _LabelRepeatOptional)),
     forall(protobufs:field_name(Fqn, Num, FN, FqnN), protobufs:field_type_name(FqnN, _Type)).
 
-:- det(segment_to_term/3).
-%! segment_to_term(+ContextType:atom, +Segment, -FieldAndValue) is det.
-% ContextType is the type (name) of the containing message
-% Segment is a segment from protobuf_segment_message/2
-% TODO: if performance is an issue, this code can be combined with
-%       protobuf_segment_message/2 (and thereby avoid the use of protobuf_segment_convert/2)
-segment_to_term(ContextType0, Segment0, FieldAndValue) =>
-    segment_type_tag(Segment0, _, Tag),
-    field_and_type(ContextType0, Tag, FieldName, _FqnName, ContextType, RepeatOptional, Type),
-    convert_segment(Type, ContextType, Segment0, Segment),
-    FieldAndValue = field_and_value(FieldName,RepeatOptional,Segment).
-
-% TODO: protobufs:segment_type_tag/3
-segment_type_tag(varint(Tag,_Codes),           varint,           Tag).
-segment_type_tag(fixed64(Tag,_Codes),          fixed64,          Tag).
-segment_type_tag(start_group(Tag),             start_group,      Tag).
-segment_type_tag(end_group(Tag),               end_group,        Tag).
-segment_type_tag(fixed32(Tag,_Codes),          fixed32,          Tag).
-segment_type_tag(length_delimited(Tag,_Codes), length_delimited, Tag).
-segment_type_tag(message(Tag,_Segments),       length_delimited, Tag).
-segment_type_tag(packed(Tag,_Compound),        length_delimited, Tag).
-segment_type_tag(string(Tag,_String),          length_delimited, Tag).
-
-:- det(convert_segment/4).
-%! convert_segment(+Type:atom, +Segment, -Value) is det.
-% Compute an appropriate =Value= from the combination of descriptor
-% "type" (in =Type=) and a =Segment=.
-convert_segment('TYPE_DOUBLE', _ContextType, Segment0, Value) =>
-    Segment = fixed64(_Tag,Codes),
-    protobuf_segment_convert(Segment0, Segment), !,
-    float64_codes(Value, Codes).
-convert_segment('TYPE_FLOAT', _ContextType, Segment0, Value) =>
-    Segment = fixed32(_Tag,Codes),
-    protobuf_segment_convert(Segment0, Segment), !,
-    float32_codes(Value, Codes).
-convert_segment('TYPE_INT64', _ContextType, Segment0, Value) =>
-    Segment = varint(_Tag,Value),
-    protobuf_segment_convert(Segment0, Segment), !.
-convert_segment('TYPE_UINT64', _ContextType, Segment0, Value) =>
-    Segment = varint(_Tag,Value),
-    protobuf_segment_convert(Segment0, Segment), !.
-convert_segment('TYPE_INT32', _ContextType, Segment0, Value) =>
-    Segment = varint(_Tag,Value),
-    protobuf_segment_convert(Segment0, Segment), !.
-convert_segment('TYPE_FIXED64', _ContextType, Segment0, Value) =>
-    Segment = fixed64(_Tag,Codes),
-    protobuf_segment_convert(Segment0, Segment), !,
-    int64_codes(Value, Codes).
-convert_segment('TYPE_FIXED32', _ContextType, Segment0, Value) =>
-    Segment = fixed32(_Tag,Codes),
-    protobuf_segment_convert(Segment0, Segment), !,
-    int32_codes(Value, Codes).
-convert_segment('TYPE_BOOL', _ContextType, Segment0, Value) =>
-    Segment = varint(_Tag,Value0),
-    protobuf_segment_convert(Segment0, Segment), !,
-    int_bool(Value0, Value).
-convert_segment('TYPE_STRING', _ContextType, Segment0, Value) =>
-    Segment = string(_,ValueStr),
-    protobuf_segment_convert(Segment0, Segment), !,
-    (   true     % TODO: control whether atom or string with an option
-    ->  atom_string(Value, ValueStr)
-    ;   Value = ValueStr
-    ).
-convert_segment('TYPE_GROUP', _ContextType, _Segment0, _Value) =>
-    fail. % TODO - for now, this will throw an exception because of :- det(convert_segment/4).
-convert_segment('TYPE_MESSAGE', ContextType, Segment0, Value) =>
-    Segment = message(_,MsgSegments),
-    protobuf_segment_convert(Segment0, Segment), !,
-    maplist(segment_to_term(ContextType), MsgSegments, MsgFields),
-    combine_fields(MsgFields, ContextType{}, Value).
-convert_segment('TYPE_BYTES', _ContextType, Segment0, Value) =>
-    Segment = length_delimited(_,Value),
-    protobuf_segment_convert(Segment0, Segment), !.
-convert_segment('TYPE_UINT32', _ContextType, Segment0, Value) =>
-    Segment = varint(_Tag,Value),
-    protobuf_segment_convert(Segment0, Segment), !.
-convert_segment('TYPE_ENUM', ContextType, Segment0, Value) =>
-    Segment = varint(_,Value0),
-    protobuf_segment_convert(Segment0, Segment), !,
-    proto_enum_value(ContextType, Value, Value0).
-convert_segment('TYPE_SFIXED32', _ContextType, Segment0, Value) =>
-    Segment = fixed32(_,Codes),
-    protobuf_segment_convert(Segment0, Segment), !,
-    int32_codes(Value, Codes).
-convert_segment('TYPE_SFIXED64', _ContextType, Segment0, Value) =>
-    Segment = fixed64(_,Codes),
-    protobuf_segment_convert(Segment0, Segment), !,
-    int64_codes(Value, Codes).
-convert_segment('TYPE_SINT32', _ContextType, Segment0, Value) =>
-    Segment = varint(_,Value0),
-    protobuf_segment_convert(Segment0, Segment), !,
-    integer_zigzag(Value, Value0).
-convert_segment('TYPE_SINT64', _ContextType, Segment0, Value) =>
-    Segment = varint(_,Value0),
-    protobuf_segment_convert(Segment0, Segment), !,
-    integer_zigzag(Value, Value0).
-
-int_bool(0, false).
-int_bool(1, true).
-
-:- det(combine_fields/3).
-%! combine_fields(+Fields:list, +MsgDict0, -MsgDict) is det.
-% Combines the fields into a dict.
-% If the field is marked as 'norepeat' (optional/required), then the last
-%    occurrence is kept (as per the protobuf wire spec)
-% If the field is marked as 'repeat', then all the occurrences
-%    are put into a list, in order.
-% Assume that fields normally occur all together, but can handle
-% (less efficiently) fields not occurring togeter, as is allowed
-% by the protobuf spec.
-combine_fields([], MsgDict0, MsgDict) => MsgDict = MsgDict0.
-combine_fields([field_and_value(Field,norepeat,Value)|Fields], MsgDict0, MsgDict) =>
-    put_dict(Field, MsgDict0, Value, MsgDict1),
-    combine_fields(Fields, MsgDict1, MsgDict).
-combine_fields([field_and_value(Field,repeat,Value)|Fields], MsgDict0, MsgDict) =>
-    combine_fields_repeat(Fields, Field, NewValues, RestFields),
-    (   get_dict(Field, MsgDict0, ExistingValues)
-    ->  append(ExistingValues, [Value|NewValues], Values)
-    ;   Values = [Value|NewValues]
-    ),
-    put_dict(Field, MsgDict0, Values, MsgDict1),
-    combine_fields(RestFields, MsgDict1, MsgDict).
-
-:- det(combine_fields_repeat/4).
-%! combine_fields_repeat(+Fields:list, Field:atom, -Values:list, RestFields:list) is det.
-% Helper for combine_fields/3
-% Stops at the first item that doesn't match =Field= - the assumption
-% is that all the items for a field will be together and if they're
-% not, they would be combined outside this predicate.
-%
-% @param Fields a list of fields (Field-Repeat-Value)
-% @param Field the name of the field that is being combined
-% @param Values gets the Value items that match Field
-% @param RestFields gets any left-over fields
-combine_fields_repeat([], _Field, Values, RestFields) => Values = [], RestFields = [].
-combine_fields_repeat([Field-repeat-Value|Fields], Field, Values, RestFields) =>
-    Values = [Value|Values2],
-    combine_fields_repeat(Fields, Field, Values2, RestFields).
-combine_fields_repeat(Fields, _Field, Values, RestFields) => Values = [], RestFields = Fields.
-
-:- det(field_and_type/7).
-%! field_and_type(+ContextType:atom, +Tag:int, -FieldName:atom, -FqnName:atom, -ContextType2:atom, -RepeatOptional:atom, -Type:atom) is det.
-% Lookup a =ContextType= and =Tag= to get the field name, type, etc.
-field_and_type(ContextType, Tag, FieldName, FqnName, ContextType2, RepeatOptional, Type) =>
-    protobufs:field_name(ContextType, Tag, FieldName, FqnName),
-    protobufs:field_type_name(FqnName, ContextType2),
-    fqn_repeat_optional(FqnName, RepeatOptional),
-    protobufs:field_type(FqnName, Type).
-
-%! fqn_repeat_optional(+FqnName:atom, -RepeatOptional:atom) is det.
-% Lookup up protobufs:field_label(FqnName, _), protobufs:field_option_packed(FqnName)
-% and set RepeatOptional to one of
-% =norepeat=, =repeat=, =repeat_packed=.
-fqn_repeat_optional(FqnName, RepeatOptional) =>
-    protobufs:field_label(FqnName, LabelRepeatOptional),
-    (   LabelRepeatOptional = 'LABEL_REPEATED',
-        protobufs:field_option_packed(FqnName)
-    ->  RepeatOptional = repeat_packed
-    ;   \+ protobufs:field_option_packed(FqnName), % validity check
-        fqn_repeat_optional_2(LabelRepeatOptional, RepeatOptional)
-    ).
-
-:- det(fqn_repeat_optional_2/2).
-%! fqn_repeat_optional_2(+DescriptorLabelEnum:atom, -RepeatOrEmpty:atom) is det.
-% Map the descriptor "label" to 'repeat' or 'norepeat'.
-fqn_repeat_optional_2('LABEL_OPTIONAL', norepeat).
-fqn_repeat_optional_2('LABEL_REQUIRED', norepeat).
-fqn_repeat_optional_2('LABEL_REPEATED', repeat).
-
-%! field_descriptor_label_repeated(+Label:atom) is semidet.
-% From message FieldDescriptorProto enum Label
-field_descriptor_label_repeated('LABEL_REPEATED').
-
-%! field_descriptor_label_single(+Label:atom) is semidet.
-% From message FieldDescriptorProto enum Label
-field_descriptor_label_single('LABEL_OPTIONAL').
-field_descriptor_label_single('LABEL_REQUIRED').
-
 :- det(print_term_cleaned/3).
 %! print_term_cleaned(+Term, +Options, -TermStr) is det.
 % print_term, cleaned up
 print_term_cleaned(Term, Options, TermStr) =>
     % print_term leaves trailing whitespace, so remove it
-    with_output_to(
-            string(TermStr0),
-            (current_output(TermStream),
-             print_term(Term, [output(TermStream)|Options]))),
+    with_output_to(string(TermStr0),
+                   print_term(Term, [output(current_output)|Options])),
     re_replace(" +\n"/g, "\n", TermStr0, TermStr1),
     re_replace("\t"/g, "        ", TermStr1, TermStr).
 
