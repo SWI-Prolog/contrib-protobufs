@@ -2,7 +2,7 @@
 
 import os
 import unittest
-from scalar_test_pb2 import Scalars1, Scalars2, Enum
+from scalar_test_pb2 import Scalars1, Enum
 
 class TestScalar(unittest.TestCase):
 

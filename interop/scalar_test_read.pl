@@ -16,7 +16,7 @@ scalar_test_read_main :-
 :- begin_tests(scalar).
 
 test(scalars1a) :-
-    template1(Template, Vars),
+    scalars1_template(Template, Vars),
     Vars = [V_double,
             V_float,
             V_int32,
@@ -55,7 +55,7 @@ test(scalars1a) :-
     assertion(V_enum     ==  'E1').
 
 test(scalars1b) :-
-    template1(Template, Vars),
+    scalars1_template(Template, Vars),
     Vars = [V_double,
             V_float,
             V_int32,

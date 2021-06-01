@@ -1,5 +1,7 @@
 # Protobuf interoperability tests
 
+# See comments in ../demo/Makefile about PKG_CONFIG_PATH
+
 .DEFAULT_GOAL=test
 .PHONY=test clean FORCE run_scalar_test run_scalar_test_cc
 # SHELL:=/bin/bash

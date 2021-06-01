@@ -17,7 +17,7 @@ scalar_test_main :-
     write2.
 
 write1 :-
-    template1(Template, Vars),
+    scalars1_template(Template, Vars),
     Vars = [V_double,
             V_float,
             V_int32,
@@ -53,7 +53,7 @@ write1 :-
     test_write('scalars1a_from_prolog.wire', Template).
 
 write2 :-
-    template1(Template, Vars),
+    scalars1_template(Template, Vars),
     Vars = [V_double,
             V_float,
             V_int32,

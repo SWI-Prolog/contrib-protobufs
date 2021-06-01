@@ -2,7 +2,7 @@
 # Assumes that swipl is on the execution path
 
 import os
-from scalar_test_pb2 import Scalars1, Scalars2, Enum
+from scalar_test_pb2 import Scalars1, Enum
 
 scalars1a = Scalars1(
     v_double   =  1.5,
