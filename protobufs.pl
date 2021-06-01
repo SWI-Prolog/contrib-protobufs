@@ -708,8 +708,6 @@ tag_and_codes(Tag, Codes) -->
 
 % The protoc plugin generates these facts:
 
-% TODO: rename to protobufs:protobuf_meta_package/3 etc.  DO NOT SUBMIT
-
 :- multifile
      protobufs:proto_meta_package/3,             %   protobufs:proto_meta_package(Package, FileName, Options)
      protobufs:proto_meta_message_type/3,        %   protobufs:proto_meta_message_type(       Fqn,     Package, Name)
@@ -727,8 +725,8 @@ tag_and_codes(Tag, Codes) -->
 %
 % Fails if the message can't be parsed.
 %
-% @todo: document the generated terms (see library(http/json) and json_read/3
-% @todo: add options such as =true= and =value_string_as=.
+% @tbd: document the generated terms (see library(http/json) and json_read/3
+% @tbd: add options such as =true= and =value_string_as=.
 %
 % @param WireCodes Wire format of the message from e.g., read_stream_to_codes/2.
 %          (The stream should have options `encoding(octet)` and `type(binary)`,
@@ -808,6 +806,9 @@ convert_segment('TYPE_FIXED64', _ContextType, Segment0, Value) =>
     Segment = fixed64(_Tag,Codes),
     protobuf_segment_convert(Segment0, Segment), !,
     int64_codes(Value, Codes).
+convert_segment(packed('TYPE_FIXED64'), _ContextType, Segment0, Values) =>
+    protobuf_segment_convert(Segment0, packed9_, fixed64(Codes)),
+    phrase(packed_payload(integer64, Values), Codes), !. % DO NOT SUBMIT TODO: check integer64
 convert_segment('TYPE_FIXED32', _ContextType, Segment0, Value) =>
     Segment = fixed32(_Tag,Codes),
     protobuf_segment_convert(Segment0, Segment), !,
@@ -839,7 +840,7 @@ convert_segment('TYPE_UINT32', _ContextType, Segment0, Value) =>
 convert_segment('TYPE_ENUM', ContextType, Segment0, Value) =>
     Segment = varint(_,Value0),
     protobuf_segment_convert(Segment0, Segment), !,
-    protobufs:proto_meta_enum_value(ContextType, Value, Value0). % meta data TODO: rename to protobuf_meta_enum_value
+    protobufs:proto_meta_enum_value(ContextType, Value, Value0). % meta data
 convert_segment('TYPE_SFIXED32', _ContextType, Segment0, Value) =>
     Segment = fixed32(_,Codes),
     protobuf_segment_convert(Segment0, Segment), !,

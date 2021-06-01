@@ -1,7 +1,7 @@
 // Interoperability test1
 
 syntax = "proto2";
-package scalar_test;
+package test;
 
 enum Enum {
   E1 = 0;

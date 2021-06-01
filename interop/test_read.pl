@@ -1,16 +1,16 @@
 % -*- mode: Prolog -*-
 
-:- module(scalar_test_read, [scalar_test_read_main/0]).
+:- module(test_read, [test_read_main/0]).
 
-:- initialization(scalar_test_read_main, main).
+:- initialization(test_read_main, main).
 
 :- use_module(library(protobufs)).
-:- use_module(scalar_test_common).
+:- use_module(test_common).
 
 % Not needed because we're using plunit:
 % :- set_prolog_flag(optimise_debug, false). % ensure assertion/1 is executed
 
-scalar_test_read_main :-
+test_read_main :-
     run_tests.
 
 :- begin_tests(scalar).

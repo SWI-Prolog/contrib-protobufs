@@ -1,8 +1,8 @@
 % -*- mode: Prolog -*-
 
-% Common stuff for scalar_test_read.pl, scala_test_write.pl
+% Common stuff for test_read.pl, scala_test_write.pl
 
-:- module(scalar_test_common, [scalars1_template/2]).
+:- module(test_common, [scalars1_template/2]).
 
 % Define the enum callback:
 protobufs:enum(Key, Value) :-
@@ -13,7 +13,7 @@ protobufs:enum(Key, Value) :-
          Key).
 
 scalars1_template(Template, Vars) :-
-    % See scalar_test.Scalars1
+    % See test.Scalars1
     Template = protobuf([
                          double(      1, V_double),
                          float(       2, V_float),

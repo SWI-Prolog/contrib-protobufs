@@ -1,8 +1,8 @@
-# Test of scalar_test.proto, scalar_test.pl
+# Test of test.proto, test.pl
 # Assumes that swipl is on the execution path
 
 import os
-from scalar_test_pb2 import Scalars1, Enum
+from test_pb2 import Scalars1, Enum
 
 scalars1a = Scalars1(
     v_double   =  1.5,

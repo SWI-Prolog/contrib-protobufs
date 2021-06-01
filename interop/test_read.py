@@ -1,8 +1,8 @@
-# Test of scalar_test.proto, scalar_test.pl
+# Test of test.proto, test.pl
 
 import os
 import unittest
-from scalar_test_pb2 import Scalars1, Enum
+from test_pb2 import Scalars1, Enum
 
 class TestScalar(unittest.TestCase):
 

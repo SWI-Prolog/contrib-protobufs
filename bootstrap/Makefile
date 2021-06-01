@@ -80,7 +80,7 @@ google/protobuf/descriptor_pb2.py: $(SRC_PROTOBUF)/src/google/protobuf/descripto
 # Bootstrap rule for prolog plugin
 addressbook_pb.pl: ../demo/addressbook.proto protoc-gen-swipl
 	@# PATH=".:$$PATH" $(PROTOC) $(PROTOC_I) --swipl_out=. $<
-	PATH=$(PATH_WITH_SWIPL) $(PROTOC) $(PROTOC_I) --swipl_out=. --plugin=protoc-gen-swipl=$(realpath .)/protoc-gen-swipl $<
+	PATH=$(PATH_WITH_SWIPL) $(PROTOC) $(PROTOC_I) --swipl_out='EXTRA INFO':. --plugin=protoc-gen-swipl=$(realpath .)/protoc-gen-swipl $<
 
 addressbook_pb0.pl: ../demo/addressbook.proto protoc-gen-swipl0 google/protobuf/compiler/plugin_pb2.py google/protobuf/descriptor_pb2.py
 	PATH=".:$$PATH" $(PROTOC) $(PROTOC_I) --swipl0_out=. $<

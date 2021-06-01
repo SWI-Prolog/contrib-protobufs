@@ -12,8 +12,18 @@ swipl_plugin(
     C_SOURCES protobufs.c
     PL_LIBS protobufs.pl)
 
-# TODO: the following doesn't do anything):
-install(FILES bootstrap/protoc-gen-swipl DESTINATION ${SWIPL_INSTALL_PREFIX})
+swipl_plugin(
+    protoc-gen-swipl
+    PL_LIB_SUBDIR protobufs
+    PL_LIBS bootstrap/protoc-gen-swipl)
+
+# TODO: the following doesn't do anything:
+# install(PROGRAMS bootstrap/protoc-gen-swipl
+# 	DESTINATION ${SWIPL_INSTALL_PREFIX}/bin)
+# TODO: the following causes errors:
+# install(TARGETS bootstrap/protoc-gen-swipl
+#         BUNDLE DESTINATION .
+#         RUNTIME DESTINATION ${SWIPL_INSTALL_ARCH_EXE})
 
 # TODO: remove the following
 swipl_examples(bootstrap/protoc-gen-swipl
@@ -41,14 +51,14 @@ swipl_examples(
 swipl_examples(
                interop/Makefile
                interop/README.md
-               interop/scalar_test_common.pl
-               interop/scalar_test.proto
-               interop/scalar_test_read.cc
-               interop/scalar_test_read.pl
-               interop/scalar_test_read.py
-               interop/scalar_test_write.cc
-               interop/scalar_test_write.pl
-               interop/scalar_test_write.py
+               interop/test_common.pl
+               interop/test.proto
+               interop/test_read.cc
+               interop/test_read.pl
+               interop/test_read.py
+               interop/test_write.cc
+               interop/test_write.pl
+               interop/test_write.py
                SUBDIR interop
               )
 

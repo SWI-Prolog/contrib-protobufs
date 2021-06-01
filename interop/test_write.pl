@@ -1,18 +1,18 @@
 % -*- mode: Prolog -*-
 
-% Test of scalar_test.proto, scalar_test.py
-% Assumes it is called from scalar_test.pl
+% Test of test.proto, test.py
+% Assumes it is called from test.pl
 
-:- module(scalar_test, [scalar_test_main/0]).
+:- module(test, [test_main/0]).
 
 :- use_module(library(plunit)).
 
-:- initialization(scalar_test_main, main).
+:- initialization(test_main, main).
 
 :- use_module(library(protobufs)).
-:- use_module(scalar_test_common).
+:- use_module(test_common).
 
-scalar_test_main :-
+test_main :-
     write1,
     write2.
 
