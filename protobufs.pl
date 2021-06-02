@@ -316,9 +316,7 @@ payload(string, A) -->
     ->  string_codes(A, Codes)
     ;   true
     },
-    % string_codes produces a list of unicode, not bytes, e.g.
-    % string_codes('écran 網目錦蛇', [233,99,114,97,110,32,32178,30446,37670,34503])
-    % so don't use payload(codes, Codes):
+    % string_codes produces a list of unicode, not bytes
     payload(utf8_codes, Codes),
     { string_codes(A, Codes) }.
 payload(embedded, protobuf(A)) -->
