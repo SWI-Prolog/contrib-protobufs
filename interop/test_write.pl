@@ -33,7 +33,9 @@ write1 :-
             V_bool,
             V_string,
             V_bytes,
-            V_enum],
+            V_enum,
+            V_key,
+            V_value],
     V_double   = 1.5,
     V_float    = 2.5,
     V_int32    = 3,
@@ -50,6 +52,8 @@ write1 :-
     V_string   = "écran 網目錦蛇",
     V_bytes    = [0xc3, 0x28],
     V_enum     = 'E1',
+    V_key      = "reticulated python",
+    V_value    = "網目錦蛇",
     test_write('scalars1a_from_prolog.wire', Template).
 
 write2 :-
@@ -69,7 +73,9 @@ write2 :-
             V_bool,
             V_string,
             V_bytes,
-            V_enum],
+            V_enum,
+            V_key,
+            V_value],
     V_double   =  -1.5,
     V_float    =  -2.5,
     V_int32    =  -3,
@@ -85,7 +91,9 @@ write2 :-
     V_bool     = true,
     V_string   = "[àmímé níshíkíhéꜜbì] reticulated python",
     V_bytes    = [0xf0, 0x28, 0x8c, 0x28],
-    V_enum     =  'AnotherEnum',
+    V_enum     = 'AnotherEnum',
+    V_key      = "foo",
+    V_value    = "",
     test_write('scalars1b_from_prolog.wire', Template).
 
 test_write(Path, Template) :-

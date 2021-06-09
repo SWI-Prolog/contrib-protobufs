@@ -10,9 +10,7 @@
 
 # PROTOC=$(shell type -p protoc)
 # PYTHON=$(shell type -p python3)
-# PROTOC=protoc
-# See comment in ../demo/Makefile:
-PROTOC:=$(realpath ../../../../protobuf/src/protoc)
+PROTOC=protoc
 PYTHON=python3
 SWIPL=swipl
 
@@ -34,7 +32,8 @@ test: scalars1_wire test_read_prolog test_read_cc test_read_python
 	$(PROTOC) --python_out=. --cpp_out=. $?
 
 .PHONY: test_read_prolog
-test_read_prolog: test_read.pl scalars1b_from_cc.wire scalars1b_from_cc.wire
+test_read_prolog: test_read.pl scalars1b_from_cc.wire scalars1b_from_cc.wire \
+			scalars1b_from_python.wire scalars1b_from_python.wire 
 	$(SWIPL) test_read.pl
 
 .PHONY: test_read_python
@@ -68,7 +67,9 @@ scalars1a_from_cc.wire scalars1b_from_cc.wire: test_write
 	@# $(PROTOC) -I. --decode=test.Scalars1 test.proto <scalars1a_from_cc.wire
 	@# $(PROTOC) -I. --decode=test.Scalars1 test.proto <scalars1b_from_cc.wire
 
-scalars1a_from_python.wire scalars1b_from_python.wire: test_write.py test_pb2.py
+scalars1a_from_python.wire scalars1b_from_python.wire \
+		repeated1a_from_python.wire packed1a_from_python.wire: \
+			test_write.py test_pb2.py
 	$(RM) scalars1a_from_python.wire scalars1b_from_python.wire
 	$(PYTHON) test_write.py
 	@# $(PROTOC) -I. --decode=test.Scalars1 test.proto <scalars1a_from_python.wire
@@ -94,4 +95,4 @@ test_read: test.pb.o test_read.o
 test_read.o: test.pb.h test.pb.cc test_read.cc
 
 clean:
-	$(RM) -r *_pb2.py *.wire *.o *.pb.h *.pb.cc test_write test_read
+	$(RM) -r *_pb2.py *.wire *.o *.pb.h *.pb.cc test_write test_read __pycache__

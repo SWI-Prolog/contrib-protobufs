@@ -33,7 +33,7 @@ bool read_scalars1a() {
   assert(scalars1a.v_bool()     ==  false);
   assert(scalars1a.v_string()   == "écran 網目錦蛇");
   assert(scalars1a.v_bytes()    == "\xc3\x28");  // See https://stackoverflow.com/questions/1301402/example-invalid-utf8-string
-  assert(scalars1a.v_enum()     == test::Enum::E1);
+  assert(scalars1a.v_enum()     == test::MyEnum::E1);
   return true;
 }
 
@@ -56,7 +56,7 @@ bool read_scalars1b() {
   assert(scalars1b.v_bool()     ==  true);
   assert(scalars1b.v_string()   == "[àmímé níshíkíhéꜜbì] reticulated python");
   assert(scalars1b.v_bytes()    == "\xf0\x28\x8c\x28");  // See https://stackoverflow.com/questions/1301402/example-invalid-utf8-string
-  assert(scalars1b.v_enum()     ==  test::Enum::AnotherEnum);
+  assert(scalars1b.v_enum()     ==  test::MyEnum::AnotherEnum);
   return true;
 }
 

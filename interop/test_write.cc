@@ -29,7 +29,9 @@ void make_scalars1a(test::Scalars1 *scalars1a) {
   scalars1a->set_v_bool(      false);
   scalars1a->set_v_string(    "écran 網目錦蛇");
   scalars1a->set_v_bytes(     "\xc3\x28");  // See https://stackoverflow.com/questions/1301402/example-invalid-utf8-string
-  scalars1a->set_v_enum(      test::Enum::E1);
+  scalars1a->set_v_enum(      test::MyEnum::E1);
+  scalars1a->mutable_v_key_value()->set_key("reticulated python");
+  scalars1a->mutable_v_key_value()->set_value("網目錦蛇");
 }
 
 void make_scalars1b(test::Scalars1 *scalars1b) {
@@ -48,7 +50,9 @@ void make_scalars1b(test::Scalars1 *scalars1b) {
   scalars1b->set_v_bool(      true);
   scalars1b->set_v_string(    "[àmímé níshíkíhéꜜbì] reticulated python");
   scalars1b->set_v_bytes(     "\xf0\x28\x8c\x28");  // See https://stackoverflow.com/questions/1301402/example-invalid-utf8-string
-  scalars1b->set_v_enum(      test::Enum::AnotherEnum);
+  scalars1b->set_v_enum(      test::MyEnum::AnotherEnum);
+  scalars1b->mutable_v_key_value()->set_key("foo");
+  scalars1b->mutable_v_key_value()->set_value("");
 }
 
 void test_write() {

@@ -2,14 +2,14 @@
 
 import os
 import unittest
-from test_pb2 import Scalars1, Enum
+from test_pb2 import Scalars1, MyEnum
 
 class TestScalar(unittest.TestCase):
 
     def test_scalar1_enum(self):
-        self.assertEqual(0, Enum.E1)
-        self.assertEqual(1, Enum.Enum2)
-        self.assertEqual(2, Enum.AnotherEnum)
+        self.assertEqual(0, MyEnum.E1)
+        self.assertEqual(1, MyEnum.Enum2)
+        self.assertEqual(2, MyEnum.AnotherEnum)
 
     def test_scalar1a(self):
         m1a = Scalars1()
@@ -30,7 +30,7 @@ class TestScalar(unittest.TestCase):
         self.assertEqual(m1a.v_bool,      False)
         self.assertEqual(m1a.v_string,    "écran 網目錦蛇")
         self.assertEqual(m1a.v_bytes,     b"\xc3\x28")
-        self.assertEqual(m1a.v_enum,      Enum.E1)
+        self.assertEqual(m1a.v_enum,      MyEnum.E1)
 
     def test_scalar1b(self):
         m1b = Scalars1()
@@ -51,7 +51,7 @@ class TestScalar(unittest.TestCase):
         self.assertEqual(m1b.v_bool,      True)
         self.assertEqual(m1b.v_string,    "[àmímé níshíkíhéꜜbì] reticulated python")
         self.assertEqual(m1b.v_bytes,     b"\xf0\x28\x8c\x28")  # See https://stackoverflow.com/questions/1301402/example-invalid-utf8-string
-        self.assertEqual(m1b.v_enum,      Enum.AnotherEnum)
+        self.assertEqual(m1b.v_enum,      MyEnum.AnotherEnum)
 
 
 if __name__ == "__main__":
