@@ -28,12 +28,12 @@
 
 .DELETE_ON_ERROR: # Any non-zero return code deletes the target file(s)
 
-.PHONY: FORCE check clean test_all
+.PHONY: FORCE check clean test_all interop_test
 .PHONY: test_all test_basic_usage test_send_command test_send_precompiled_command
 
-.DEFAULT_GOAL=test_all
+.DEFAULT_GOAL=test
 
-test_all: check test_basic_usage test_send_command test_send_precompiled_command other_tests
+test: check test_basic_usage test_send_command test_send_precompiled_command
 
 SWIPL=swipl
 
@@ -106,7 +106,7 @@ dump_golden:
 		google/protobuf/unittest.proto \
 		<../golden_message.2.5.0
 
-other_tests:
+interop_test:
 	@# "ctest -V -R protobufs" is envoked by "test_protobufs"
 	cd ../../../build && ninja && ctest -V -R protobufs
 	$(MAKE) -C ../interop test

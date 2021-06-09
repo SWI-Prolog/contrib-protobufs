@@ -37,7 +37,7 @@ SRC_PROTOBUF=$(HOME)/src/protobuf
 
 .DEFAULT_GOAL=all
 
-tests: test_segment_messages descriptor.proto.segment
+test: test_segment_messages descriptor.proto.segment
 
 # SRC_PROTOBUF is where you've downloaded the protobuf sources
 # (e.g., by git clone). This is not needed for "make check".
@@ -70,20 +70,20 @@ all: plugin.proto.wiredump plugin.proto.wire plugin.proto.parse plugin.proto.seg
 %_pb2.py: %.proto
 	$(PROTOC) $(PROTOC_I) --python_out=. $<
 
-google/protobuf/compiler/plugin_pb2.py: $(SRC_PROTOBUF)/src/google/protobuf/compiler/plugin.proto \
+plugin_pb2.py: $(SRC_PROTOBUF)/src/google/protobuf/compiler/plugin.proto \
 		$(SRC_PROTOBUF)/src/google/protobuf/descriptor.proto
-	$(PROTOC) $(PROTOC_I) --python_out=. $<
+	$(PROTOC) $(PROTOC_I) --python_out=. $(notdir $<)
 
-google/protobuf/descriptor_pb2.py: $(SRC_PROTOBUF)/src/google/protobuf/descriptor.proto
-	$(PROTOC) $(PROTOC_I) --python_out=. $<
+descriptor_pb2.py: $(SRC_PROTOBUF)/src/google/protobuf/descriptor.proto
+	$(PROTOC) $(PROTOC_I) --python_out=. $(notdir $<)
 
 # Bootstrap rule for prolog plugin
 addressbook_pb.pl: ../demo/addressbook.proto protoc-gen-swipl
 	@# PATH=".:$$PATH" $(PROTOC) $(PROTOC_I) --swipl_out=. $<
 	PATH=$(PATH_WITH_SWIPL) $(PROTOC) $(PROTOC_I) --swipl_out='EXTRA INFO':. --plugin=protoc-gen-swipl=$(realpath .)/protoc-gen-swipl $<
 
-addressbook_pb0.pl: ../demo/addressbook.proto protoc-gen-swipl0 google/protobuf/compiler/plugin_pb2.py google/protobuf/descriptor_pb2.py
-	PATH=".:$$PATH" $(PROTOC) $(PROTOC_I) --swipl0_out=. $<
+addressbook_pb0.pl: ../demo/addressbook.proto protoc-gen-swipl0 plugin_pb2.py descriptor_pb2.py
+	PATH=".:$$PATH" $(PROTOC) $(PROTOC_I) --swipl0_out=. $(notdir $<)
 
 # Make a binary protobuf msg file (see
 # $(SRC_PROTOBUF)/src/google/protobuf/descriptor.proto) with a
@@ -125,9 +125,7 @@ descriptor.proto.wirerawdump: descriptor.proto.wire
 clean:
 	@# TODO: special handling for descriptor.* files
 	$(RM) -r foo *.tmp *.o *.pb.cc *.pb.h *_pb2.py *_pb.pl *_pb0.pl doc/ ../TAGS \
-		*.proto.wire *.proto.wirerawdump *.proto.wiredump *.proto.parse \
-		google/protobuf/compiler/plugin_pb2.py google/protobuf/descriptor_pb2.py
-	-rmdir -p google/protobuf/compiler
+		*.proto.wire *.proto.wirerawdump *.proto.wiredump *.proto.parse __pycache__
 	git clean -ndxf  # Should find nothing.
 
 # For testing: this is what the build does:

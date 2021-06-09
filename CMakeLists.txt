@@ -67,6 +67,14 @@ test_libs(protobufs
               golden_message.2.3.0 golden_message.2.5.0
               eventually_implies.pl)
 
+# For where the examples go: see ../cmake/PrologPackage.cmake: set(extdest, ...)
+add_test(NAME "${SWIPL_PKG}:interop"
+         COMMAND make SWIPL=${PROG_SWIPL} -C ${CMAKE_CURRENT_SOURCE_DIR}/interop clean test)
+add_test(NAME "${SWIPL_PKG}:bootstrap"
+         COMMAND make SWIPL=${PROG_SWIPL} -C ${CMAKE_CURRENT_SOURCE_DIR}/bootstrap clean test)
+add_test(NAME "${SWIPL_PKG}:demo"
+         COMMAND make SWIPL=${PROG_SWIPL} -C ${CMAKE_CURRENT_SOURCE_DIR}/demo clean test)
+
 pkg_doc(protobufs
         SECTION
             protobufs_overview.md
