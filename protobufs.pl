@@ -358,6 +358,8 @@ nothing([]) --> [], !.
 
 protobuf([A | B]) -->
     { A =.. [ Type, Tag, Payload] },
+    % { format('SEQ ~q~n', [[Type,Tag]]) },  % DO NOT SUBMIT
+    % { Tag == 11016 -> gtrace ; true },
     message_sequence(Type, Tag, Payload),
     !,
     (   protobuf(B)
@@ -376,9 +378,19 @@ repeated_message_sequence(Type, Tag, [A | B]) -->
 repeated_message_sequence(_Type, _Tag, A) -->
     nothing(A).
 
+% repeated_message_sequence_bag(Tag, ResultTemplate, Type, [A | B]) -->
+%     { format('BAG: ~q~n', [repeated_message_sequence_bag(tag=Tag, result=ResultTemplate, type=Type, [A | B])]) },
+%     { copy_term(ResultTemplate-Type, NewResultTemplate-NewType) },
+%     message_sequence(NewType, Tag, A),
+%     (   repeated_message_sequence_bag(Tag, ResultTemplate, Type, B)
+%     ;   nothing(B)
+%     ).
+
 message_sequence(repeated, Tag, enum(Compound)) -->
     { Compound =.. [Type, List] },
     repeated_message_sequence(repeated_enum, Tag, Type, List).
+% message_sequence(repeated, Tag, embedded(ResultTemplate, Type, List)) -->
+%     repeated_message_sequence_bag(Tag, ResultTemplate, Type, List).
 message_sequence(repeated, Tag, Compound) -->
     { Compound =.. [Type, A] },
     repeated_message_sequence(Type, Tag, A).
@@ -807,7 +819,7 @@ convert_segment('TYPE_FIXED64', _ContextType, Segment0, Value) =>
     protobuf_segment_convert(Segment0, Segment), !,
     int64_codes(Value, Codes).
 convert_segment(packed('TYPE_FIXED64'), _ContextType, Segment0, Values) =>
-    protobuf_segment_convert(Segment0, packed9_, fixed64(Codes)),
+    protobuf_segment_convert(Segment0, packed(_, fixed64(Codes))),
     phrase(packed_payload(integer64, Values), Codes), !. % DO NOT SUBMIT TODO: check integer64
 convert_segment('TYPE_FIXED32', _ContextType, Segment0, Value) =>
     Segment = fixed32(_Tag,Codes),

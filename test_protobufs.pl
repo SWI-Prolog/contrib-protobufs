@@ -589,5 +589,21 @@ test(embedded_key_value) :-
     assertion(Key == "foo"),
     assertion(Value == "bar").
 
+test(repeated_key_value, blocked(needs_bag_solution)) :-  % DO NOT SUBMIT -- needs "bag" solution
+    % KeyValue as in embedded_key_value
+    % message M1 {
+    %   repeated KeyValue v_key_value = 12 [packed=false];
+    % }
+    % M1(v_key_value=[KeyValue(key="foo", value="bar"), KeyValue(key="x", value="y")])
+    % --decode_raw:
+    %   12 { 15: "foo", 128: "bar" }
+    %   12 { 15: "x",   128: "y" }
+    Wire = [98,11,122,3,102,111,111,130,8,3,98,97,114,98,7,122,1,120,130,8,1,121],
+    Template = protobuf([repeated(12,
+                                  protobuf(Key-Value, [string(15,Key),string(128,Value)], KeyValueList))]),
+    protobuf_message(Template, Wire),
+    assertion(KeyValueList == ["foo"-"bar", "x"-"y"]).
+
 :- end_tests(protobuf_segment_convert).
 
+end_of_file.
