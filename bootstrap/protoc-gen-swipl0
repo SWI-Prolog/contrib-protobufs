@@ -18,8 +18,10 @@ when protoc is run.
 
 from collections import namedtuple
 import sys
-from google.protobuf.compiler import plugin_pb2
-from google.protobuf import descriptor_pb2  # Don't actually need this - it's implicitly available from plugin_pb2
+# from google.protobuf.compiler import plugin_pb2
+# from google.protobuf import descriptor_pb2  # Don't actually need this - it's implicitly available from plugin_pb2
+import plugin_pb2
+import descriptor_pb2  # Don't actually need this - it's implicitly available from plugin_pb2
 
 ReqVersion = namedtuple('ReqVersion', ['major', 'minor', 'patch'])
 
