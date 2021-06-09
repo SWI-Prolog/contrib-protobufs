@@ -15,8 +15,8 @@ PYTHON=python3
 SWIPL=swipl
 
 # -Wall produces warnings from the generated *.pb.cc files
-CFLAGS=-O3
-CXXFLAGS=-O3
+CFLAGS=-O0
+CXXFLAGS=-O0
 # flags from pkg-config: -pthread -lprotobuf -lpthread
 CPPFLAGS:=$(shell pkg-config --cflags protobuf)
 LDFLAGS:=$(shell pkg-config --libs protobuf)
