@@ -253,7 +253,7 @@ print_term_cleaned(Term, Options) =>
 print_term_cleaned(Term, Options, TermStr) =>
     % print_term leaves trailing whitespace, so remove it
     with_output_to(string(TermStr0),
-                   print_term(Term, [output(current_output)|Options]))),
+                   print_term(Term, [output(current_output)|Options])),
     re_replace(" +\n"/g, "\n", TermStr0, TermStr1),
     re_replace("\t"/g, "        ", TermStr1, TermStr).
 

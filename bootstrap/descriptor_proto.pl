@@ -48,11 +48,10 @@ main :-
     set_stream(user_input, type(binary)),
     read_stream_to_codes(user_input, WireCodes),
     protobuf_parse_from_codes(WireCodes, '.google.protobuf.FileDescriptorSet', Msg),
-    maplist(write_metadata, Msg).
+    write_metadata(Msg).
 
-write_metadata(field_and_value(file,repeat,FileDescriptor)) =>
-    FileDescriptor >:< '.google.protobuf.FileDescriptorProto'{name:FileName},
-    print_term_cleaned(protobuf_metadata(FileName, FileDescriptor), [indent_arguments(4)], MsgStr),
+write_metadata(Term) :-
+    print_term_cleaned(Term, [indent_arguments(4)], MsgStr),
     write(user_output, MsgStr),
     writeln(user_output, '.').
 
