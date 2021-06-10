@@ -14,18 +14,6 @@ message KeyValue {
   optional string value = 128;
 }
 
-message M0 {
-  repeated MyEnum v_enum = 1 [packed=false];
-}
-
-message M1 {
-  repeated KeyValue v_key_value = 12 [packed=false];
-}
-
-message M2 {
-  optional KeyValue v_key_value = 5;
-}
-
 message Scalars1 {
   // .proto types (from https://developers.google.com/protocol-buffers/docs/overview#scalar)
   // The field # is in strictly increasing order, so that the wire formats are the same
@@ -74,26 +62,27 @@ message Repeated1 {
 
 message Packed1 {
   // similar to Repeated1, but each item is packed where possible
-  repeated double   v_double   =     1 [packed=true];
-  repeated float    v_float    =   222 [packed=true];
-  repeated int32    v_int32    = 22103 [packed=true];
-  repeated int64    v_int64    = 22127 [packed=true];
-  repeated uint32   v_uint32   = 22128 [packed=true];
-  repeated uint64   v_uint64   = 22666 [packed=true];
-  repeated sint32   v_sint32   = 22777 [packed=true];
-  repeated sint64   v_sint64   = 22888 [packed=true];
-  repeated fixed32  v_fixed32  = 22999 [packed=true];
-  repeated fixed64  v_fixed64  =221010 [packed=true];
-  repeated sfixed32 v_sfixed32 =221011 [packed=true];
-  repeated sfixed64 v_sfixed64 =221012 [packed=true];
-  repeated bool     v_bool     =221013 [packed=true];
-  repeated string   v_string   =221014 [packed=false];
-  repeated bytes    v_bytes    =221015 [packed=false];
-  repeated MyEnum   v_enum     =221016 [packed=true];
-  repeated KeyValue v_key_value=229999 [packed=false];
+  repeated double   v_double   =    1 [packed=true];
+  repeated float    v_float    =   12 [packed=true];
+  repeated int32    v_int32    = 1103 [packed=true];
+  repeated int64    v_int64    = 1127 [packed=true];
+  repeated uint32   v_uint32   = 1128 [packed=true];
+  repeated uint64   v_uint64   = 1666 [packed=true];
+  repeated sint32   v_sint32   = 1777 [packed=true];
+  repeated sint64   v_sint64   = 1888 [packed=true];
+  repeated fixed32  v_fixed32  = 1999 [packed=true];
+  repeated fixed64  v_fixed64  =11010 [packed=true];
+  repeated sfixed32 v_sfixed32 =11011 [packed=true];
+  repeated sfixed64 v_sfixed64 =11012 [packed=true];
+  repeated bool     v_bool     =11013 [packed=true];
+  repeated string   v_string   =11014 [packed=false];
+  repeated bytes    v_bytes    =11015 [packed=false];
+  repeated MyEnum   v_enum     =11016 [packed=true];
+  repeated KeyValue v_key_value=99999 [packed=false];
 }
 
 // TODO: use this for additional testing of Wiretypes?
+// TODO: - needs unsigned32,unsigned64
 // message Scalars2 {
 //   // v_Prolog wrapper types (see Wiretypes {#protobufs-wire-types} table)
 //   optional double   v_double     =   1;

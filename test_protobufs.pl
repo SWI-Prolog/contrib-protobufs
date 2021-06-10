@@ -341,6 +341,39 @@ test("Test5,Test6 - Parsing Codes to canned Golden Template, Comparing canned Go
 
 :- end_tests(protobuf_message).
 
+:- begin_tests(protobuf_message_2).
+
+% Some additional tests that aren't fully exercised by the original
+% tests or that are useful as examples.
+
+test(my_enum_msg) :-
+    % include interop/test.proto MyEnum
+    % message M0 {
+    %   repeated MyEnum v_enum = 1 [packed=false];
+    % }
+    % M0(v_enum=[MyEnum.E1, MyEnum.Enum2, MyEnum.E1])
+    Wire = [8,0,8,1,8,0],
+    Template = protobuf([repeated(1, enum(my_enum(V_enum)))]),
+    protobuf_message(Template, Wire),
+    assertion(V_enum == ['E1','Enum2','E1']).
+
+test(embedded_key_value) :-
+    % message KeyValue {
+    %   optional string key = 15;
+    %   optional string value = 128;
+    % }
+    % message M2 {
+    %   optional KeyValue v_key_value = 5;
+    % }
+    % M2(v_key_value=KeyValue(key="foo", value="bar"))
+    Wire = [42,11,122,3,102,111,111,130,8,3,98,97,114],
+    Template = protobuf([embedded(5, protobuf([string(15,Key),string(128,Value)]))]),
+    protobuf_message(Template, Wire),
+    assertion(Key == "foo"),
+    assertion(Value == "bar").
+
+:- end_tests(protobuf_message_2).
+
 :- begin_tests(some_message_example).
 
 some_message_wire(Wire) :-
@@ -498,6 +531,25 @@ test(packed_and_unpacked_repeated) :-
     protobuf_message(Template, WireStream),
     assertion(Template == Message).
 
+test(repeated_key_value) :-
+    % KeyValue as in embedded_key_value
+    % message M1 {
+    %   repeated KeyValue v_key_value = 12 [packed=false];
+    % }
+    % M1(v_key_value=[KeyValue(key="foo", value="bar"), KeyValue(key="x", value="y")])
+    % --decode_raw:
+    %   12 { 15: "foo", 128: "bar" }
+    %   12 { 15: "x",   128: "y" }
+    Wire = [98,11,122,3,102,111,111,130,8,3,98,97,114,98,7,122,1,120,130,8,1,121],
+    Template = protobuf([repeated_embedded(12,
+                                           protobuf([string(15,Key),string(128,Value)]),
+                                           KeyValueList)]),
+    protobuf_message(Template, Wire),
+    assertion(var(Key)),    % "template" variable shouldn't get instantiated
+    assertion(var(Value)),  % "template" variable shouldn't get instantiated
+    assertion(KeyValueList == [protobuf([string(15,"foo"),string(128,"bar")]),
+			       protobuf([string(15,"x"),string(128,"y")])]).
+
 :- end_tests(repeated_fields).
 
 :- begin_tests(protobuf_segment_convert).
@@ -562,47 +614,6 @@ test(string_length_delimited2,
      [true(Xs == [Ld, Msg, Packed, Str])]) :-
     test_data(Ld, Msg, Packed, Str,_),
     sorted_findall(X, protobuf_segment_convert(Str, X), Xs).
-
-test(my_enum_msg) :-
-    % include interop/test.proto MyEnum
-    % message M0 {
-    %   repeated MyEnum v_enum = 1 [packed=false];
-    % }
-    % M0(v_enum=[MyEnum.E1, MyEnum.Enum2, MyEnum.E1])
-    Wire = [8,0,8,1,8,0],
-    Template = protobuf([repeated(1, enum(my_enum(V_enum)))]),
-    protobuf_message(Template, Wire),
-    assertion(V_enum == ['E1','Enum2','E1']).
-
-test(embedded_key_value) :-
-    % message KeyValue {
-    %   optional string key = 15;
-    %   optional string value = 128;
-    % }
-    % message M2 {
-    %   optional KeyValue v_key_value = 5;
-    % }
-    % M2(v_key_value=KeyValue(key="foo", value="bar"))
-    Wire = [42,11,122,3,102,111,111,130,8,3,98,97,114],
-    Template = protobuf([embedded(5, protobuf([string(15,Key),string(128,Value)]))]),
-    protobuf_message(Template, Wire),
-    assertion(Key == "foo"),
-    assertion(Value == "bar").
-
-test(repeated_key_value, blocked(needs_bag_solution)) :-  % DO NOT SUBMIT -- needs "bag" solution
-    % KeyValue as in embedded_key_value
-    % message M1 {
-    %   repeated KeyValue v_key_value = 12 [packed=false];
-    % }
-    % M1(v_key_value=[KeyValue(key="foo", value="bar"), KeyValue(key="x", value="y")])
-    % --decode_raw:
-    %   12 { 15: "foo", 128: "bar" }
-    %   12 { 15: "x",   128: "y" }
-    Wire = [98,11,122,3,102,111,111,130,8,3,98,97,114,98,7,122,1,120,130,8,1,121],
-    Template = protobuf([repeated(12,
-                                  protobuf(Key-Value, [string(15,Key),string(128,Value)], KeyValueList))]),
-    protobuf_message(Template, Wire),
-    assertion(KeyValueList == ["foo"-"bar", "x"-"y"]).
 
 :- end_tests(protobuf_segment_convert).
 

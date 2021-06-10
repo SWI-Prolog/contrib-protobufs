@@ -10,35 +10,6 @@
 % Not needed because we're using plunit:
 % :- set_prolog_flag(optimise_debug, false). % ensure assertion/1 is executed
 
-t0 :-
-    Template = protobuf([repeated(1, enum(my_enum(V_enum)))]),
-    read_file_to_codes('m0.wire', WireStream, [encoding(octet),type(binary)]),
-    format('m0.wire: ~q~n', [WireStream]),
-    protobuf_message(Template, WireStream),
-    print_term(Template, []),nl,
-    print_term(enum=V_enum, []),nl.
-
-t1 :-
-    % T1 = protobuf([embedded(12, protobuf([string(15,Key),string(128,Value)]))]),
-    Template = protobuf([repeated(12,
-                                  embedded(Key-Value,
-                                           protobuf([string(15,Key),string(128,Value)]),
-                                           KeyValueList)
-                                 )]),
-    read_file_to_codes('m1.wire', WireStream, [encoding(octet),type(binary)]),
-    format('m1.wire: ~q~n', [WireStream]),
-    protobuf_message(Template, WireStream),
-    print_term(Template, []),nl,
-    print_term(list=KeyValueList, []),nl.
-
-t2 :-
-    Template = protobuf([embedded(5, protobuf([string(15,Key),string(128,Value)]))]),
-    read_file_to_codes('m2.wire', WireStream, [encoding(octet),type(binary)]),
-    format('m2.wire: ~q~n', [WireStream]),
-    protobuf_message(Template, WireStream),
-    print_term(Template, []),nl,
-    print_term([key=Key,value=Value], []),nl.
-
 test_read_main :-
     run_tests.
 
@@ -130,32 +101,94 @@ test(scalars1b) :-
     assertion(V_key      ==  "foo"),
     assertion(V_value    ==  "").
 
-
-% test(repeated1a, blocked(not_implemented)) :-
-%     repeated1a_template(Template, Vars),
-%     Vars = [V_double,
-%             V_float,
-%             V_int32,
-%             V_int64,
-%             V_uint32,
-%             V_uint64,
-%             V_sint32,
-%             V_sint64,
-%             V_fixed32,
-%             V_fixed64,
-%             V_sfixed32,
-%             V_sfixed64,
-%             V_bool,
-%             V_string,
-%             V_bytes,
-%             V_enum,
-%             V_key1,
-%             V_value1,
-%             V_key2,
-%             V_value2],
-%     read_file_to_codes('repeated1a_from_python.wire', WireStream, [encoding(octet),type(binary)]),
-%     % format(user_error, 'WireStream=~q~n', [WireStream]),
-%     protobuf_message(Template, WireStream),
-%     true.
-
 :- end_tests(scalar).
+
+:- begin_tests(repeated).
+
+test(repeated1a) :-
+    repeated1a_template(Template, Vars),
+    Vars = [V_double,
+            V_float,
+            V_int32,
+            V_int64,
+            V_uint32,
+            V_uint64,
+            V_sint32,
+            V_sint64,
+            V_fixed32,
+            V_fixed64,
+            V_sfixed32,
+            V_sfixed64,
+            V_bool,
+            V_string,
+            V_bytes,
+            V_enum,
+            V_key_values],
+    read_file_to_codes('repeated1a_from_python.wire', WireStream, [encoding(octet),type(binary)]),
+    % format(user_error, 'WireStream=~q~n', [WireStream]),
+    protobuf_message(Template, WireStream),
+    assertion(V_double     == [1.5, 0.0, -1.5]),
+    assertion(V_float      == [2.5, 0.0, -2.5]),
+    assertion(V_int32      == [3, -3, 555, 0, 2147483647, -2147483648]),
+    assertion(V_int64      == [4, -4, 0, 9223372036854775807, -9223372036854775808]),
+    assertion(V_uint32     == [5, 0, 4294967295]),
+    assertion(V_uint64     == [6, 7, 8, 9, 0, 18446744073709551615]),
+    assertion(V_sint32     == [7, -7, 0, 2147483647, -2147483648]),
+    assertion(V_sint64     == [-8, 8, 0, 4611686018427387903]), % TODO: bug in integer_zigzag:  9223372036854775807, -9223372036854775808
+    assertion(V_fixed32    == [9, 0, 4294967295]),
+    assertion(V_fixed64    == [10, 0, 18446744073709551615]),
+    assertion(V_sfixed32   == [-11, 11, 0, 2147483647, -2147483648]),
+    assertion(V_sfixed64   == [-12, 12, 0, 9223372036854775807, -9223372036854775808]),
+    assertion(V_bool       == [false, true]),
+    assertion(V_string     == ["écran 網目錦蛇", "Hello world"]),
+    assertion(V_bytes      == [[0xc3, 0x28], [0,1,2]]),
+    assertion(V_enum       == ['E1','Enum2','E1']),
+    assertion(V_key_values == [protobuf([string(15,"foo"),string(128,"")]),
+                               protobuf([string(15,"àmímé níshíkíhéꜜbì"),
+                                         string(128,"reticulated python")])]).
+
+test(packed1a) :-
+    packed1a_template(Template, Vars),
+    Vars = [V_double,
+            V_float,
+            V_int32,
+            V_int64,
+            V_uint32,
+            V_uint64,
+            V_sint32,
+            V_sint64,
+            V_fixed32,
+            V_fixed64,
+            V_sfixed32,
+            V_sfixed64,
+            V_bool,
+            V_string,
+            V_bytes,
+            V_enum,
+            V_key_values],
+    read_file_to_codes('packed1a_from_python.wire', WireStream, [encoding(octet),type(binary)]),
+    % format(user_error, 'WireStream=~q~n', [WireStream]),
+    protobuf_message(Template, WireStream),
+    assertion(V_double     == [1.5, 0.0, -1.5]),
+    assertion(V_float      == [2.5, 0.0, -2.5]),
+    assertion(V_int32      == [3, -3, 555, 0, 2147483647, -2147483648]),
+    assertion(V_int64      == [4, -4, 0, 9223372036854775807, -9223372036854775808]),
+    assertion(V_uint32     == [5, 0, 4294967295]),
+    assertion(V_uint64     == [6, 7, 8, 9, 0, 18446744073709551615]),
+    assertion(V_sint32     == [7, -7, 0, 2147483647, -2147483648]),
+    assertion(V_sint64     == [-8, 8, 0, 4611686018427387903]), % TODO: bug in integer_zigzag:  9223372036854775807, -9223372036854775808
+    assertion(V_fixed32    == [9, 0, 4294967295]),
+    assertion(V_fixed64    == [10, 0, 18446744073709551615]),
+    assertion(V_sfixed32   == [-11, 11, 0, 2147483647, -2147483648]),
+    assertion(V_sfixed64   == [-12, 12, 0, 9223372036854775807, -9223372036854775808]),
+    assertion(V_bool       == [false, true]),
+    assertion(V_string     == ["écran 網目錦蛇", "Hello world"]),
+    assertion(V_bytes      == [[0xc3, 0x28], [0,1,2]]),
+    assertion(V_enum       == ['E1','Enum2','E1']),
+    assertion(V_key_values == [protobuf([string(15,"foo"),string(128,"")]),
+                               protobuf([string(15,"àmímé níshíkíhéꜜbì"),
+                                         string(128,"reticulated python")])]).
+
+:- end_tests(repeated).
+
+end_of_file.

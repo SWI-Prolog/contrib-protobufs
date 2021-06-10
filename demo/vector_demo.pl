@@ -390,7 +390,8 @@ segment_to_template(fixed64(Tag, Codes), fixed64(Tag, Codes)).
 segment_to_template(fixed32(Tag, Codes), fixed32(Tag, Codes)).
 segment_to_template(varint(Tag, Int), varint(Tag, Int)).
 
-% Convert xml_proto to dict form  DO NOT SUBMIT
+% TODO: Convert xml_proto to dict form
+
 xml_xlate(element(Name,Attributes0,Contents0),
           xml_element{name:Name,
                       attributes:Attributes,

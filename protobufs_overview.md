@@ -178,14 +178,14 @@ in some of the interoperability tests.)
 | Prolog     | Wirestream       | .proto file       | C++      | Python3  | Notes   |
 | ---------- | ---------------- | ----------------- | -------- | -------- | ------- |
 | double     | fixed64          | double            | double   | float    |         |
-| integer64  | fixed64          | fixed64           | uint64   | int      | 11      |
+| unsigned64 | fixed64          | fixed64           | uint64   | int      | 11      |
 | integer64  | fixed64          | sfixed64          | int64    |          |         |
 | float      | fixed32          | float             | float    | float    |         |
-| integer32  | fixed32          | fixed32           | uint32   | int      | 11      |
+| unsigned32 | fixed32          | fixed32           | uint32   | int      | 11      |
 | integer32  | fixed32          | sfixed32          | int32    |          |         |
 | integer    | varint           | sint32            | int32    | int      | 1, 2, 9 |
 | integer    | varint           | sint64            | int64    | int      | 1, 2, 9 |
-| signed64   | varint           | int32             | int32    | int      | 2, 3, 10 |
+| signed32   | varint           | int32             | int32    | int      | 2, 3, 10 |
 | signed64   | varint           | int64             | int64    | int      | 2, 3, 10 |
 | unsigned   | varint           | uint32            | uint32   | int      | 2, 3    |
 | unsigned   | varint           | uint64            | uint64   | int      | 2, 3    |
@@ -195,8 +195,9 @@ in some of the interoperability tests.)
 | codes      | length delimited | bytes             |          | bytes    |         |
 | utf8_codes | length delimited | string            |          | str (unicode) |    |
 | string     | length delimited | string            | string   | str (unicode) |    |
-| embedded   | length delimited | message           |          | (class)  |         |
-| repeated   | length delimited | repeated          |          | (list)   |         |
+| embedded   | length delimited | message           |          | (class)  | 5       |
+| repeated   | length delimited | repeated          |          | (list)   | 6       |
+| repeated_embedded | length delimited | repeated   |          | (list)   | 12      |
 | packed     | length delimited | packed repeated   |          | (list)   |         |
 
 *|Notes:|*
@@ -214,24 +215,24 @@ in some of the interoperability tests.)
     4. Encoded as UTF8 in the wire-stream.
     5. Specified as =|embedded(Tag,protobuf([...]))|=.
     6. Specified as =|repeated(Tag,Type([...,...]))|=, where
-       Type is =unsigned, =integer=, =string=,
-       =|embedded(protobuf([...]))|=, etc.
+       Type is =unsigned, =integer=, =string=, etc.
     7. =|repeated ... [packed=true]|= in proto2.
        Can not contain "length delimited" types.
     8. Prolog =|boolean(Tag,false)|= maps to 0 and
        =|boolean(Tag,true)|= maps to 1.
     9. Uses "zig-zag" encoding, which is more space-efficient for
-       negative numbers
-   10. The documentation says that this doesn't use "zig-zag"
+       negative numbers.
+    0. The documentation says that this doesn't use "zig-zag"
        encoding, so it's less space-efficient for negative numbers.
        In particular, both C++ and Python encode negative numbers as
        10 bytes, and Prolog follows this for wire-stream compatibility
        (note that SWI-Prolog typically uses 64-bit integers anyway).
        Therefore, signed64 is used for both .proto types =int32= and
        =int64=.
-   11. =integer32= and =integer64= are not checked for negative values;
+    1. =integer32= and =integer64= are not checked for negative values;
        if you use a negative value, it will be treated as the 2s complement
        (this is the same as C++ behavior; Python throws an exception).
+    2. Specified as =|repeated_embedded(Tag,protobuf([...]),Fields)|=
 
 ## Tags (field numbers) {#protobufs-tags}
 
@@ -272,6 +273,13 @@ Repeated fields are done by
 Embedded messages are done by
 =|embedded(Tag,protobuf([Field1,Field2,...]))|= (this is the same
 =protobuf(...)= as is used at the top level).
+
+Repeated embedded messages are done by
+=|repeated_embedded(Tag,protobuf([Field1,Field2,...]),Fields)|=,
+which gets repeated items and combines them into a list.
+For example,
+=|repeated_embedded(Tag, protobuf([string(1,_Key),string(2,_Value)]), Fields)|=
+could unify =Fields= to =|[protobuf([string(1,"key1"),string(2,"value1")]), protobuf([string(1,"key2"),string(2,"value2")])]|=.
 
 *|Note:|* It is an error to attempt to encode a message using a template
 that is not ground. Decoding a message  into a template that has unbound
@@ -365,6 +373,14 @@ with tag 22 into a list as above.  Likewise, all the items listed in the
 second clause will be  encoded  in   the  wire-stream  according  to the
 mapping defined in an enumeration   (described below) tank_state/2, each
 with tag 23.
+
+You can also encode vectors of embedded messages using =repeated_embedded=.
+This uses a "template" for the individual messages and a list of messages
+in the wire stream.
+For example: =|repeated_embedded(Tag, protobuf([string(1,_Key),string(2,_Value)]), Fields)|=
+where =Fields= gets a list (possibly empty), with each item of the form
+=|protobuf([string(1,_Key),string(2,_Value)])|=.
+
 
 *|Notes:|*
 

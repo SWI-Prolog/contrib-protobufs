@@ -172,7 +172,11 @@ docs:
 
 .PHONY: tar
 tar:
+	$(MAKE) clean
+	$(MAKE) -C ../interop clean
+	$(MAKE) -C ../demo clean
 	cd ../../.. && tar --create --bzip2 --file ~/Downloads/contrib-protobufs-$$(date +%Y-%m-%d-%H-%M).tbz2 packages/protobufs
+	$(MAKE) etags
 
 .PHONY: etags
 etags:	../TAGS
