@@ -111,10 +111,18 @@ wire_type(fixed32,           5). % for fixed32, sfixed32, float
 %
 
 fixed_int32(X, [A0, A1, A2, A3 | Rest], Rest) :-
-    int32_codes(X, [A0, A1, A2, A3]).
+    (   nonvar(X), X > 0x7fffffff % work around https://github.com/SWI-Prolog/contrib-protobufs/issues/5
+    ->  X2 is -(X xor 0xffffffff + 1)
+    ;   X2 = X
+    ),
+    int32_codes(X2, [A0, A1, A2, A3]).
 
 fixed_int64(X, [A0, A1, A2, A3, A4, A5, A6, A7 | Rest], Rest) :-
-    int64_codes(X, [A0, A1, A2, A3, A4, A5, A6, A7]).
+    (   nonvar(X), X > 0x7fffffffffffffff % work around https://github.com/SWI-Prolog/contrib-protobufs/issues/5
+    ->  X2 is -(X xor 0xffffffffffffffff + 1)
+    ;   X2 = X
+    ),
+    int64_codes(X2, [A0, A1, A2, A3, A4, A5, A6, A7]).
 
 fixed_float64(X, [A0, A1, A2, A3, A4, A5, A6, A7 | Rest], Rest) :-
     float64_codes(X, [A0, A1, A2, A3, A4, A5, A6, A7]).
@@ -244,7 +252,7 @@ payload(unsigned64, Payload) -->
     ;   Payload = X
     }.
 payload(unsigned64, Payload) -->
-    {   nonvar(Payload), Payload < 0
+    {   Payload < 0
     ->  X is -(Payload xor 0xffffffffffffffff + 1)
     ;   X = Payload
     },
@@ -262,7 +270,7 @@ payload(unsigned32, Payload) -->
     ;   Payload = X
     }.
 payload(unsigned32, Payload) -->
-    {   nonvar(Payload), Payload < 0
+    {   Payload < 0
     ->  X is -(Payload xor 0xffffffff + 1)
     ;   X = Payload
     },
@@ -312,7 +320,7 @@ payload(signed64, Payload) -->
     }.
 payload(signed64, Payload) -->
     % See comment in previous clause about negative numbers.
-    {   nonvar(Payload), Payload < 0
+    {   Payload < 0
     ->  X is -(Payload xor 0xffffffffffffffff + 1)
     ;   X = Payload
     },
@@ -463,8 +471,6 @@ single_message(PrologType, Tag, Payload) -->
 %   the fields in any order and that unknown fields are to be ignored.
 %   This implementation assumes that the fields are in the exact order
 %   of the definition and match exactly.
-%
-%   @bug "Packed" repeated enums are not supported.
 %
 %   @param Template is a  protobuf   grammar  specification.  On decode,
 %   unbound variables in the Template are  unified with their respective
@@ -698,7 +704,6 @@ packed_option(unsigned,  Items, varint(Items)).
 %       functionality is added.
 %  @bug This predicate will sometimes generate unexpected choice points,
 %       Such as from =|protobuf_segment_convert(message(10,...), string(10,...))|=
-%  @bug When converting from a =|Form1=string|=, unnecessarily produces =Form2=string|=.
 %
 % @param Form1 =|message(Tag,Pieces)|= or =|string(Tag,String)|=.
 % @param Form2 =|string(Tag,String)|= or =|length_delimited(Tag,Codes)|=.
@@ -720,6 +725,11 @@ tag_and_codes(Tag, Codes) -->
 % Convert between a 32-bit integer value and its wirestream codes.
 % This is a low-level predicate; normally, you should use
 % template_message/2 and the appropriate template term.
+%
+% @bug Throws instantiation error for large values.
+%      https://github.com/SWI-Prolog/contrib-protobufs/issues/5
+%      e.g., int32_codes(4294967294, Z).
+%                        0xfffffffe
 %
 % @param Value an integer
 % @param Codes a list of 4 integers (codes)
@@ -753,9 +763,10 @@ tag_and_codes(Tag, Codes) -->
 % This is a low-level predicate; normally, you should use
 % template_message/2 and the appropriate template term.
 %
-% @bug Throws instantiation error for large values,
+% @bug Throws instantiation error for large values.
+%      https://github.com/SWI-Prolog/contrib-protobufs/issues/5
 %      e.g. integer_zigzag(A, 18446744073709551600).
-%           (0xfffffffffffffff0)
+%                             0xfffffffffffffff0
 %
 % @param Original an integer in the original form
 % @param Encoded the zigzag encoding of =Original=

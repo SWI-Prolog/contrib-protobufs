@@ -128,11 +128,15 @@ clean:
 		*.proto.wire *.proto.wirerawdump *.proto.wiredump *.proto.parse __pycache__
 	git clean -ndxf  # Should find nothing.
 
-# For testing: this is what the build does:
+# For testing: this is what the build does.
 
 .PHONY: test_protobufs
-test_protobufs:
-	$(SWIPL) "-p" "foreign=" "-f" "none" "--no-packs" "-s" ../test_protobufs.pl "-g" "test_protobufs" "-t" "halt"
+test_protobufs:  # TODO: remove this
+	@# The top level runs protobufs:protobufs:
+	@# $(SWIPL) "-p" "foreign=" "-f" "none" "--no-packs" "-s" ../test_protobufs.pl "-g" "test_protobufs" "-t" "halt"
+	@# And ../CMakeLists.txt runs the others
+	@# The following command runs everything (assuming that directory "build" exists):
+	cd ../../../build && cmake -G Ninja .. && ninja && ctest  -j5 -R protobufs
 
 # For looking at the generated documentation.  This assumes that
 # you're working in ~/src/contrib-protobufs and that there's also
@@ -171,7 +175,7 @@ docs:
 		-g 'doc_save(.,[])' -g halt protobufs.pl
 
 .PHONY: tar
-tar:
+tar: # TODO: remove this
 	$(MAKE) clean
 	$(MAKE) -C ../interop clean
 	$(MAKE) -C ../demo clean

@@ -1,9 +1,11 @@
-% -*- mode: Prolog -*-
+% -*- mode: Prolog coding:utf-8 -*-
 
 % Test of test.proto, test.py
 % Assumes it is called from test.pl
 
 :- module(test, [test_main/0]).
+
+:- encoding(utf8).
 
 :- use_module(library(plunit)).
 

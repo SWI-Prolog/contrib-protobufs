@@ -1,6 +1,8 @@
-% -*- mode: Prolog -*-
+% -*- mode: Prolog coding:utf-8 -*-
 
 :- module(test_read, [test_read_main/0]).
+
+:- encoding(utf8).
 
 :- initialization(test_read_main, main).
 
@@ -12,6 +14,12 @@
 
 test_read_main :-
     run_tests.
+
+string_values(S1, S2, S3, S4) :-
+    string_codes(S1, [0xe9, 0x63, 0x72, 0x61, 0x6e, 0x20, 0x7db2, 0x76ee, 0x9326, 0x86c7]),  % "écran 網目錦蛇"
+    string_codes(S2, [0x7db2, 0x76ee, 0x9326, 0x86c7]),  % "網目錦蛇"
+    string_codes(S3, [0x5b, 0xe0, 0x6d, 0xed, 0x6d, 0xe9, 0x20, 0x6e, 0xed, 0x73, 0x68, 0xed, 0x6b, 0xed, 0x68, 0xe9, 0xa71c, 0x62, 0xec, 0x5d, 0x20, 0x72, 0x65, 0x74, 0x69, 0x63, 0x75, 0x6c, 0x61, 0x74, 0x65, 0x64, 0x20, 0x70, 0x79, 0x74, 0x68, 0x6f, 0x6e]), % [àmímé níshíkíhéꜜbì] reticulated python"
+    string_codes(S4, [0xe0, 0x6d, 0xed, 0x6d, 0xe9, 0x20, 0x6e, 0xed, 0x73, 0x68, 0xed, 0x6b, 0xed, 0x68, 0xe9, 0xa71c, 0x62, 0xec]). % àmímé níshíkíhéꜜbì"
 
 :- begin_tests(scalar).
 
@@ -38,7 +46,11 @@ test(scalars1a) :-
     read_file_to_codes('scalars1a_from_python.wire', WireStream, [encoding(octet),type(binary)]),
     % format(user_error, 'WireStream=~q~n', [WireStream]),
     protobuf_message(Template, WireStream),
+    protobuf_message(Template, WireStream2),
+    assertion(WireStream == WireStream2),
+    protobuf_message(Template, WireStream2), % once more, with both Template and WireStream2 fully instantiated
     % print_term(Template, [output(user_error)]), nl(user_error),
+    string_values(S1, S2, _S3, _S4),
     assertion(V_double   == 1.5),
     assertion(V_float    == 2.5),
     assertion(V_int32    == 3),
@@ -52,11 +64,11 @@ test(scalars1a) :-
     assertion(V_sfixed32 == 11),
     assertion(V_sfixed64 == 12),
     assertion(V_bool     == false),
-    assertion(V_string   == "écran 網目錦蛇"),
+    assertion(V_string   == S1),
     assertion(V_bytes    == [0xc3, 0x28]),
     assertion(V_enum     ==  'E1'),
     assertion(V_key      == "reticulated python"),
-    assertion(V_value    == "網目錦蛇").
+    assertion(V_value    == S2).
 
 test(scalars1b) :-
     scalars1_template(Template, Vars),
@@ -81,7 +93,11 @@ test(scalars1b) :-
     read_file_to_codes('scalars1b_from_python.wire', WireStream, [encoding(octet),type(binary)]),
     % format(user_error, 'WireStream=~q~n', [WireStream]),
     protobuf_message(Template, WireStream),
+    protobuf_message(Template, WireStream2),
+    assertion(WireStream == WireStream2),
+    protobuf_message(Template, WireStream2), % once more, with both Template and WireStream2 fully instantiated
     % print_term(Template, [output(user_error)]), nl(user_error),
+    string_values(_S1, _S2, S3, _S4),
     assertion(V_double   ==  -1.5),
     assertion(V_float    ==  -2.5),
     assertion(V_int32    ==  -3),
@@ -95,7 +111,7 @@ test(scalars1b) :-
     assertion(V_sfixed32 == -11),
     assertion(V_sfixed64 == -12),
     assertion(V_bool     ==  true),
-    assertion(V_string   ==  "[àmímé níshíkíhéꜜbì] reticulated python"),
+    assertion(V_string   ==  S3),
     assertion(V_bytes    ==  [0xf0, 0x28, 0x8c, 0x28]),
     assertion(V_enum     ==  'AnotherEnum'),
     assertion(V_key      ==  "foo"),
@@ -127,6 +143,10 @@ test(repeated1a) :-
     read_file_to_codes('repeated1a_from_python.wire', WireStream, [encoding(octet),type(binary)]),
     % format(user_error, 'WireStream=~q~n', [WireStream]),
     protobuf_message(Template, WireStream),
+    protobuf_message(Template, WireStream2),
+    assertion(WireStream == WireStream2),
+    protobuf_message(Template, WireStream2), % once more, with both Template and WireStream2 fully instantiated
+    string_values(S1, _S2, _S3, S4),
     assertion(V_double     == [1.5, 0.0, -1.5]),
     assertion(V_float      == [2.5, 0.0, -2.5]),
     assertion(V_int32      == [3, -3, 555, 0, 2147483647, -2147483648]),
@@ -140,11 +160,11 @@ test(repeated1a) :-
     assertion(V_sfixed32   == [-11, 11, 0, 2147483647, -2147483648]),
     assertion(V_sfixed64   == [-12, 12, 0, 9223372036854775807, -9223372036854775808]),
     assertion(V_bool       == [false, true]),
-    assertion(V_string     == ["écran 網目錦蛇", "Hello world"]),
+    assertion(V_string     == [S1, "Hello world"]),
     assertion(V_bytes      == [[0xc3, 0x28], [0,1,2]]),
     assertion(V_enum       == ['E1','Enum2','E1']),
     assertion(V_key_values == [protobuf([string(15,"foo"),string(128,"")]),
-                               protobuf([string(15,"àmímé níshíkíhéꜜbì"),
+                               protobuf([string(15,S4),
                                          string(128,"reticulated python")])]).
 
 test(packed1a) :-
@@ -169,6 +189,7 @@ test(packed1a) :-
     read_file_to_codes('packed1a_from_python.wire', WireStream, [encoding(octet),type(binary)]),
     % format(user_error, 'WireStream=~q~n', [WireStream]),
     protobuf_message(Template, WireStream),
+    string_values(S1, _S2, _S3, S4),
     assertion(V_double     == [1.5, 0.0, -1.5]),
     assertion(V_float      == [2.5, 0.0, -2.5]),
     assertion(V_int32      == [3, -3, 555, 0, 2147483647, -2147483648]),
@@ -182,11 +203,11 @@ test(packed1a) :-
     assertion(V_sfixed32   == [-11, 11, 0, 2147483647, -2147483648]),
     assertion(V_sfixed64   == [-12, 12, 0, 9223372036854775807, -9223372036854775808]),
     assertion(V_bool       == [false, true]),
-    assertion(V_string     == ["écran 網目錦蛇", "Hello world"]),
+    assertion(V_string     == [S1, "Hello world"]),
     assertion(V_bytes      == [[0xc3, 0x28], [0,1,2]]),
     assertion(V_enum       == ['E1','Enum2','E1']),
     assertion(V_key_values == [protobuf([string(15,"foo"),string(128,"")]),
-                               protobuf([string(15,"àmímé níshíkíhéꜜbì"),
+                               protobuf([string(15,S4),
                                          string(128,"reticulated python")])]).
 
 :- end_tests(repeated).
