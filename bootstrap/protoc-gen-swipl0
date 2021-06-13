@@ -9,6 +9,9 @@ This code will be replaced by Prolog code during the bootstrap process.
 
 This program must be named protoc-gen-swipl and must be in the PATH
 when protoc is run.
+
+TODO: delete this file when all the logic has been moved to protoc-gen-swipl
+      and everything has been completely bootstrapped.
 """
 
 # This file was formatted with:         yapf  -i protoc-gen-swipl0

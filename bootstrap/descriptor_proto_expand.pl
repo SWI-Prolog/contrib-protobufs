@@ -1,5 +1,8 @@
 % -*- mode: Prolog -*-
 
+% TODO: delete this file when all the logic has been moved to protoc-gen-swipl
+%       and everything has been completely bootstrapped.
+
 %% Term expansion for descriptor_proto.pl
 %% (which is used by descriptor_proto.pl to expand a
 %% descriptor_proto/1 fact -- see the documentation of

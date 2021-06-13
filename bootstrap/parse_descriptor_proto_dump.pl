@@ -1,5 +1,8 @@
 % -*- mode: Prolog -*-
 
+% TODO: delete this file when all the logic has been moved to protoc-gen-swipl
+%       and everything has been completely bootstrapped.
+
 %% Parse the output of protoc --decode=FileDescriptorSet
 %%
 %% To generate the file plugin.proto.wiredump

@@ -12,7 +12,8 @@
 # PYTHON=$(shell type -p python3)
 PROTOC=protoc
 PYTHON=python3
-SWIPL=swipl
+SWIPL=$(realpath ../../../build/src/swipl)
+PATH_WITH_SWIPL=$(realpath ../../../build/src):$$PATH
 
 # -Wall produces warnings from the generated *.pb.cc files
 CFLAGS=-O0
@@ -33,7 +34,8 @@ test: scalars1_wire test_read_prolog test_read_cc test_read_python
 
 .PHONY: test_read_prolog
 test_read_prolog: test_read.pl scalars1b_from_cc.wire scalars1b_from_cc.wire \
-			scalars1b_from_python.wire scalars1b_from_python.wire 
+			scalars1b_from_python.wire scalars1b_from_python.wire \
+			test_pb.pl
 	$(SWIPL) test_read.pl
 
 .PHONY: test_read_python
@@ -74,6 +76,12 @@ scalars1a_from_python.wire scalars1b_from_python.wire \
 	$(PYTHON) test_write.py
 	@# $(PROTOC) -I. --decode=test.Scalars1 test.proto <scalars1a_from_python.wire
 	@# $(PROTOC) -I. --decode=test.Scalars1 test.proto <scalars1b_from_python.wire
+
+%_pb.pl: %.proto ../bootstrap/protoc-gen-swipl
+	@# PATH=".:$$PATH" $(PROTOC) $(PROTOC_I) --swipl_out=. $<
+	@# s/OUT_PARAMETER/all/ ? (see comment in protoc-gen-swipl
+	@#                         with Request.parameter)
+	PATH=$(PATH_WITH_SWIPL) $(PROTOC) $(PROTOC_I) --swipl_out='OUT_PARAMETER':. --plugin=protoc-gen-swipl=$(realpath ../bootstrap/protoc-gen-swipl) $<
 
 # Can use type -p with bash:
 PROTOC_WHICH:=$(shell which protoc)
