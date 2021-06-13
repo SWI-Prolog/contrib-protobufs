@@ -55,7 +55,7 @@ scalars1_wire: scalars1a_from_prolog.wire scalars1b_from_prolog.wire \
 	diff scalars1b_from_prolog.wire scalars1b_from_python.wire
 	diff scalars1b_from_python.wire scalars1b_from_cc.wire
 
-scalars1a_from_prolog.wire scalars1b_from_prolog.wire: test_write.pl test_common.pl
+scalars1a_from_prolog.wire scalars1b_from_prolog.wire: test_write.pl test_templates.pl
 	$(RM) scalars1a_from_prolog.wire scalars1b_from_prolog.wire
 	$(SWIPL) ./test_write.pl
 	@# $(PROTOC) -I. --decode=test.Scalars1 test.proto <scalars1a_from_prolog.wire

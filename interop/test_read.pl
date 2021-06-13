@@ -5,7 +5,7 @@
 :- initialization(test_read_main, main).
 
 :- use_module(library(protobufs)).
-:- use_module(test_common).
+:- use_module(test_templates).
 
 % Not needed because we're using plunit:
 % :- set_prolog_flag(optimise_debug, false). % ensure assertion/1 is executed

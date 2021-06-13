@@ -10,7 +10,7 @@
 :- initialization(test_main, main).
 
 :- use_module(library(protobufs)).
-:- use_module(test_common).
+:- use_module(test_templates).
 
 test_main :-
     write1,

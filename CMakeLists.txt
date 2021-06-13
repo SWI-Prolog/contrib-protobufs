@@ -51,11 +51,11 @@ swipl_examples(
 swipl_examples(
                interop/Makefile
                interop/README.md
-               interop/test_common.pl
                interop/test.proto
                interop/test_read.cc
                interop/test_read.pl
                interop/test_read.py
+               interop/test_templates.pl
                interop/test_write.cc
                interop/test_write.pl
                interop/test_write.py

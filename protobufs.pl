@@ -787,8 +787,8 @@ tag_and_codes(Tag, Codes) -->
 %
 % Fails if the message can't be parsed.
 %
-% @tbd: document the generated terms (see library(http/json) and json_read/3
-% @tbd: add options such as =true= and =value_string_as=.
+% @tbd: document the generated terms (see library(http/json) and json_read_dict/3)
+% @tbd: add options such as =true= and =value_string_as= (similar to json_read_dict/3)
 %
 % @param WireCodes Wire format of the message from e.g., read_stream_to_codes/2.
 %          (The stream should have options `encoding(octet)` and `type(binary)`,
