@@ -16,6 +16,7 @@
 # matters or not.)
 
 SRC_PROTOBUF=$(HOME)/src/protobuf
+# SRC_PROTOBUF=$(which protoc)/include
 
 # Assumption: protoc and swipl are in your $PATH ... you can override
 # these by setting PROTOC= or SWIPL= when envoking "make".
@@ -60,6 +61,7 @@ PROTOC:=$(realpath $(HOME)/src/protobuf/src/protoc)
 # PROTOC:=$(realpath $(HOME)/src/protobuf/src/.libs/protoc)
 
 PROTOC_I=-I. -I=../demo -I$(SRC_PROTOBUF)/src -I$(SRC_PROTOBUF)/src/google/protobuf -I$(SRC_PROTOBUF)/src/google/protobuf/compiler
+# PROTOC_I=-I. -I=../demo -I$(SRC_PROTOBUF)
 
 all: plugin.proto.wiredump plugin.proto.wire plugin.proto.parse plugin.proto.segment \
 	descriptor.proto.wiredump descriptor.proto.wire descriptor.proto.parse descriptor.proto.segment \

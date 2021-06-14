@@ -837,7 +837,7 @@ segment_to_term(ContextType0, Segment0, FieldAndValue) =>
     ->  convert_segment(packed(Type), ContextType, Segment0, Segment)
     ;   convert_segment(Type, ContextType, Segment0, Segment)
     ),
-    !, % remove choicepoint from convert_segment/2
+    !, % TODO: get rid of this?
     FieldAndValue = field_and_value(FieldName,RepeatOptional,Segment).
 
 :- det(convert_segment/4).
@@ -846,18 +846,18 @@ segment_to_term(ContextType0, Segment0, FieldAndValue) =>
 % "type" (in =Type=) and a =Segment=.
 convert_segment('TYPE_DOUBLE', _ContextType, Segment0, Value) =>
     Segment = fixed64(_Tag,Codes),
-    protobuf_segment_convert(Segment0, Segment), !,
-    float64_codes(Value, Codes).
+    protobuf_segment_convert(Segment0, Segment),
+    float64_codes(Value, Codes), !.
 convert_segment(packed('TYPE_DOUBLE'), _ContextType, Segment0, Values) =>
-    protobuf_segment_convert(Segment0, packed(_, fixed64(Codes))),
-    phrase(packed_payload(double, Values), Codes), !.
+    protobuf_segment_convert(Segment0, packed(_, fixed64(Values0))),
+    maplist(convert_fixed64_double, Values0, Values), !.
 convert_segment('TYPE_FLOAT', _ContextType, Segment0, Value) =>
     Segment = fixed32(_Tag,Codes),
-    protobuf_segment_convert(Segment0, Segment), !,
-    float32_codes(Value, Codes).
+    protobuf_segment_convert(Segment0, Segment),
+    float32_codes(Value, Codes), !.
 convert_segment(packed('TYPE_FLOAT'), _ContextType, Segment0, Values) =>
-    protobuf_segment_convert(Segment0, packed(_, fixed32(Codes))),
-    phrase(packed_payload(float, Values), Codes), !.
+    protobuf_segment_convert(Segment0, packed(_, fixed32(Values0))),
+    maplist(convert_fixed32_float, Values0, Values), !.
 convert_segment('TYPE_INT64', _ContextType, Segment0, Value) =>
     Segment = varint(_Tag,Value0),
     protobuf_segment_convert(Segment0, Segment), !,
@@ -866,14 +866,13 @@ convert_segment('TYPE_INT64', _ContextType, Segment0, Value) =>
     ;   Value = Value0
     ).
 convert_segment(packed('TYPE_INT64'), _ContextType, Segment0, Values) =>
-    protobuf_segment_convert(Segment0, packed(_, fixed64(Codes))),
-    phrase(packed_payload(fixed_int64, Values), Codes), !.
+    protobuf_segment_convert(Segment0, packed(_, varint(Values0))),
+    maplist(convert_varint_int64, Values0, Values), !.
 convert_segment('TYPE_UINT64', _ContextType, Segment0, Value) =>
     Segment = varint(_Tag,Value),
     protobuf_segment_convert(Segment0, Segment), !.
 convert_segment(packed('TYPE_UINT64'), _ContextType, Segment0, Values) =>
-    protobuf_segment_convert(Segment0, packed(_, varint(Codes))),
-    phrase(packed_payload(unsigned, Values), Codes), !.
+    protobuf_segment_convert(Segment0, packed(_, varint(Values))), !.
 convert_segment('TYPE_INT32', _ContextType, Segment0, Value) =>
     Segment = varint(_Tag,Value0),
     protobuf_segment_convert(Segment0, Segment), !,
@@ -882,7 +881,8 @@ convert_segment('TYPE_INT32', _ContextType, Segment0, Value) =>
     ;   Value = Value0
     ).
 convert_segment(packed('TYPE_INT32'), _ContextType, Segment0, Values) =>
-    protobuf_segment_convert(Segment0, packed(_, varint(Values))).
+    protobuf_segment_convert(Segment0, packed(_, varint(Values0))),
+    maplist(convert_varint_int32, Values0, Values), !.
 convert_segment('TYPE_FIXED64', _ContextType, Segment0, Value) =>
     Segment = fixed64(_Tag,Codes),
     protobuf_segment_convert(Segment0, Segment), !,
@@ -892,27 +892,26 @@ convert_segment('TYPE_FIXED64', _ContextType, Segment0, Value) =>
     ;   Value = Value0
     ).
 convert_segment(packed('TYPE_FIXED64'), _ContextType, Segment0, Values) =>
-    protobuf_segment_convert(Segment0, packed(_, fixed64(Codes))),
-    phrase(packed_payload(integer64, Values), Codes), !.
+    protobuf_segment_convert(Segment0, packed(_, fixed64(Values0))),
+    maplist(convert_fixed64_fixed64, Values0, Values), !.
 convert_segment('TYPE_FIXED32', _ContextType, Segment0, Value) =>
     Segment = fixed32(_Tag,Codes),
-    protobuf_segment_convert(Segment0, Segment), !,
-    int32_codes(Value0, Codes),
+    protobuf_segment_convert(Segment0, Segment),
+    int32_codes(Value0, Codes), !,
     (   Value0 < 0
     ->  Value is -(Value0 xor 0xffffffff + 1)
     ;   Value = Value0
     ).
 convert_segment(packed('TYPE_FIXED32'), _ContextType, Segment0, Values) =>
-    protobuf_segment_convert(Segment0, packed(_, fixed32(Codes))),
-    phrase(packed_payload(integer32, Values), Codes), !.
+    protobuf_segment_convert(Segment0, packed(_, fixed32(Values0))),
+    maplist(convert_fixed32_fixed32, Values0, Values), !.
 convert_segment('TYPE_BOOL', _ContextType, Segment0, Value) =>
     Segment = varint(_Tag,Value0),
-    protobuf_segment_convert(Segment0, Segment), !,
-    int_bool(Value0, Value).
+    protobuf_segment_convert(Segment0, Segment),
+    int_bool(Value0, Value), !.
 convert_segment(packed('TYPE_BOOL'), _ContextType, Segment0, Values) =>
-    protobuf_segment_convert(Segment0, packed(_, varint(Codes))),
-    phrase(packed_payload(unsigned, Values0), Codes), !,
-    maplist(int_bool, Values0, Values).
+    protobuf_segment_convert(Segment0, packed(_, varint(Values0))),
+    maplist(int_bool, Values0, Values), !.
 convert_segment('TYPE_STRING', _ContextType, Segment0, Value) =>
     Segment = string(_,ValueStr),
     protobuf_segment_convert(Segment0, Segment), !,
@@ -924,9 +923,9 @@ convert_segment('TYPE_GROUP', _ContextType, _Segment0, _Value) =>
     fail. % TODO - for now, this should throw an exception because of :- det(convert_segment/4).
 convert_segment('TYPE_MESSAGE', ContextType, Segment0, Value) =>
     Segment = message(_,MsgSegments),
-    protobuf_segment_convert(Segment0, Segment), !,
+    protobuf_segment_convert(Segment0, Segment),
     maplist(segment_to_term(ContextType), MsgSegments, MsgFields),
-    combine_fields(MsgFields, ContextType{}, Value).
+    combine_fields(MsgFields, ContextType{}, Value), !.
 convert_segment('TYPE_BYTES', _ContextType, Segment0, Value) =>
     Segment = length_delimited(_,Value),
     protobuf_segment_convert(Segment0, Segment), !.
@@ -934,42 +933,78 @@ convert_segment('TYPE_UINT32', _ContextType, Segment0, Value) =>
     Segment = varint(_Tag,Value),
     protobuf_segment_convert(Segment0, Segment), !.
 convert_segment(packed('TYPE_UINT32'), _ContextType, Segment0, Values) =>
-    protobuf_segment_convert(Segment0, packed(_, varint(Values))).
+    protobuf_segment_convert(Segment0, packed(_, varint(Values))), !.
 convert_segment('TYPE_ENUM', ContextType, Segment0, Value) =>
     Segment = varint(_,Value0),
     protobuf_segment_convert(Segment0, Segment), !,
     protobufs:proto_meta_enum_value(ContextType, Value, Value0). % meta data
 convert_segment(packed('TYPE_ENUM'), ContextType, Segment0, Values) =>
-    protobuf_segment_convert(Segment0, packed(_, varint(Values0))),
+    protobuf_segment_convert(Segment0, packed(_, varint(Values0))), !,
     maplist(protobufs:proto_meta_enum_value(ContextType), Values, Values0). % meta data
 convert_segment('TYPE_SFIXED32', _ContextType, Segment0, Value) =>
     Segment = fixed32(_,Codes),
     protobuf_segment_convert(Segment0, Segment), !,
     int32_codes(Value, Codes).
 convert_segment(packed('TYPE_SFIXED32'), _ContextType, Segment0, Values) =>
-    protobuf_segment_convert(Segment0, packed(_, fixed32(Codes))),
-    phrase(packed_payload(integer32, Values), Codes), !.
+    protobuf_segment_convert(Segment0, packed(_, fixed32(Values))), !.
 convert_segment('TYPE_SFIXED64', _ContextType, Segment0, Value) =>
     Segment = fixed64(_,Codes),
     protobuf_segment_convert(Segment0, Segment), !,
     int64_codes(Value, Codes).
 convert_segment(packed('TYPE_SFIXED64'), _ContextType, Segment0, Values) =>
-    protobuf_segment_convert(Segment0, packed(_, fixed64(Codes))),
-    phrase(packed_payload(integer64, Values), Codes), !.
+    protobuf_segment_convert(Segment0, packed(_, fixed64(Values))), !.
 convert_segment('TYPE_SINT32', _ContextType, Segment0, Value) =>
     Segment = varint(_,Value0),
     protobuf_segment_convert(Segment0, Segment), !,
     integer_zigzag(Value, Value0).
 convert_segment(packed('TYPE_SINT32'), _ContextType, Segment0, Values) =>
     protobuf_segment_convert(Segment0, packed(_, varint(Values0))),
-    maplist(integer_zigzag, Values, Values0).
+    maplist(convert_varint_sint32, Values0, Values), !.
 convert_segment('TYPE_SINT64', _ContextType, Segment0, Value) =>
     Segment = varint(_,Value0),
     protobuf_segment_convert(Segment0, Segment), !,
     integer_zigzag(Value, Value0).
 convert_segment(packed('TYPE_SINT64'), _ContextType, Segment0, Values) =>
     protobuf_segment_convert(Segment0, packed(_, varint(Values0))),
-    maplist(integer_zigzag, Values, Values0).
+    maplist(convert_varint_sint64, Values0, Values), !.
+
+convert_fixed64_double(V0, V) :-
+    int64_codes(V0, Codes),
+    float64_codes(V, Codes).
+
+convert_fixed32_float(V0, V) :-
+    int32_codes(V0, Codes),
+    float32_codes(V, Codes).
+
+convert_varint_int64(V0, V) :-
+    (   V0 > 0x7fffffffffffffff
+    ->  V is -(V0 xor 0xffffffffffffffff + 1)
+    ;   V = V0
+    ).
+
+convert_varint_int32(V0, V) :-
+    (   V0 > 0x7fffffff
+    ->  V is -(V0 xor 0xffffffffffffffff + 1)
+    ;   V = V0
+    ).
+
+convert_fixed64_fixed64(V0, V) :-
+        (   V0 < 0
+    ->  V is -(V0 xor 0xffffffffffffffff + 1)
+    ;   V = V0
+    ).
+
+convert_fixed32_fixed32(V0, V) :-
+        (   V0 < 0
+    ->  V is -(V0 xor 0xffffffff + 1)
+    ;   V = V0
+    ).
+
+convert_varint_sint64(V0, V) :-
+    integer_zigzag(V, V0).
+
+convert_varint_sint32(V0, V) :-
+    integer_zigzag(V, V0).
 
 % TODO: use options to translate to/from false, true (see json_read/3)
 int_bool(0, false).
@@ -990,8 +1025,13 @@ combine_fields([], MsgDict0, MsgDict) => MsgDict = MsgDict0.
 combine_fields([field_and_value(Field,norepeat,Value)|Fields], MsgDict0, MsgDict) =>
     put_dict(Field, MsgDict0, Value, MsgDict1),
     combine_fields(Fields, MsgDict1, MsgDict).
-combine_fields([field_and_value(Field,repeat_packed,Value)|Fields], MsgDict0, MsgDict) =>
-    combine_fields([field_and_value(Field,repeat,Value)|Fields], MsgDict0, MsgDict).
+combine_fields([field_and_value(Field,repeat_packed,Values0)|Fields], MsgDict0, MsgDict) =>
+    (   get_dict(Field, MsgDict0, ExistingValues)
+    ->  append(ExistingValues, Values0, Values)
+    ;   Values = Values0
+    ),
+    put_dict(Field, MsgDict0, Values, MsgDict1),
+    combine_fields(Fields, MsgDict1, MsgDict).
 combine_fields([field_and_value(Field,repeat,Value)|Fields], MsgDict0, MsgDict) =>
     combine_fields_repeat(Fields, Field, NewValues, RestFields),
     (   get_dict(Field, MsgDict0, ExistingValues)

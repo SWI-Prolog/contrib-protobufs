@@ -15,6 +15,9 @@ PYTHON=python3
 SWIPL=$(realpath ../../../build/src/swipl)
 PATH_WITH_SWIPL=$(realpath ../../../build/src):$$PATH
 
+SRC_PROTOBUF=$(HOME)/src/protobuf
+PROTOC_I=-I. -I=../demo -I$(SRC_PROTOBUF)/src -I$(SRC_PROTOBUF)/src/google/protobuf -I$(SRC_PROTOBUF)/src/google/protobuf/compiler
+
 # -Wall produces warnings from the generated *.pb.cc files
 CFLAGS=-O0
 CXXFLAGS=-O0
@@ -82,6 +85,9 @@ scalars1a_from_python.wire scalars1b_from_python.wire \
 	@# s/OUT_PARAMETER/all/ ? (see comment in protoc-gen-swipl
 	@#                         with Request.parameter)
 	PATH=$(PATH_WITH_SWIPL) $(PROTOC) $(PROTOC_I) --swipl_out='OUT_PARAMETER':. --plugin=protoc-gen-swipl=$(realpath ../bootstrap/protoc-gen-swipl) $<
+
+unittest_pb.pl: $(SRC_PROTOBUF)/src/google/protobuf/unittest.proto ../bootstrap/protoc-gen-swipl
+	PATH=$(PATH_WITH_SWIPL) $(PROTOC) $(PROTOC_I) --swipl_out=. --plugin=protoc-gen-swipl=$(realpath ../bootstrap/protoc-gen-swipl) unittest.proto
 
 # Can use type -p with bash:
 PROTOC_WHICH:=$(shell which protoc)

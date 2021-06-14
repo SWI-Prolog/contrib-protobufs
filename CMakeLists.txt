@@ -69,7 +69,11 @@ test_libs(protobufs
 
 find_program(PROTOC protoc)
 
-if(PROTOC)
+exec_program("python3 -c 'from google.protobuf import descriptor_pb2'"
+             RETURN_VALUE python3_protobuf
+             OUTPUT_VARIABLE python3_protobuf_output) # swallow stderr
+
+if(PROTOC AND "${python3_protobuf}" EQUAL "0")
     add_test(NAME "${SWIPL_PKG}:bootstrap"
              COMMAND make SWIPL=${PROG_SWIPL} -C ${CMAKE_CURRENT_SOURCE_DIR}/bootstrap clean test)
     add_test(NAME "${SWIPL_PKG}:interop"
@@ -77,7 +81,7 @@ if(PROTOC)
     add_test(NAME "${SWIPL_PKG}:demo"
              COMMAND make SWIPL=${PROG_SWIPL} -C ${CMAKE_CURRENT_SOURCE_DIR}/demo clean test)
 else(PROTOC)
-    message(WARNING, "Some ${SWIPL_PKG} tests not run because protoc not found.")
+    message(WARNING, "Some ${SWIPL_PKG} tests not run because protoc or python/protobuf not found.")
 endif()
 
 pkg_doc(protobufs

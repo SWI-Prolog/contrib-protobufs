@@ -99,7 +99,7 @@ descriptor_proto_expand_FileDescriptorProto(File) -->
                       dependency:        []              -_,
                       public_dependency: []              -_,
                       weak_dependency:   []              -_,
-                      message_type:      []              -File_message_type, 
+                      message_type:      []              -File_message_type,
                       enum_type:         []              -File_enum_type,
                       service:           []               -_,
                       extension:         []              -File_extension,
@@ -118,7 +118,7 @@ expand_DescriptorProto(Fqn, MessageType) -->
     { lookup_pieces('DescriptorProto', MessageType,
                     _{
                       name:            ''      -MessageType_name,
-                      field:           field{} -MessageType_field,
+                      field:           []      -MessageType_field,
                       extension:       []      -_,
                       nested_type:     []      -MessageType_nested_type,
                       enum_type:       []      -MessageType_enum_type,
