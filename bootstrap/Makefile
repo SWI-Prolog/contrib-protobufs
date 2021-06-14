@@ -15,9 +15,6 @@
 # fairly old at the time of writing this and I don't know whether that
 # matters or not.)
 
-SRC_PROTOBUF=$(HOME)/src/protobuf
-# SRC_PROTOBUF=$(which protoc)/include
-
 # Assumption: protoc and swipl are in your $PATH ... you can override
 # these by setting PROTOC= or SWIPL= when envoking "make".
 
@@ -30,6 +27,8 @@ SRC_PROTOBUF=$(HOME)/src/protobuf
 
 # Naming conventions - see README.md section "descriptor.proto and friends"
 
+include common.mk
+
 .SUFFIXES: .proto .pl .py .wire .wiredump .wirerawdump .segment
 
 .DELETE_ON_ERROR: # Any non-zero return code deletes the target file(s)
@@ -40,29 +39,6 @@ SRC_PROTOBUF=$(HOME)/src/protobuf
 
 test: test_segment_messages descriptor.proto.segment
 
-# SRC_PROTOBUF is where you've downloaded the protobuf sources
-# (e.g., by git clone). This is not needed for "make check".
-SRC_PROTOBUF=$(HOME)/src/protobuf
-# SHELL:=/bin/bash
-
-# SWIPL=$(HOME)/src/swipl-devel/build/src/swipl
-SWIPL=$(realpath ../../../build/src/swipl)
-
-PATH_WITH_SWIPL=$(realpath ../../../build/src):$$PATH
-
-RM=rm -f
-
-# If SHELL is bash, can use `type -p protoc` instead of `which protoc`
-# PROTOC=$(shell which protoc)
-# PROTOC=protoc
-#  Requires having done "make" in ~/src/protobufs:
-PROTOC:=$(realpath $(HOME)/src/protobuf/src/protoc)
-# Requires having LD_LIBRARY_PATH=$(realpath ../../../../protobuf/src/.libs):
-# PROTOC:=$(realpath $(HOME)/src/protobuf/src/.libs/protoc)
-
-PROTOC_I=-I. -I=../demo -I$(SRC_PROTOBUF)/src -I$(SRC_PROTOBUF)/src/google/protobuf -I$(SRC_PROTOBUF)/src/google/protobuf/compiler
-# PROTOC_I=-I. -I=../demo -I$(SRC_PROTOBUF)
-
 all: plugin.proto.wiredump plugin.proto.wire plugin.proto.parse plugin.proto.segment \
 	descriptor.proto.wiredump descriptor.proto.wire descriptor.proto.parse descriptor.proto.segment \
 	addressbook_pb0.pl addressbook_pb.pl
@@ -72,11 +48,10 @@ all: plugin.proto.wiredump plugin.proto.wire plugin.proto.parse plugin.proto.seg
 %_pb2.py: %.proto
 	$(PROTOC) $(PROTOC_I) --python_out=. $<
 
-plugin_pb2.py: $(SRC_PROTOBUF)/src/google/protobuf/compiler/plugin.proto \
-		$(SRC_PROTOBUF)/src/google/protobuf/descriptor.proto
+plugin_pb2.py: $(PLUGIN_PROTO) $(DESCRIPTOR_PROTO)
 	$(PROTOC) $(PROTOC_I) --python_out=. $(notdir $<)
 
-descriptor_pb2.py: $(SRC_PROTOBUF)/src/google/protobuf/descriptor.proto
+descriptor_pb2.py: $(DESCRIPTOR_PROTO)
 	$(PROTOC) $(PROTOC_I) --python_out=. $(notdir $<)
 
 # Bootstrap rule for prolog plugin
@@ -86,26 +61,24 @@ addressbook_pb.pl: ../demo/addressbook.proto protoc-gen-swipl
 	@#                         with Request.parameter)
 	PATH=$(PATH_WITH_SWIPL) $(PROTOC) $(PROTOC_I) --swipl_out='OUT_PARAMETER':. --plugin=protoc-gen-swipl=$(realpath ./protoc-gen-swipl) $<
 
+# TODO: delete
 addressbook_pb0.pl: ../demo/addressbook.proto protoc-gen-swipl0 plugin_pb2.py descriptor_pb2.py
 	PATH=".:$$PATH" $(PROTOC) $(PROTOC_I) --swipl0_out=. $(notdir $<)
 
-# Make a binary protobuf msg file (see
-# $(SRC_PROTOBUF)/src/google/protobuf/descriptor.proto) with a
+# Make a binary protobuf msg file (see $(DESCRIPTOR_PROTO)) with a
 # FileDescriptorSet message, describing the .proto and all its
 # dependencies:
 %.proto.wire: %.proto
 	$(PROTOC) $(PROTOC_I) --include_imports --descriptor_set_out=$@ $<
 
-descriptor.proto.wire: \
-		$(SRC_PROTOBUF)/src/google/protobuf/descriptor.proto
-	$(PROTOC) $(PROTOC_I) --include_imports --descriptor_set_out=$@ descriptor.proto
+descriptor.proto.wire: $(DESCRIPTOR_PROTO)
+	$(PROTOC) $(PROTOC_I) --include_imports --descriptor_set_out=$@ $(notdir $<)
 
-plugin.proto.wire: \
-		$(SRC_PROTOBUF)/src/google/protobuf/compiler/plugin.proto
-	$(PROTOC) $(PROTOC_I) --include_imports --descriptor_set_out=$@ plugin.proto
+plugin.proto.wire: $(PLUGIN_PROTO)
+	$(PROTOC) $(PROTOC_I) --include_imports --descriptor_set_out=$@ $(notdir $<)
 
 # Run the protobuf_segment_messages test.
-# See also rules  descriptor.proto.wirerawdump, descriptor.proto.wiredump
+# See also rules descriptor.proto.wirerawdump, descriptor.proto.wiredump
 test_segment_messages: descriptor.proto.wire tests.pl FORCE
 	$(SWIPL) -g test_segment_messages -g halt tests.pl
 
@@ -129,7 +102,8 @@ descriptor.proto.wirerawdump: descriptor.proto.wire
 clean:
 	@# TODO: special handling for descriptor.* files
 	$(RM) -r foo *.tmp *.o *.pb.cc *.pb.h *_pb2.py *_pb.pl *_pb0.pl doc/ ../TAGS \
-		*.proto.wire *.proto.wirerawdump *.proto.wiredump *.proto.parse __pycache__
+		*.proto.wire *.proto.wirerawdump *.proto.wiredump *.proto.parse __pycache__ \
+		descriptor.proto.segment plugin.proto.segment
 	git clean -ndxf  # Should find nothing.
 
 # For testing: this is what the build does.

@@ -1,4 +1,6 @@
-# Test of test.proto, test.pl
+#!/usr/bin/env python3
+
+"""Test of test.proto, test.pl"""
 
 import os
 import unittest

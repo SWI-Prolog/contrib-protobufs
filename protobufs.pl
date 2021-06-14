@@ -801,6 +801,12 @@ tag_and_codes(Tag, Codes) -->
 %
 % @tbd: document the generated terms (see library(http/json) and json_read_dict/3)
 % @tbd: add options such as =true= and =value_string_as= (similar to json_read_dict/3)
+% @tbd: add option for form of the dict tags (fully qualified or not)
+% @tbd: add proto2/proto3 options for processing default values.
+%
+% @bug Does nothing for "default" values.
+% @bug Ignores extensions.
+% @bug Doesn't do anything special for =oneof= or =map=.
 %
 % @param WireCodes Wire format of the message from e.g., read_stream_to_codes/2.
 %          (The stream should have options `encoding(octet)` and `type(binary)`,

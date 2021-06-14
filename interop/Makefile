@@ -8,22 +8,11 @@
 # These files don't need to be kept, but can be useful for debugging:
 .PRECIOUS: %.pb.cc %.pb.h %_pb.h
 
-# PROTOC=$(shell type -p protoc)
-# PYTHON=$(shell type -p python3)
-PROTOC=protoc
-PYTHON=python3
-SWIPL=$(realpath ../../../build/src/swipl)
-PATH_WITH_SWIPL=$(realpath ../../../build/src):$$PATH
+include ../bootstrap/common.mk
 
-SRC_PROTOBUF=$(HOME)/src/protobuf
-PROTOC_I=-I. -I=../demo -I$(SRC_PROTOBUF)/src -I$(SRC_PROTOBUF)/src/google/protobuf -I$(SRC_PROTOBUF)/src/google/protobuf/compiler
-
-# -Wall produces warnings from the generated *.pb.cc files
-CFLAGS=-O0
-CXXFLAGS=-O0
-# flags from pkg-config: -pthread -lprotobuf -lpthread
-CPPFLAGS:=$(shell pkg-config --cflags protobuf)
-LDFLAGS:=$(shell pkg-config --libs protobuf)
+# unittest.proto is copied from here (see README.md):
+#   UNITTEST_PROTO=$(SRC_PROTOBUF)/src/google/protobuf/unittest.proto
+UNITTEST_PROTO=unittest.proto
 
 .SUFFIXES: .proto .py .pl .wire
 
@@ -86,7 +75,7 @@ scalars1a_from_python.wire scalars1b_from_python.wire \
 	@#                         with Request.parameter)
 	PATH=$(PATH_WITH_SWIPL) $(PROTOC) $(PROTOC_I) --swipl_out='OUT_PARAMETER':. --plugin=protoc-gen-swipl=$(realpath ../bootstrap/protoc-gen-swipl) $<
 
-unittest_pb.pl: $(SRC_PROTOBUF)/src/google/protobuf/unittest.proto ../bootstrap/protoc-gen-swipl
+unittest_pb.pl: $(UNITTEST_PROTO) ../bootstrap/protoc-gen-swipl
 	PATH=$(PATH_WITH_SWIPL) $(PROTOC) $(PROTOC_I) --swipl_out=. --plugin=protoc-gen-swipl=$(realpath ../bootstrap/protoc-gen-swipl) unittest.proto
 
 # Can use type -p with bash:

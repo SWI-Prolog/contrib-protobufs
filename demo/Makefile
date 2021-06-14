@@ -26,6 +26,8 @@
 
 # Naming conventions - see README.md section "descriptor.proto and friends"
 
+include ../bootstrap/common.mk
+
 .DELETE_ON_ERROR: # Any non-zero return code deletes the target file(s)
 
 .PHONY: FORCE check clean test_all interop_test
@@ -35,25 +37,6 @@
 
 test: check test_basic_usage test_send_command test_send_precompiled_command
 
-SWIPL=swipl
-
-PROTOC=protoc
-PROTOC_I=-I.
-
-RM=rm -f
-
-# This is essentially GNU Make 4.2.1 built-in rule:
-# CXX=g++
-# %o: %.cpp
-# 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $^
-
-# Don't specify -Wall -- it produces warnings from the generated *.pb.cc files
-CFLAGS=-O0
-CXXFLAGS=-O0
-# flags from pkg-config: -pthread -lprotobuf -lpthread
-CPPFLAGS:=$(shell pkg-config --cflags protobuf)
-LDFLAGS:=$(shell pkg-config --libs protobuf)
-
 # These files don't need to be kept, but can be useful for debugging:
 .PRECIOUS: %.pb.cc %.pb.h %_pb2.py
 
@@ -62,11 +45,6 @@ LDFLAGS:=$(shell pkg-config --libs protobuf)
 	$(PROTOC) $(PROTOC_I) --cpp_out=. $<
 
 foo.o: pb_vector.pb.h foo.cpp
-
-# Can use type -p with bash:
-PROTOC_WHICH:=$(shell which protoc)
-PROTOC_DIR:=$(shell dirname $(PROTOC_WHICH))
-PROTOC_LIB:=$(shell realpath $(PROTOC_DIR)/../lib)
 
 # foo: foo.cpp pb_vector.pb.cc pb_vector.pb.h
 foo: pb_vector.pb.o foo.o

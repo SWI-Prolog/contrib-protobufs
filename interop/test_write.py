@@ -1,4 +1,6 @@
-# Test of test.proto, test.pl
+#!/usr/bin/env python3
+
+"""Test of test.proto, test.pl"""
 # Assumes that swipl is on the execution path
 
 import os
