@@ -20,7 +20,7 @@ main(Argv) :-
                       string( 1, Name),   % optional string name = 1
                       string(15, Content) % optional string content = 15
                     ]),
-    atom_concat(FilePart, ".proto", FileName),
+    atom_concat(FilePart, ".proto", FileName),  % TODO: file_name_extension/3
     atom_concat(FilePart, "_pb.pl", Name),
     Content = Result,
     protobuf_message(Response, ResponseWireStream),
@@ -33,11 +33,23 @@ main2(Argv, FileName) :-
     set_stream(user_input, encoding(octet)),
     set_stream(user_input, type(binary)),
     read_stream_to_codes(user_input, RequestWireStream),
+    % Because of the way the code is structured, bugs can cause
+    % backtracking into a clause that gives an uninformative
+    % instantiation error. To debug this, use the following code:
+    %   :- use_module(library(prolog_stack)).  % For catch_with_backtrace
+    %   catch_with_backtrace(
+    %       protobuf_parse_from_codes(...),
+    %       Error,
+    %       ( print_message(error, Error),  halt(1) )),
     protobuf_parse_from_codes(RequestWireStream,
                               '.google.protobuf.compiler.CodeGeneratorRequest',
                               Request),
+    Request.file_to_generate = [FileName|_],
+    file_base_name(FileName, FileBaseName),
+    file_name_extension(ModuleName, Extension, FileBaseName),
+    assertion(Extension == 'proto'),
     format('% ~w~n', ['-*- mode: prolog -*-']),
-    format('~q.~n', [(:- module(plugin_pb, []))]),
+    format('~q.~n', [(:- module(ModuleName, []))]),
     (   current_prolog_flag(version_git, Version)
     ->  format('swi_prolog_version(~q).~n', [Version])
     ;   current_prolog_flag(version_data, swi(Major, Minor, Path, Extra)),
@@ -66,7 +78,6 @@ main2(Argv, FileName) :-
     format(':- multifile~n    ~w~n', [PredsStr]),
     format(':- discontiguous~n    ~w~n~n~n', [PredsStr]),
     format('% for debugging:~n', []),
-    format('request(~n', []),
     % remove the source code stuff for debugging output - we don't use it:
     maplist(nb_set_dict_value(source_code_info, ' <deleted> '), Request.proto_file),
     % (   select_dict(_{source_code_info:_}, Request, RequestWithoutSourceCodeInfo)
@@ -74,15 +85,17 @@ main2(Argv, FileName) :-
     % ;   RequestWithoutSourceCodeInfo = Request
     % ),
     % print_term(RequestWithoutSourceCodeInfo, [indent_arguments(4),output(current_output)]),
-    print_term(Request, [indent_arguments(4),output(current_output)]),
-    format(').~n', []),
+    % TODO: use print_term to print the request -- there's a bug for dict{x: -5} which outputs as "dict{x:-5}", which can't be read
+    %   format('request(~n', []),
+    %   print_term(Request, [indent_arguments(4),output(current_output)]),
+    %   format(').~n', []),
+    format('~q.~n', [request(Request)]),
     format('% for debugging:~n', []),
     format('request_wire_stream(~q).~n', [RequestWireStream]),
 
     expand_request(Request),
 
-    format('~nend_of_file.~n', []),
-    Request.file_to_generate = [FileName|_]. % DO NOT SUBMIT
+    format('~nend_of_file.~n', []).
 
 nb_set_dict_value(Key, Value, Dict) :-
     nb_set_dict(Key, Dict, Value).

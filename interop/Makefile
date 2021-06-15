@@ -12,7 +12,8 @@ include ../bootstrap/common.mk
 
 # unittest.proto is copied from here (see README.md):
 #   UNITTEST_PROTO=$(SRC_PROTOBUF)/src/google/protobuf/unittest.proto
-UNITTEST_PROTO=unittest.proto
+UNITTEST_PROTO=google/protobuf/unittest.proto
+UNITTEST_IMPORT_PROTO=google/protobuf/unittest_import.proto
 
 .SUFFIXES: .proto .py .pl .wire
 
@@ -22,12 +23,28 @@ test: scalars1_wire test_read_prolog test_read_cc test_read_python
 
 # Protobuf code generator for Python and C++
 %_pb2.py %.pb.h %.pb.cc: %.proto
-	$(PROTOC) --python_out=. --cpp_out=. $?
+	$(PROTOC) -Igoogle/protobuf $(PROTOC_I) --python_out=. --cpp_out=. $?
+
+%_pb.pl: %.proto ../bootstrap/protoc-gen-swipl
+	@# PATH=".:$$PATH" $(PROTOC) $(PROTOC_I) --swipl_out=. $<
+	@# s/OUT_PARAMETER/all/ ? (see comment in protoc-gen-swipl
+	@#                         with Request.parameter)
+	PATH=$(PATH_WITH_SWIPL) $(PROTOC) $(PROTOC_I) --swipl_out='OUT_PARAMETER':. \
+		--plugin=protoc-gen-swipl=$(realpath ../bootstrap/protoc-gen-swipl) $<
+
+# google/protobuf/unittest*.proto are copied from here (see README.md):
+#    $(SRC_PROTOBUF)/src/google/protobuf/unittest.proto
+# google/protobuf/unittest_pb.pl google/protobuf/unittest_import_pb.pl \
+# google/protobuf/unittest_pb2.py google/protobuf/unittest_import_pb2.py: google/protobuf/unittest.proto google/protobuf/unittest_import.proto ../bootstrap/protoc-gen-swipl
+# 	PATH=$(PATH_WITH_SWIPL) $(PROTOC) -I google/protobuf $(PROTOC_I) --swipl_out=. --python_out=. --plugin=protoc-gen-swipl=$(realpath ../bootstrap/protoc-gen-swipl) unittest_import_public.proto
 
 .PHONY: test_read_prolog
 test_read_prolog: test_read.pl scalars1b_from_cc.wire scalars1b_from_cc.wire \
 			scalars1b_from_python.wire scalars1b_from_python.wire \
-			test_pb.pl
+			google/protobuf/unittest_pb.pl \
+			google/protobuf/unittest_import_pb.pl \
+			google/protobuf/unittest_import_public_pb.pl \
+			test_pb.pl ../golden_message.2.5.0 ../test_protobufs.pl
 	$(SWIPL) test_read.pl
 
 .PHONY: test_read_python
@@ -69,15 +86,6 @@ scalars1a_from_python.wire scalars1b_from_python.wire \
 	@# $(PROTOC) -I. --decode=test.Scalars1 test.proto <scalars1a_from_python.wire
 	@# $(PROTOC) -I. --decode=test.Scalars1 test.proto <scalars1b_from_python.wire
 
-%_pb.pl: %.proto ../bootstrap/protoc-gen-swipl
-	@# PATH=".:$$PATH" $(PROTOC) $(PROTOC_I) --swipl_out=. $<
-	@# s/OUT_PARAMETER/all/ ? (see comment in protoc-gen-swipl
-	@#                         with Request.parameter)
-	PATH=$(PATH_WITH_SWIPL) $(PROTOC) $(PROTOC_I) --swipl_out='OUT_PARAMETER':. --plugin=protoc-gen-swipl=$(realpath ../bootstrap/protoc-gen-swipl) $<
-
-unittest_pb.pl: $(UNITTEST_PROTO) ../bootstrap/protoc-gen-swipl
-	PATH=$(PATH_WITH_SWIPL) $(PROTOC) $(PROTOC_I) --swipl_out=. --plugin=protoc-gen-swipl=$(realpath ../bootstrap/protoc-gen-swipl) unittest.proto
-
 # Can use type -p with bash:
 PROTOC_WHICH:=$(shell which protoc)
 PROTOC_DIR:=$(shell dirname $(PROTOC_WHICH))
@@ -98,4 +106,5 @@ test_read: test.pb.o test_read.o
 test_read.o: test.pb.h test.pb.cc test_read.cc
 
 clean:
-	$(RM) -r *_pb2.py *.wire *.o *.pb.h *.pb.cc test_write test_read __pycache__
+	$(RM) -r *_pb2.py *.wire *.o *_pb.pl *.pb.h *.pb.cc test_write test_read __pycache__ \
+		google/protobuf/*_pb.pl gool/protobuf/*_pb2.py

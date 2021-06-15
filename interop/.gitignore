@@ -1,5 +1,8 @@
 # executable:
 test_write
 test_read
-test_pb.pl
-unittest_pb.pl
+# test_pb.pl
+# google/protobuf/unittest_pb.pl
+# google/protobuf/unittest_import_pb.pl
+# google/protobuf/unittest_import_public_pb.pl
+*_pb.pl

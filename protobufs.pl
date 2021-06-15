@@ -514,8 +514,6 @@ protobuf_message(protobuf(TemplateList), WireStream, Residue) :-
 %
 %  @bug This predicate is preliminary and may change as additional
 %       functionality is added.
-%  @bug Does not support [groups](https://developers.google.com/protocol-buffers/docs/proto#groups)
-%       (deprecated in the protobuf documentation).
 %  @tbd Expansion of this code to allow generalized handling of wire
 %       streams with fields in arbitrary order. (See bugs for
 %       protobuf_message/2).
@@ -537,12 +535,11 @@ protobuf_message(protobuf(TemplateList), WireStream, Residue) :-
 %             be interpreted as described under those items.
 %             Note that the protobuf specification does not
 %             allow packed repeated string.
-%    * start_group(Tag) - not supported, but included for completeness
-%    * end_group(Tag) - not supported, but included for completeness
+%    * group(Tag,Segments)
 %    * length_delimited(Tag,Codes)
-%  Of these, =start_group= and =end_group= are deprecated in the
-%  protobuf documentation and shouldn't appear in modern code, because
-%  they have been replaced by nested message types.
+%  Of these, =group= is deprecated in the protobuf documentation and
+%  shouldn't appear in modern code, because they have been replaced by
+%  nested message types.
 %
 %  For deciding how to interpret a length-delimited item (when
 %  =Segments= is a variable), an attempt is made to parse the item in
@@ -586,8 +583,9 @@ segment(Segment) -->
 % See also prolog_type//2
 segment_type_tag(varint(Tag,_Codes),           varint,           Tag).
 segment_type_tag(fixed64(Tag,_Codes),          fixed64,          Tag).
-segment_type_tag(start_group(Tag),             start_group,      Tag).
-segment_type_tag(end_group(Tag),               end_group,        Tag).
+segment_type_tag(start_group(Tag),             start_group,      Tag). % TODO: delete?
+segment_type_tag(end_group(Tag),               end_group,        Tag). % TODO: delete?
+segment_type_tag(group(Tag,_Segments),         start_group,      Tag).
 segment_type_tag(fixed32(Tag,_Codes),          fixed32,          Tag).
 segment_type_tag(length_delimited(Tag,_Codes), length_delimited, Tag).
 segment_type_tag(message(Tag,_Segments),       length_delimited, Tag).
@@ -598,8 +596,9 @@ segment(varint, Tag, varint(Tag,Value)) -->
     protobuf_var_int(Value).
 segment(fixed64, Tag, fixed64(Tag, [A0,A1,A2,A3,A4,A5,A6,A7])) -->
     [A0, A1, A2, A3, A4, A5, A6, A7].
-segment(start_group, Tag, start_group(Tag)) --> [].
-segment(end_group, Tag, end_group(Tag)) --> [].
+segment(start_group, Tag, group(Tag, Segments)) -->
+    segment_message(Segments),
+    protobuf_tag_type(Tag, end_group).
 segment(fixed32, Tag, fixed32(Tag, [A0,A1,A2,A3])) -->
     [A0, A1, A2, A3].
 segment(length_delimited, Tag, Result) -->
@@ -620,14 +619,10 @@ segment_length_delimited(Tag, Result) -->
 
 length_delimited_segment(message(Tag,Segments), Tag, Codes) :-
     (   var(Segments)
-    ->  protobuf_segment_message(Segments, Codes),
-        % heuristic: start_group, end_group are deprecated, so a
-        % message shouldn't contain them.
+    ->  protobuf_segment_message(Segments, Codes)
         % TODO: A more precise check would be that
         % start_group(Tag)/end_group(Tag) appear properly nested, as
         % in single_message(group, Tag, A).
-        \+ memberchk(start_group(_), Segments),
-        \+ memberchk(end_group(_), Segments)
     ;   protobuf_segment_message(Segments, Codes)
     ).
 length_delimited_segment(string(Tag,String), Tag, Codes) :-
@@ -830,7 +825,7 @@ protobuf_parse_from_codes(WireCodes, MessageType, Term) :-
     maplist(segment_to_term(MessageType), Segments, MsgFields),
     combine_fields(MsgFields, MessageType{}, Term).
 
-:- det(segment_to_term/3).
+% :- det(segment_to_term/3).  % TODO - test scalars1a_parse left choicepoint
 %! segment_to_term(+ContextType:atom, +Segment, -FieldAndValue) is det.
 % ContextType is the type (name) of the containing message
 % Segment is a segment from protobuf_segment_message/2
@@ -846,7 +841,7 @@ segment_to_term(ContextType0, Segment0, FieldAndValue) =>
     !, % TODO: get rid of this?
     FieldAndValue = field_and_value(FieldName,RepeatOptional,Segment).
 
-:- det(convert_segment/4).
+%  :- det(convert_segment/4).  % TODO: test scalars1a_parse: protobufs:proto_meta_enum_value/3 left choicepoint
 %! convert_segment(+Type:atom, +Segment, -Value) is det.
 % Compute an appropriate =Value= from the combination of descriptor
 % "type" (in =Type=) and a =Segment=.
@@ -925,8 +920,11 @@ convert_segment('TYPE_STRING', _ContextType, Segment0, Value) =>
     ->  atom_string(Value, ValueStr)
     ;   Value = ValueStr
     ).
-convert_segment('TYPE_GROUP', _ContextType, _Segment0, _Value) =>
-    fail. % TODO - for now, this should throw an exception because of :- det(convert_segment/4).
+convert_segment('TYPE_GROUP', ContextType, Segment0, Value) =>
+    Segment = group(_,GroupSegments),
+    protobuf_segment_convert(Segment0, Segment),
+    maplist(segment_to_term(ContextType), GroupSegments, GroupFields),
+    combine_fields(GroupFields, ContextType{}, Value), !.
 convert_segment('TYPE_MESSAGE', ContextType, Segment0, Value) =>
     Segment = message(_,MsgSegments),
     protobuf_segment_convert(Segment0, Segment),
