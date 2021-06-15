@@ -17,13 +17,11 @@ swipl_plugin(
     PL_LIB_SUBDIR protobufs
     PL_LIBS bootstrap/protoc-gen-swipl)
 
-# TODO: the following doesn't do anything:
-# install(PROGRAMS bootstrap/protoc-gen-swipl
-# 	DESTINATION ${SWIPL_INSTALL_PREFIX}/bin)
-# TODO: the following causes errors:
-# install(TARGETS bootstrap/protoc-gen-swipl
-#         BUNDLE DESTINATION .
-#         RUNTIME DESTINATION ${SWIPL_INSTALL_ARCH_EXE})
+swipl_plugin(
+    protoc-gen-swipl-subdir
+    PL_LIB_SUBDIR protobufs/protoc_gen_prolog_pb
+    PL_LIBS bootstrap/protoc_gen_prolog_pb/plugin_pb.pl
+            bootstrap/protoc_gen_prolog_pb/descriptor_pb.pl)
 
 # TODO: remove the following
 swipl_examples(bootstrap/protoc-gen-swipl
@@ -59,8 +57,36 @@ swipl_examples(
                interop/test_write.cc
                interop/test_write.pl
                interop/test_write.py
+               interop/google/protobuf/unittest_import.proto
+               interop/google/protobuf/unittest.proto
+               interop/google/protobuf/unittest_import_public.proto
                SUBDIR interop
               )
+swipl_examples( 
+                bootstrap/common.mk
+                # TODO: remove these - they're mainly for creating protoc)
+                # bootstrap/descriptor_proto_expand.pl
+                # bootstrap/descriptor_proto.pl
+                # bootstrap/Makefile
+                # bootstrap/parse_descriptor_proto_dump.pl
+                # # bootstrap/protoc_gen_prolog_pb (subdir - see next stanza)
+                # bootstrap/protoc-gen-swipl
+                # bootstrap/README.md
+                # bootstrap/tests.pl
+                SUBDIR bootstrap
+               )
+
+# TODO: how to generate the sub-subdir?  # DO NOT SUBMIT
+#       error message:
+#           add_custom_target called with invalid target name
+#           "plugin_protobufs_bootstrap/protoc_gen_prolog_pb_example_files".  Target
+#           names may not contain a slash.  Use ADD_CUSTOM_COMMAND to generate files
+# swipl_examples( # TODO: remove these - they're mainly for creating protoc)
+#                bootstrap/protoc_gen_prolog_pb/descriptor_pb.pl
+#                bootstrap/protoc_gen_prolog_pb/plugin_pb.pl
+#                bootstrap/protoc_gen_prolog_pb/README.md
+#                SUBDIR bootstrap/protoc_gen_prolog_pb
+#               )
 
 test_libs(protobufs
           TEST_FILES
