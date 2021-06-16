@@ -12,21 +12,25 @@ swipl_plugin(
     C_SOURCES protobufs.c
     PL_LIBS protobufs.pl)
 
-swipl_plugin(
-    protoc-gen-swipl
-    PL_LIB_SUBDIR protobufs
-    PL_LIBS bootstrap/protoc-gen-swipl)
+# The following doesn't work because protoc-gen-swipl has to be marked
+# executable. So, just create this "swipl_plugin" by hand:
+#
+#    swipl_plugin(
+#        protoc-gen-swipl
+#        PL_LIB_SUBDIR protobufs
+#        PL_LIBS bootstrap/protoc-gen-swipl)
+
+# string(REPLACE "/" "_" src_target "plugin_${name}_${sd}_pl_libs")
+install_src(plugin_protoc-gen-swipl_protobufs_pl_libs
+            PROGRAMS bootstrap/protoc-gen-swipl
+            DESTINATION ${SWIPL_INSTALL_LIBRARY}/protobufs)
+add_index(protobufs bootstrap/protoc-gen-swipl)
 
 swipl_plugin(
     protoc-gen-swipl-subdir
     PL_LIB_SUBDIR protobufs/protoc_gen_prolog_pb
     PL_LIBS bootstrap/protoc_gen_prolog_pb/plugin_pb.pl
             bootstrap/protoc_gen_prolog_pb/descriptor_pb.pl)
-
-# TODO: remove the following
-swipl_examples(bootstrap/protoc-gen-swipl
-               SUBDIR protoc
-               )
 
 swipl_examples(
                some_message.proto
