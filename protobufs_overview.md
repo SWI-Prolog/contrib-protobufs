@@ -2,7 +2,8 @@
 
 ## Overview {#protobufs-overview}
 
-Protocol  buffers  are  Google's    language-neutral,  platform-neutral,
+Protocol  Buffers ("protobufs")
+are  Google's    language-neutral,  platform-neutral,
 extensible mechanism for serializing structured data   -- think XML, but
 smaller, faster, and simpler. You define how   you  want your data to be
 structured once. This takes the form of   a  template that describes the
@@ -14,6 +15,14 @@ size  or  endianness.  Techniques  exist  to  safely  extend  your  data
 structure without breaking deployed programs   that are compiled against
 the "old" format.
 
+See https://developers.google.com/protocol-buffers
+
+There are two ways you can use protobufs in Prolog: with a compiled
+".proto" file and protobuf_parse_from_codes/3 or with a lower-level
+interface protobuf_message/2, which allows you to define your own
+domain-specific language for parsing and serliazing protobufs.
+(Currently there is no protobuf_serialize_to_codes/3.)
+
 The idea behind Google's  Protocol  Buffers   is  that  you  define your
 structured messages using a  domain-specific   language.  This takes the
 form of a .proto source file. You   pass  this file through a Google
@@ -22,6 +31,43 @@ an interpreter that can encode/decode  your   structured  data. You then
 compile and build  this  interpreter   into  your  application  program.
 Depending on the platform, the underlying runtime support is provided by
 a Google supplied library that is also bound into your program.
+
+## protoc {#protobufs-protoc}
+
+A protobuf .proto file can be processed by the protobuf compiler
+(=protoc=), using a Prolog specific plugin. You can do this by either
+adding =|/usr/lib/swi-prolog/library/protobufs|= to your =PATH= or by
+specifying the option
+=|--plugin=protoc-gen-swipl=/usr/lib/swi-prolog/library/protobufs/protoc-gen-swipl|=.
+You specify where the generated files go with the =|--swipl_out|=
+option, which must be an existing directory.
+
+Each =X.proto= file generates a =X_pb.pl= file in the directory specified
+by =|--swipl_out|=. The file contains a module name =X=, some debugging
+information, and meta-data facts that go into the =protobufs= module (and all
+the facts start with =proto_meta_+. protobuf_parse_from_codes/3 uses these
+facts to parse the wire form of the message into a Prolog term.
+
+TODO: add an "imports" option to (recursively) process all imported
+.proto files.
+
+### protobuf_serialize_to_codes/3 {#protobufs-serialize-to-codes}
+
+The Prolog term corresponding to a protobuf =message= is a dict, with
+the keys corresponding to the field names in the =message= (the dict
+tag is the fully qualified name of the =message= type). Repeated
+fields are represented by lists; enums are looked up; bools are
+represented by =false= and =true=; strings are represented by Prolog
+strings (not atoms); bytes are represented by lists of codes. If an
+optional field is not in the wire stream, it isn't in the dict
+(default values are not yet handled and empty repeated fields are also
+not in the dict rather than being given a value of =|[]|=, although this
+will probably change in the future).
+
+NOTE: if the wire codes can't be parsed, protobuf_parse_from_codes/3
+fails.  One common cause of this failure is not including all the
+meta-data. For example, if =foo.proto= imports =bar.proto=, then you
+must import =foo_pb= and =bar_pb=.
 
 ## The SWI-Prolog Implementation {#protobufs-swipl}
 

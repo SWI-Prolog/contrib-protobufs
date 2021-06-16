@@ -141,7 +141,7 @@ test(scalars1b) :-
 
 test(scalars1a_parse) :-
     read_file_to_codes('scalars1a_from_python.wire', WireCodes, [encoding(octet),type(binary)]),
-    protobuf_parse_from_codes(WireCodes, '.test.Scalars1', Term),
+    protobuf_parse_from_codes(WireCodes, 'test.Scalars1', Term), % No leading '.' for the MessageType
     string_values(S1, S2, _S3, _S4),
     assertion_eq_dict(Term,
                       '.test.Scalars1'{
@@ -361,6 +361,7 @@ test(golden_2_5_0) :- % , fixme(unimplemented:[start_group,end_group])) :-
     % To double-check the following:
     %    protoc -I. --decode=protobuf_unittest.TestAllTypes google/protobuf/unittest.proto <../golden_message.2.5.0
     % (the ordering is different because Prolog dicts display items in key order)
+    % TODO: re-order these to match unittest.proto
     assertion_eq_dict(Term,
         '.protobuf_unittest.TestAllTypes'{ default_bool:false,
                                            default_bytes:[52,49,54],

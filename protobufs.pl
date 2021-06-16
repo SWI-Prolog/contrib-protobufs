@@ -52,7 +52,7 @@
 :- autoload(library(dif), [dif/2]).
 :- autoload(library(dcg/high_order), [sequence//2]).
 
-/** <module> Google's Protocol Buffers
+/** <module> Google's Protocol Buffers ("protobufs")
 
 Protocol  buffers  are  Google's    language-neutral,  platform-neutral,
 extensible mechanism for serializing structured data  --  think XML, but
@@ -65,6 +65,14 @@ used to interwork with a variety of  languages and systems regardless of
 word size or endianness. Techniques  exist   to  safely extend your data
 structure without breaking deployed programs   that are compiled against
 the "old" format.
+
+See https://developers.google.com/protocol-buffers
+
+There are two ways you can use protobufs in Prolog: with a compiled
+".proto" file and protobuf_parse_from_codes/3 or with a lower-level
+interface protobuf_message/2, which allows you to define your own
+domain-specific language for parsing and serliazing protobufs.
+(Currently there is no protobuf_serialize_to_codes/3.)
 
 The idea behind Google's  Protocol  Buffers   is  that  you  define your
 structured messages using a domain-specific language   and  tool set. In
@@ -95,6 +103,48 @@ directory.
 */
 
 :- use_foreign_library(foreign(protobufs)).
+
+%! protobuf_parse_from_codes(+WireCodes:list, +MessageType:atom, -Term) is semidet.
+%
+% Fails if the message can't be parsed.
+%
+% @tbd: document the generated terms (see library(http/json) and json_read_dict/3)
+% @tbd: add options such as =true= and =value_string_as= (similar to json_read_dict/3)
+% @tbd: add option for form of the dict tags (fully qualified or not)
+% @tbd: add proto2/proto3 options for processing default values.
+% @tbd: add empty lists for missing repeated fields.
+%
+% @bug Does nothing for "default" values.
+% @bug Ignores extensions.
+% @bug Doesn't do anything special for =oneof= or =map=.
+%
+% @param WireCodes Wire format of the message from e.g., read_stream_to_codes/2.
+%          (The stream should have options `encoding(octet)` and `type(binary)`,
+%          either as options to read_file_to_codes/3 or by calling set_stream/2
+%          on the stream to read_stream_to_codes/2.)
+% @param MessageType Fully qualified message name (from the .proto file's =package= and =message=).
+%        For example, if the =package= is =google.protobuf= and the
+%        message is =FileDescriptorSet=, then you would use
+%        =|'.google.protobuf.FileDescriptorSet'|=. You can see the message
+%        names by looking at =|protobufs:proto_meta_field_name('.google.protobuf.FileDescriptorSet', FieldNumber, FieldName, FqnName)|=.
+%        The initial '.' on the message type name is optional.
+% @param Term The generated term, as nested dicts.
+% @see  (see [library(protobufs): Google's Protocol Buffers](#protobufs-serialize-to-codes)
+protobuf_parse_from_codes(WireCodes, MessageType0, Term) :-
+    (   atom_concat('.', _, MessageType0)  % if no initial '.', add it
+    ->  MessageType = MessageType0
+    ;   atom_concat('.', MessageType0, MessageType)
+    ),
+    protobuf_segment_message(Segments, WireCodes),
+    % protobuf_segment_message/2 can leave choicepoints, and we don't
+    % want to backtrack through all the possibilities because that
+    % leads to combinatoric explosion; instead use
+    % protobuf_segment_convert/2 to change segments that were guessed
+    % incorrectly.
+    !, % don't use any other possible Segments - let protobuf_segment_convert/2 do the job
+    % See convert_segment('TYPE_MESSAGE, ...):
+    maplist(segment_to_term(MessageType), Segments, MsgFields),
+    combine_fields(MsgFields, MessageType{}, Term).
 
 %
 % Map wire type (atom) to its encoding (an int)
@@ -789,41 +839,6 @@ tag_and_codes(Tag, Codes) -->
      protobufs:proto_meta_field_option_packed/1, %   protobufs:proto_meta_field_option_packed(FqnName)
      protobufs:proto_meta_enum_type/3,           %   protobufs:proto_meta_enum_type(          FqnName, Fqn, Name)
      protobufs:proto_meta_enum_value/3.          %   protobufs:proto_meta_enum_value(         FqnName, Name, Number)
-
-%! protobuf_parse_from_codes(+WireCodes:list, +MessageType:atom, -Term) is semidet.
-%
-% Fails if the message can't be parsed.
-%
-% @tbd: document the generated terms (see library(http/json) and json_read_dict/3)
-% @tbd: add options such as =true= and =value_string_as= (similar to json_read_dict/3)
-% @tbd: add option for form of the dict tags (fully qualified or not)
-% @tbd: add proto2/proto3 options for processing default values.
-%
-% @bug Does nothing for "default" values.
-% @bug Ignores extensions.
-% @bug Doesn't do anything special for =oneof= or =map=.
-%
-% @param WireCodes Wire format of the message from e.g., read_stream_to_codes/2.
-%          (The stream should have options `encoding(octet)` and `type(binary)`,
-%          either as options to read_file_to_codes/3 or by calling set_stream/2
-%          on the stream to read_stream_to_codes/2.)
-% @param MessageType Fully qualified message name (from the .proto file's =package= and =message=).
-%        For example, if the =package= is =google.protobuf= and the
-%        message is =FileDescriptorSet=, then you would use
-%        ='.google.protobuf.FileDescriptorSet'=. You can see the message
-%        names by looking at =protobufs:proto_meta_message_type(MessageType, _, _)=.
-% @param Term The generated term.
-protobuf_parse_from_codes(WireCodes, MessageType, Term) :-
-    protobuf_segment_message(Segments, WireCodes),
-    % protobuf_segment_message/2 can leave choicepoints, and we don't
-    % want to backtrack through all the possibilities because that
-    % leads to combinatoric explosion; instead use
-    % protobuf_segment_convert/2 to change segments that were guessed
-    % incorrectly.
-    !, % don't use any other possible Segments - let protobuf_segment_convert/2 do the job
-    % See convert_segment('TYPE_MESSAGE, ...):
-    maplist(segment_to_term(MessageType), Segments, MsgFields),
-    combine_fields(MsgFields, MessageType{}, Term).
 
 % :- det(segment_to_term/3).  % TODO - test scalars1a_parse left choicepoint
 %! segment_to_term(+ContextType:atom, +Segment, -FieldAndValue) is det.
