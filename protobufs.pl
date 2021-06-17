@@ -38,6 +38,7 @@
             protobuf_segment_message/2,  % ?Segments ?Codes
             protobuf_segment_convert/2,  % +Form1 ?Form2
             protobuf_parse_from_codes/3, % +WireCodes, +MessageType, -Term
+            protobuf_serialize_to_codes/3, % +Term, +MessageType, -WireCodes
             int32_codes/2,
             float32_codes/2,
             int64_codes/2,
@@ -131,10 +132,7 @@ directory.
 % @param Term The generated term, as nested dicts.
 % @see  (see [library(protobufs): Google's Protocol Buffers](#protobufs-serialize-to-codes)
 protobuf_parse_from_codes(WireCodes, MessageType0, Term) :-
-    (   atom_concat('.', _, MessageType0)  % if no initial '.', add it
-    ->  MessageType = MessageType0
-    ;   atom_concat('.', MessageType0, MessageType)
-    ),
+    protobufs:proto_meta_normalize(MessageType0, MessageType),
     protobuf_segment_message(Segments, WireCodes),
     % protobuf_segment_message/2 can leave choicepoints, and we don't
     % want to backtrack through all the possibilities because that
@@ -145,6 +143,13 @@ protobuf_parse_from_codes(WireCodes, MessageType0, Term) :-
     % See convert_segment('TYPE_MESSAGE, ...):
     maplist(segment_to_term(MessageType), Segments, MsgFields),
     combine_fields(MsgFields, MessageType{}, Term).
+
+%! protobuf_serialize_to_codes(+Term:dict, -MessageType:atom, -WireCodes) is det.
+protobuf_serialize_to_codes(Term, MessageType0, WireCodes) :-
+    protobufs:proto_meta_normalize(MessageType0, MessageType),
+    term_to_segments(Term, MessageType, Segments),
+    print_term('SEGMENTS':Segments, []), nl,
+    protobuf_segment_message(Segments, WireCodes).
 
 %
 % Map wire type (atom) to its encoding (an int)
@@ -857,7 +862,7 @@ segment_to_term(ContextType0, Segment0, FieldAndValue) =>
     FieldAndValue = field_and_value(FieldName,RepeatOptional,Segment).
 
 %  :- det(convert_segment/4).  % TODO: test scalars1a_parse: protobufs:proto_meta_enum_value/3 left choicepoint
-%! convert_segment(+Type:atom, +Segment, -Value) is det.
+%! convert_segment(+Type:atom, +ContextType:atom, +Segment, -Value) is det.
 % Compute an appropriate =Value= from the combination of descriptor
 % "type" (in =Type=) and a =Segment=.
 convert_segment('TYPE_DOUBLE', _ContextType, Segment0, Value) =>
@@ -1116,5 +1121,40 @@ field_descriptor_label_repeated('LABEL_REPEATED').
 % From protobufs:proto_meta_enum_value('.google.protobuf.FieldDescriptorProto.Label', Label, _).
 field_descriptor_label_single('LABEL_OPTIONAL').
 field_descriptor_label_single('LABEL_REQUIRED').
+
+% :- det(term_to_segments/3).  % TODO
+%! term_to_segments(+Term:dict, +MessageType:atom, -Segments:list) is det.
+% Recursively traverse a =Term=, generating message segments
+term_to_segments(Term, MessageType, Segments) :-
+    is_dict(Term),
+    dict_pairs(Term, _, FieldValues),
+    maplist(term_field(MessageType), FieldValues, Segments).
+
+term_field(MessageType, FieldName-Value, Segment) :-
+    protobufs:proto_meta_field_name(MessageType, Tag, FieldName, FieldFqn),
+    protobufs:proto_meta_field_type(FieldFqn, FieldType),
+    protobufs:proto_meta_field_label(FieldFqn, Label),
+    (   protobufs:proto_meta_field_option_packed(FieldFqn)
+    ->  Packed = packed
+    ;   Packed = not_packed
+    ),
+    format(user_error, 'TERM_FIELD ~q~n', [term_field(MessageType, FieldName-Value, FieldType,Label,Packed,Tag,FieldFqn)]),
+    term_field2(FieldType, Label, Packed, Tag, FieldFqn, Value, Segment).
+
+term_field2(FieldType, 'LABEL_OPTIONAL', not_packed, Tag, FieldFqn, Value, Value) :- !,
+    % format(user_error, 'FIELD-single ~q~n', [[FieldType, Tag, FieldFqn, Value]]).
+    true.
+term_field2(FieldType, 'LABEL_REQUIRED', Packed, Tag, FieldFqn, Value, Value) :- !,
+    term_field2(FieldType, 'LABEL_OPTIONAL', Packed, Tag, FieldFqn, Value, Value).
+term_field2(FieldType, 'LABEL_REPEATED', packed, Tag, FieldFqn, Values, packed(Tag,FieldValues)) :- !,
+    % format(user_error, 'FIELD-packed ~q~n', [[FieldType, Tag, FieldFqn, Value]]).
+    maplist(convert_segment(FieldType,FieldFqn), Values, FieldValues).
+term_field2(FieldType, 'LABEL_REPEATED', not_packed, Tag, FieldFqn, Value, -) :- !,
+    % format(user_error, 'FIELD-repeated ~q~n', [[FieldType, Tag, FieldFqn, Value]]).
+    true.
+term_field2(FieldType, Label, Packed, Tag, FieldFqn, Value, Segment) :-
+    % TODO: this is a bit funky:
+    domain_error(type(field_type=FieldType, label=Label, packed=Packed), value(tag=Tag, field_fqn=FieldFqn, value=Value)).
+
 
 end_of_file.
