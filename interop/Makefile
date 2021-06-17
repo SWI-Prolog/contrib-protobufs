@@ -19,7 +19,9 @@ UNITTEST_IMPORT_PROTO=google/protobuf/unittest_import.proto
 
 FORCE:
 
-test: scalars1_wire test_read_prolog test_read_cc test_read_python
+# TODO: replicate the addressbook sample from the protobufs tutorial
+test: scalars1_wire test_read_prolog test_read_cc test_read_python \
+	addressbook_pb.pl addressbook2_pb.pl
 
 # Protobuf code generator for Python and C++
 %_pb2.py %.pb.h %.pb.cc: %.proto
@@ -107,4 +109,4 @@ test_read.o: test.pb.h test.pb.cc test_read.cc
 
 clean:
 	$(RM) -r *_pb2.py *.wire *.o *_pb.pl *.pb.h *.pb.cc test_write test_read __pycache__ \
-		google/protobuf/*_pb.pl gool/protobuf/*_pb2.py
+		google/protobuf/*_pb.pl google/protobuf/*_pb2.py

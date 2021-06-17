@@ -47,11 +47,12 @@
             protobuf_var_int//1,
             protobuf_tag_type//2
           ]).
-:- autoload(library(error), [must_be/2]).
+:- autoload(library(error), [must_be/2, domain_error/2]).
 :- autoload(library(lists), [append/3]).
 :- autoload(library(utf8), [utf8_codes/3]).
 :- autoload(library(dif), [dif/2]).
 :- autoload(library(dcg/high_order), [sequence//2]).
+:- autoload(library(apply), [maplist/3]).
 
 /** <module> Google's Protocol Buffers ("protobufs")
 
@@ -487,6 +488,8 @@ repeated_message(_Type, _Tag, A) -->
 
 repeated_embedded_messages(Tag, EmbeddedFields, [protobuf(A) | B]) -->
     { copy_term(EmbeddedFields, A) },
+    % TODO: the call to single_message/3 causes analysis of
+    %       missing predicates to fail
     single_message(embedded, Tag, protobuf(A)), !,
     repeated_embedded_messages(Tag, EmbeddedFields, B).
 repeated_embedded_messages(_Tag, _EmbeddedFields, []) -->
@@ -833,6 +836,7 @@ tag_and_codes(Tag, Codes) -->
 % The protoc plugin generates these facts:
 
 :- multifile
+     protobufs:proto_meta_normalize/2,           %   protobufs:proto_meta_normalize(Unnormalized, Normalized),
      protobufs:proto_meta_package/3,             %   protobufs:proto_meta_package(Package, FileName, Options)
      protobufs:proto_meta_message_type/3,        %   protobufs:proto_meta_message_type(       Fqn,     Package, Name)
      protobufs:proto_meta_field_name/4,          %   protobufs:proto_meta_field_name(         Fqn,     FieldNumber, FieldName, FqnName),

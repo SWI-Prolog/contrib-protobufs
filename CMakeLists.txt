@@ -26,6 +26,16 @@ install_src(plugin_protoc-gen-swipl_protobufs_pl_libs
             DESTINATION ${SWIPL_INSTALL_LIBRARY}/protobufs)
 add_index(protobufs bootstrap/protoc-gen-swipl)
 
+# See packages/xpce/CMakeLists for how to add .qlf files
+# - probably not needed; the debug facts are quite expensive
+#   (0.33 secs seconds to load both *_pb.pl files); without
+#   the debug facts:
+#      %  library(protobufs) compiled into protobufs 0.02 sec, 185 clauses
+#      %  library(apply) compiled into apply 0.00 sec, 75 clauses
+#      %  protoc_gen_prolog_pb/plugin_pb compiled into plugin 0.00 sec, 111 clauses
+#      %  protoc_gen_prolog_pb/descriptor_pb compiled into descriptor 0.01 sec, 879 clauses
+#      % protoc-gen-swipl compiled 0.04 sec, 23 clauses
+
 swipl_plugin(
     protoc-gen-swipl-subdir
     PL_LIB_SUBDIR protobufs/protoc_gen_prolog_pb
@@ -37,14 +47,10 @@ swipl_examples(
                some_message.py
                eventually_implies.pl
                )
-# TODO: addressbook.proto.segment
-#       descriptor.proto.segment
-#       although they can be computed, so maybe not
+
 swipl_examples(
                demo/Makefile
                demo/README.md
-               demo/addressbook.proto
-               demo/addressbook2.proto
                demo/foo.cpp
                demo/pb_vector.proto
                demo/vector_demo.pl
@@ -61,6 +67,8 @@ swipl_examples(
                interop/test_write.cc
                interop/test_write.pl
                interop/test_write.py
+               interop/addressbook.proto
+               interop/addressbook2.proto
                interop/google/protobuf/unittest_import.proto
                interop/google/protobuf/unittest.proto
                interop/google/protobuf/unittest_import_public.proto

@@ -54,6 +54,16 @@ $SRC/protobuf/src/google/protobuf/unittest.proto
 So, a copy of this `unittest.proto` file has been made here.
 It is related to the "golden_message" test in `../test_protobufs.pl`.
 
+## addressbook.proto, addressbook2.proto
+
+These are from the [Google protobuf
+tutorial](https://developers.google.com/protocol-buffers/docs/tutorials),
+mainly from the [Python
+tutorial](https://developers.google.com/protocol-buffers/docs/pythontutorial).
+
+They have been slightly modified to put the `TimeStamps` message into
+a second `.proto` file, in order to test a few things.
+
 ## Future work
 
 These tests write into the current directory. This prevents using a

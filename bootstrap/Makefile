@@ -33,7 +33,7 @@ include common.mk
 
 .DELETE_ON_ERROR: # Any non-zero return code deletes the target file(s)
 
-.PHONY: FORCE all clean docs test_segment_messages
+.PHONY: FORCE all clean docs test_segment_messages bootstrap
 
 .DEFAULT_GOAL=all
 
@@ -41,7 +41,31 @@ test: test_segment_messages descriptor.proto.segment
 
 all: plugin.proto.wiredump plugin.proto.wire plugin.proto.parse plugin.proto.segment \
 	descriptor.proto.wiredump descriptor.proto.wire descriptor.proto.parse descriptor.proto.segment \
-	addressbook_pb0.pl addressbook_pb.pl
+	bootstrap
+
+.PHONY: bootstrap
+bootstrap: protoc_gen_prolog_pb/plugin_pb.qlf \
+	   protoc_gen_prolog_pb/descriptor_pb.qlf
+
+%_pb.pl: %.proto protoc-gen-swipl
+	@# PATH=".:$$PATH" $(PROTOC) $(PROTOC_I) --swipl_out=. $<
+	@# s/OUT_PARAMETER/all/ ? (see comment in protoc-gen-swipl
+	@#                         with Request.parameter)
+	PATH=$(PATH_WITH_SWIPL) $(PROTOC) $(PROTOC_I) --swipl_out='OUT_PARAMETER':. \
+		--plugin=protoc-gen-swipl=$(realpath protoc-gen-swipl) $<
+
+%.qlf: %.pl
+	$(SWIPL) -o $*.qlf -c <$*.pl
+
+protoc_gen_prolog_pb/plugin_pb.pl: $(PLUGIN_PROTO) protoc-gen-swipl
+	PATH=$(PATH_WITH_SWIPL) $(PROTOC) $(PROTOC_I) \
+	--plugin=protoc-gen-swipl=$(realpath protoc-gen-swipl) \
+	--swipl_out=protoc_gen_prolog_pb plugin.proto
+
+protoc_gen_prolog_pb/descriptor_pb.pl: $(DESCRIPTOR_PROTO) protoc-gen-swipl
+	PATH=$(PATH_WITH_SWIPL) $(PROTOC) $(PROTOC_I) \
+	--plugin=protoc-gen-swipl=$(realpath protoc-gen-swipl) \
+	--swipl_out=protoc_gen_prolog_pb descriptor.proto
 
 # Protobuf code generator for Python  # TODO: delete when no longer needed
 
@@ -51,19 +75,10 @@ all: plugin.proto.wiredump plugin.proto.wire plugin.proto.parse plugin.proto.seg
 plugin_pb2.py: $(PLUGIN_PROTO) $(DESCRIPTOR_PROTO)
 	$(PROTOC) $(PROTOC_I) --python_out=. $(notdir $<)
 
-descriptor_pb2.py: $(DESCRIPTOR_PROTO)
+descriptor_pb2.py: $(DESCRIPTOR_PROTO) 
 	$(PROTOC) $(PROTOC_I) --python_out=. $(notdir $<)
 
 # Bootstrap rule for prolog plugin
-addressbook_pb.pl: ../demo/addressbook.proto protoc-gen-swipl
-	@# PATH=".:$$PATH" $(PROTOC) $(PROTOC_I) --swipl_out=. $<
-	@# s/OUT_PARAMETER/all/ ? (see comment in protoc-gen-swipl
-	@#                         with Request.parameter)
-	PATH=$(PATH_WITH_SWIPL) $(PROTOC) $(PROTOC_I) --swipl_out='OUT_PARAMETER':. --plugin=protoc-gen-swipl=$(realpath ./protoc-gen-swipl) $<
-
-# TODO: delete
-addressbook_pb0.pl: ../demo/addressbook.proto protoc-gen-swipl0 plugin_pb2.py descriptor_pb2.py
-	PATH=".:$$PATH" $(PROTOC) $(PROTOC_I) --swipl0_out=. $(notdir $<)
 
 # Make a binary protobuf msg file (see $(DESCRIPTOR_PROTO)) with a
 # FileDescriptorSet message, describing the .proto and all its
@@ -88,7 +103,6 @@ test_segment_messages: descriptor.proto.wire tests.pl FORCE
 		descriptor.proto \
 		<$< >$@
 
-# make SWIPL=$HOME/src/swipl-devel/build/src/swipl -C ~/src/swipl-devel/packages/protobufs/demo rebuild0 addressbook.segment # descriptor.segment
 %.proto.segment: descriptor_proto.pl descriptor_proto_expand.pl %.proto.wire
 	$(SWIPL) descriptor_proto.pl <$*.proto.wire >$@
 

@@ -3,5 +3,4 @@
 *.proto.segment
 *_pb0.pl
 # *_pb.pl
-addressbook_pb.pl
 *_pb2.py

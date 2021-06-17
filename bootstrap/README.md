@@ -28,11 +28,7 @@ Naming conventions:
 | descriptor.proto.parse | Output from `parse_descriptor_proto_dump.pl`, which is hand-edited into `descriptor_proto.pl` (`descriptor_proto/1`).  |
 
 For a regular .proto file, the path is short. E.g., for `addressbook.proto` (which imports
-`ddressbook2.proto`, which imports `timestamp.proto`):
-
-* Generate `addressbook.proto.wire` (using `protoc`).
-* Generate `addressbook.proto.segment` (using `descriptor_proto.pl`).
-  The two imported files are included in the result.
+`addressbook2.proto`, which imports `timestamp.proto`):
 
 `descriptor.proto` can be used to encode all `.proto` files created by
 the protobuf compiler (`protoc`):

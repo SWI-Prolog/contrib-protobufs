@@ -26,16 +26,3 @@ in ../protobufs_overview.md. There are also some basic tests
 in here.
 
 TODO: separate out the tests into a proper test suite.
-
-## addressbook.proto, addressbook2.proto
-
-These are from the [Google protobuf
-tutorial](https://developers.google.com/protocol-buffers/docs/tutorials),
-mainly from the [Python
-tutorial](https://developers.google.com/protocol-buffers/docs/pythontutorial).
-
-They have been slightly modified to put the `TimeStamps` message into
-a second `.proto` file, in order to test a few things.
-
-`addressbook.proto.segment` is the "golden" output from rule `addressbook.segment`.
-TODO: delete this file.
