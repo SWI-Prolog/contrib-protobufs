@@ -19,6 +19,7 @@
 :- det(descriptor_proto_expand_FileDescriptorSet_preds/1).
 descriptor_proto_expand_FileDescriptorSet_preds(Preds) :-
     Preds = [
+     protobufs:proto_meta_normalize/2,               %   protobufs:proto_meta_package(Unnormalized, Normalized)
      protobufs:proto_meta_package/3,                 %   protobufs:proto_meta_package(Package, FileName, Options)
      protobufs:proto_meta_message_type/3,            %   protobufs:proto_meta_message_type(       Fqn,     Package, Name)
      protobufs:proto_meta_field_name/4,              %   protobufs:proto_meta_field_name(         Fqn,     FieldNumber, FieldName, FqnName),
@@ -107,6 +108,10 @@ descriptor_proto_expand_FileDescriptorProto(File) -->
                       source_code_info:  _               -_,
                       syntax:            ''              -_
                      }) },
+    % TODO: The following is a quick hack - see protoc-gen-swipl for the correct
+    %       way to define proto_meta_normalize/2.
+    %       No need to fix this if we do a full bootstrap.
+    [ (protobufs:proto_meta_normalize(X, X) :- !) ],
     { assertion(File_extension == []) }, % TODO: handle this?
     { add_to_fqn('', File_package, Package) },
     [ protobufs:proto_meta_package(Package, File_name, File_options) ],

@@ -8,6 +8,7 @@
 :- module(plugin_pb, []).
 
 :- discontiguous
+    protobufs:proto_meta_normalize/2,
     protobufs:proto_meta_package/3,
     protobufs:proto_meta_message_type/3,
     protobufs:proto_meta_field_name/4,
@@ -21,6 +22,7 @@
     protobufs:proto_meta_enum_value/3.
 
 :- multifile
+    protobufs:proto_meta_normalize/2,
     protobufs:proto_meta_package/3,
     protobufs:proto_meta_message_type/3,
     protobufs:proto_meta_field_name/4,
@@ -32,6 +34,12 @@
     protobufs:proto_meta_field_option_packed/1,
     protobufs:proto_meta_enum_type/3,
     protobufs:proto_meta_enum_value/3.
+
+
+% TODO: The following is a quick hack - see protoc-gen-swipl for the correct
+%       way to define proto_meta_normalize/2.
+%       No need to fix this if we do a full bootstrap.
+protobufs:proto_meta_normalize(X, X) :- !.
 
 protobufs:proto_meta_package('.google.protobuf.compiler',
               'plugin.proto',

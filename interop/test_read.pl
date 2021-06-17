@@ -317,6 +317,8 @@ test(packed1a) :-
 
 test(packed1a_parse) :-
     read_file_to_codes('packed1a_from_python.wire', WireCodes, [encoding(octet),type(binary)]),
+    % protobuf_segment_message(Segments, WireCodes),
+    % print_term(Segments, []), nl(user_output), !,
     protobuf_parse_from_codes(WireCodes, '.test.Packed1', Term),
     string_values(S1, _S2, _S3, S4),
     assertion_eq_dict(Term,
@@ -340,7 +342,8 @@ test(packed1a_parse) :-
                                        v_key_value: ['.test.KeyValue'{key:"foo", value:""},
                                                      '.test.KeyValue'{key:S4,
                                                                       value:"reticulated python"}]
-                                      }).
+                                      }),
+    true.  % protobuf_serialize_to_codes(Term, '.test.Packed1', WireCodes2).
 
 :- end_tests(repeated).
 

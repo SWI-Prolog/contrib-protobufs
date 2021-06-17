@@ -116,6 +116,7 @@ nb_set_dict_value(Key, Value, Dict) :-
 
 generated_preds(Preds) :-
         Preds = [
+     'protobufs:proto_meta_normalize/2,           %   protobufs:proto_meta_normalize(Unnormalized, Normalized)',
      'protobufs:proto_meta_package/3,             %   protobufs:proto_meta_package(Package, FileName, Options)',
      'protobufs:proto_meta_message_type/3,        %   protobufs:proto_meta_message_type(       Fqn,     Package, Name)',
      'protobufs:proto_meta_field_name/4,          %   protobufs:proto_meta_field_name(         Fqn,     FieldNumber, FieldName, FqnName)',
@@ -201,10 +202,16 @@ expand_DescriptorProto(Fqn, MessageType) :-
                     reserved_name:   []      -_
                    }),
     add_to_fqn(Fqn, MessageType_name, FqnName),
+    fqn_no_dot(FqnName, FqnNameNoDot),
+    output_fact(protobufs:proto_meta_normalize(FqnName, FqnName)),
+    output_fact(protobufs:proto_meta_normalize(FqnNameNoDot, FqnName)),
     output_fact(protobufs:proto_meta_message_type(FqnName, Fqn, MessageType_name)),
     maplist(expand_FieldDescriptorProto(FqnName), MessageType_field),
     maplist(expand_DescriptorProto(FqnName), MessageType_nested_type),
     maplist(expand_EnumDescriptorProto(FqnName), MessageType_enum_type).
+
+fqn_no_dot(FqnName, FqnNameNoDot) :-
+    atom_concat('.', FqnNameNoDot, FqnName).
 
 :- det(expand_FieldDescriptorProto/2).
 expand_FieldDescriptorProto(Fqn, Field) :-
