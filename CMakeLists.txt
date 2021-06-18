@@ -26,6 +26,12 @@ install_src(plugin_protoc-gen-swipl_protobufs_pl_libs
             DESTINATION ${SWIPL_INSTALL_LIBRARY}/protobufs)
 add_index(protobufs bootstrap/protoc-gen-swipl)
 
+# See packages/xpce/CMakeLists for how to add .qlf files
+# - probably not needed; it turned out that the slow "consults" were
+#   due to the debug facts being quite expensive (0.33 secs seconds to
+#   load both *_pb.pl files); they've been removed -- without the
+#   debug facts, this dropped to 0.04 sec (half of this in library(protobufs).
+
 swipl_plugin(
     protoc-gen-swipl-subdir
     PL_LIB_SUBDIR protobufs/protoc_gen_prolog_pb
@@ -37,12 +43,9 @@ swipl_examples(
                some_message.py
                eventually_implies.pl
                )
-# TODO: addressbook.proto.segment
-#       descriptor.proto.segment
-#       although they can be computed, so maybe not
 swipl_examples(
-               demo/Makefile
                demo/README.md
+               demo/Makefile
                demo/addressbook.proto
                demo/addressbook2.proto
                demo/foo.cpp
@@ -51,8 +54,8 @@ swipl_examples(
                SUBDIR demo
                )
 swipl_examples(
-               interop/Makefile
                interop/README.md
+               interop/Makefile
                interop/test.proto
                interop/test_read.cc
                interop/test_read.pl
@@ -61,36 +64,34 @@ swipl_examples(
                interop/test_write.cc
                interop/test_write.pl
                interop/test_write.py
-               interop/google/protobuf/unittest_import.proto
-               interop/google/protobuf/unittest.proto
-               interop/google/protobuf/unittest_import_public.proto
+               # TODO: the following should go into a subdir (see following stanza):
+                 interop/google/protobuf/unittest_import.proto
+                 interop/google/protobuf/unittest.proto
+                 interop/google/protobuf/unittest_import_public.proto
                SUBDIR interop
               )
-swipl_examples( 
+# TODO: the following gets an error due to target name containing a "/":
+# swipl_examples(
+#                interop/google/protobuf/unittest_import.proto
+#                interop/google/protobuf/unittest.proto
+#                interop/google/protobuf/unittest_import_public.proto
+#                SUBDIR interop/google/protobuf
+#               )
+swipl_examples(
+                bootstrap/README.md
                 bootstrap/common.mk
-                # TODO: remove these - they're mainly for creating protoc)
+                # The following aren't included because they're mainly
+                # for creating protoc) and may disappear when the full
+                # bootstrap is operational
                 # bootstrap/descriptor_proto_expand.pl
                 # bootstrap/descriptor_proto.pl
                 # bootstrap/Makefile
                 # bootstrap/parse_descriptor_proto_dump.pl
-                # # bootstrap/protoc_gen_prolog_pb (subdir - see next stanza)
+                # # bootstrap/protoc_gen_prolog_pb/* (subdir)
                 # bootstrap/protoc-gen-swipl
-                # bootstrap/README.md
                 # bootstrap/tests.pl
                 SUBDIR bootstrap
                )
-
-# TODO: how to generate the sub-subdir?  # DO NOT SUBMIT
-#       error message:
-#           add_custom_target called with invalid target name
-#           "plugin_protobufs_bootstrap/protoc_gen_prolog_pb_example_files".  Target
-#           names may not contain a slash.  Use ADD_CUSTOM_COMMAND to generate files
-# swipl_examples( # TODO: remove these - they're mainly for creating protoc)
-#                bootstrap/protoc_gen_prolog_pb/descriptor_pb.pl
-#                bootstrap/protoc_gen_prolog_pb/plugin_pb.pl
-#                bootstrap/protoc_gen_prolog_pb/README.md
-#                SUBDIR bootstrap/protoc_gen_prolog_pb
-#               )
 
 test_libs(protobufs
           TEST_FILES
@@ -106,15 +107,17 @@ exec_program("python3 -c 'from google.protobuf import descriptor_pb2'"
              RETURN_VALUE python3_protobuf
              OUTPUT_VARIABLE python3_protobuf_output) # swallow stderr
 
-if(PROTOC AND PKG_CONFIG AND "${python3_protobuf}" EQUAL "0")
-    add_test(NAME "${SWIPL_PKG}:bootstrap"
-             COMMAND make SWIPL=${PROG_SWIPL} -C ${CMAKE_CURRENT_SOURCE_DIR}/bootstrap clean test)
-    add_test(NAME "${SWIPL_PKG}:interop"
-             COMMAND make SWIPL=${PROG_SWIPL} -C ${CMAKE_CURRENT_SOURCE_DIR}/interop clean test)
-    add_test(NAME "${SWIPL_PKG}:demo"
-             COMMAND make SWIPL=${PROG_SWIPL} -C ${CMAKE_CURRENT_SOURCE_DIR}/demo clean test)
-else(PROTOC)
-    message(WARNING, "Some ${SWIPL_PKG} tests not run because of missing pkg-config, protoc, or python/protobuf.")
+if(BUILD_TESTING AND TEST_PROTOBUFS_PROTOC)
+  if(PROTOC AND PKG_CONFIG AND "${python3_protobuf}" EQUAL "0")
+      add_test(NAME "${SWIPL_PKG}:bootstrap"
+               COMMAND make SWIPL=${PROG_SWIPL} -C ${CMAKE_CURRENT_SOURCE_DIR}/bootstrap clean test)
+      add_test(NAME "${SWIPL_PKG}:interop"
+               COMMAND make SWIPL=${PROG_SWIPL} -C ${CMAKE_CURRENT_SOURCE_DIR}/interop clean test)
+      add_test(NAME "${SWIPL_PKG}:demo"
+               COMMAND make SWIPL=${PROG_SWIPL} -C ${CMAKE_CURRENT_SOURCE_DIR}/demo clean test)
+  else()
+      message(WARNING, "Some ${SWIPL_PKG} tests not run because of missing pkg-config, protoc, or python/protobuf.")
+  endif()
 endif()
 
 pkg_doc(protobufs
