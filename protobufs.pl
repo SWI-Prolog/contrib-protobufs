@@ -133,7 +133,7 @@ directory.
 % @param Term The generated term, as nested dicts.
 % @see  (see [library(protobufs): Google's Protocol Buffers](#protobufs-serialize-to-codes)
 protobuf_parse_from_codes(WireCodes, MessageType0, Term) :-
-    protobufs:proto_meta_normalize(MessageType0, MessageType),
+    proto_meta_normalize(MessageType0, MessageType),
     protobuf_segment_message(Segments, WireCodes),
     % protobuf_segment_message/2 can leave choicepoints, and we don't
     % want to backtrack through all the possibilities because that
@@ -147,7 +147,7 @@ protobuf_parse_from_codes(WireCodes, MessageType0, Term) :-
 
 %! protobuf_serialize_to_codes(+Term:dict, -MessageType:atom, -WireCodes) is det.
 protobuf_serialize_to_codes(Term, MessageType0, WireCodes) :-
-    protobufs:proto_meta_normalize(MessageType0, MessageType),
+    proto_meta_normalize(MessageType0, MessageType),
     term_to_segments(Term, MessageType, Segments),
     print_term('SEGMENTS':Segments, []), nl,
     protobuf_segment_message(Segments, WireCodes).
@@ -833,21 +833,21 @@ tag_and_codes(Tag, Codes) -->
 %
 % TODO: protobuf_seralize_to_codes/3
 
-% The protoc plugin generates these facts:
+% The protoc plugin generates the following facts (all starting with "proto_meta_"):
 
 :- multifile
-     protobufs:proto_meta_normalize/2,           %   protobufs:proto_meta_normalize(Unnormalized, Normalized),
-     protobufs:proto_meta_package/3,             %   protobufs:proto_meta_package(Package, FileName, Options)
-     protobufs:proto_meta_message_type/3,        %   protobufs:proto_meta_message_type(       Fqn,     Package, Name)
-     protobufs:proto_meta_field_name/4,          %   protobufs:proto_meta_field_name(         Fqn,     FieldNumber, FieldName, FqnName),
-     protobufs:proto_meta_field_json_name/2,     %   protobufs:proto_meta_field_json_name(    FqnName, JsonName)
-     protobufs:proto_meta_field_label/2,         %   protobufs:proto_meta_field_label(        FqnName, LabelRepeatOptional) % LABEL_OPTIONAL, LABEL_REQUIRED, LABEL_REPEATED
-     protobufs:proto_meta_field_type/2,          %   protobufs:proto_meta_field_type(         FqnName, Type) % TYPE_INT32, TYPE_MESSAGE, etc
-     protobufs:proto_meta_field_type_name/2,     %   protobufs:proto_meta_field_type_name(    FqnName, TypeName)
-     protobufs:proto_meta_field_default_value/2, %   protobufs:proto_meta_field_default_value(FqnName, DefaultValue)
-     protobufs:proto_meta_field_option_packed/1, %   protobufs:proto_meta_field_option_packed(FqnName)
-     protobufs:proto_meta_enum_type/3,           %   protobufs:proto_meta_enum_type(          FqnName, Fqn, Name)
-     protobufs:proto_meta_enum_value/3.          %   protobufs:proto_meta_enum_value(         FqnName, Name, Number)
+     proto_meta_normalize/2,           %   proto_meta_normalize(Unnormalized, Normalized),
+     proto_meta_package/3,             %   proto_meta_package(Package, FileName, Options)
+     proto_meta_message_type/3,        %   proto_meta_message_type(       Fqn,     Package, Name)
+     proto_meta_field_name/4,          %   proto_meta_field_name(         Fqn,     FieldNumber, FieldName, FqnName),
+     proto_meta_field_json_name/2,     %   proto_meta_field_json_name(    FqnName, JsonName)
+     proto_meta_field_label/2,         %   proto_meta_field_label(        FqnName, LabelRepeatOptional) % LABEL_OPTIONAL, LABEL_REQUIRED, LABEL_REPEATED
+     proto_meta_field_type/2,          %   proto_meta_field_type(         FqnName, Type) % TYPE_INT32, TYPE_MESSAGE, etc
+     proto_meta_field_type_name/2,     %   proto_meta_field_type_name(    FqnName, TypeName)
+     proto_meta_field_default_value/2, %   proto_meta_field_default_value(FqnName, DefaultValue)
+     proto_meta_field_option_packed/1, %   proto_meta_field_option_packed(FqnName)
+     proto_meta_enum_type/3,           %   proto_meta_enum_type(          FqnName, Fqn, Name)
+     proto_meta_enum_value/3.          %   proto_meta_enum_value(         FqnName, Name, Number)
 
 % :- det(segment_to_term/3).  % TODO - test scalars1a_parse left choicepoint
 %! segment_to_term(+ContextType:atom, +Segment, -FieldAndValue) is det.
@@ -893,7 +893,7 @@ convert_segment_packed('TYPE_UINT32', _ContextType, Segment0, Values) =>
     protobuf_segment_convert(Segment0, packed(_, varint(Values))), !.
 convert_segment_packed('TYPE_ENUM', ContextType, Segment0, Values) =>
     protobuf_segment_convert(Segment0, packed(_, varint(Values0))), !,
-    maplist(protobufs:proto_meta_enum_value(ContextType), Values, Values0). % meta data
+    maplist(proto_meta_enum_value(ContextType), Values, Values0).
 convert_segment_packed('TYPE_SFIXED32', _ContextType, Segment0, Values) =>
     protobuf_segment_convert(Segment0, packed(_, fixed32(Values))), !.
 convert_segment_packed('TYPE_SFIXED64', _ContextType, Segment0, Values) =>
@@ -905,7 +905,7 @@ convert_segment_packed('TYPE_SINT64', _ContextType, Segment0, Values) =>
     protobuf_segment_convert(Segment0, packed(_, varint(Values0))),
     maplist(convert_varint_sint64, Values0, Values), !.
 
-%  :- det(convert_segment/4).  % TODO: test scalars1a_parse: protobufs:proto_meta_enum_value/3 left choicepoint
+%  :- det(convert_segment/4).  % TODO: test scalars1a_parse: proto_meta_enum_value/3 left choicepoint
 %! convert_segment(+Type:atom, +ContextType:atom, +Segment, -Value) is det.
 % Compute an appropriate =Value= from the combination of descriptor
 % "type" (in =Type=) and a =Segment=.
@@ -980,7 +980,7 @@ convert_segment('TYPE_UINT32', _ContextType, Segment0, Value) =>
 convert_segment('TYPE_ENUM', ContextType, Segment0, Value) =>
     Segment = varint(_,Value0),
     protobuf_segment_convert(Segment0, Segment),
-    protobufs:proto_meta_enum_value(ContextType, Value, Value0), % meta data
+    proto_meta_enum_value(ContextType, Value, Value0),
     !.
 convert_segment('TYPE_SFIXED32', _ContextType, Segment0, Value) =>
     Segment = fixed32(_,Codes),
@@ -1093,39 +1093,39 @@ combine_fields_repeat(Fields, _Field, Values, RestFields) => Values = [], RestFi
 %! field_and_type(+ContextType:atom, +Tag:int, -FieldName:atom, -FqnName:atom, -ContextType2:atom, -RepeatOptional:atom, -Type:atom) is det.
 % Lookup a =ContextType= and =Tag= to get the field name, type, etc.
 field_and_type(ContextType, Tag, FieldName, FqnName, ContextType2, RepeatOptional, Type) =>
-    protobufs:proto_meta_field_name(ContextType, Tag, FieldName, FqnName),
-    protobufs:proto_meta_field_type_name(FqnName, ContextType2),
+    proto_meta_field_name(ContextType, Tag, FieldName, FqnName),
+    proto_meta_field_type_name(FqnName, ContextType2),
     fqn_repeat_optional(FqnName, RepeatOptional),
-    protobufs:proto_meta_field_type(FqnName, Type).
+    proto_meta_field_type(FqnName, Type).
 
 %! fqn_repeat_optional(+FqnName:atom, -RepeatOptional:atom) is det.
-% Lookup up protobufs:proto_meta_field_label(FqnName, _), protobufs:proto_meta_field_option_packed(FqnName)
+% Lookup up proto_meta_field_label(FqnName, _), proto_meta_field_option_packed(FqnName)
 % and set RepeatOptional to one of
 % =norepeat=, =repeat=, =repeat_packed=.
 fqn_repeat_optional(FqnName, RepeatOptional) =>
-    protobufs:proto_meta_field_label(FqnName, LabelRepeatOptional),
-    % protobufs:proto_meta_enum_value('.google.protobuf.FieldDescriptorProto.Label', 'LABEL_REPEATED', _).
+    proto_meta_field_label(FqnName, LabelRepeatOptional),
+    % proto_meta_enum_value('.google.protobuf.FieldDescriptorProto.Label', 'LABEL_REPEATED', _).
     (   LabelRepeatOptional = 'LABEL_REPEATED',
-        protobufs:proto_meta_field_option_packed(FqnName)
+        proto_meta_field_option_packed(FqnName)
     ->  RepeatOptional = repeat_packed
-    ;   \+ protobufs:proto_meta_field_option_packed(FqnName), % validity check
+    ;   \+ proto_meta_field_option_packed(FqnName), % validity check
         fqn_repeat_optional_2(LabelRepeatOptional, RepeatOptional)
     ).
 
 :- det(fqn_repeat_optional_2/2).
 %! fqn_repeat_optional_2(+DescriptorLabelEnum:atom, -RepeatOrEmpty:atom) is det.
 % Map the descriptor "label" to 'repeat' or 'norepeat'.
-% From protobufs:proto_meta_enum_value('.google.protobuf.FieldDescriptorProto.Label', Label, _).
+% From proto_meta_enum_value('.google.protobuf.FieldDescriptorProto.Label', Label, _).
 fqn_repeat_optional_2('LABEL_OPTIONAL', norepeat).
 fqn_repeat_optional_2('LABEL_REQUIRED', norepeat).
 fqn_repeat_optional_2('LABEL_REPEATED', repeat).
 
 %! field_descriptor_label_repeated(+Label:atom) is semidet.
-% From protobufs:proto_meta_enum_value('.google.protobuf.FieldDescriptorProto.Label', 'LABEL_REPEATED', _).
+% From proto_meta_enum_value('.google.protobuf.FieldDescriptorProto.Label', 'LABEL_REPEATED', _).
 field_descriptor_label_repeated('LABEL_REPEATED').
 
 %! field_descriptor_label_single(+Label:atom) is semidet.
-% From protobufs:proto_meta_enum_value('.google.protobuf.FieldDescriptorProto.Label', Label, _).
+% From proto_meta_enum_value('.google.protobuf.FieldDescriptorProto.Label', Label, _).
 field_descriptor_label_single('LABEL_OPTIONAL').
 field_descriptor_label_single('LABEL_REQUIRED').
 
@@ -1138,10 +1138,10 @@ term_to_segments(Term, MessageType, Segments) :-
     maplist(term_field(MessageType), FieldValues, Segments).
 
 term_field(MessageType, FieldName-Value, Segment) :-
-    protobufs:proto_meta_field_name(MessageType, Tag, FieldName, FieldFqn),
-    protobufs:proto_meta_field_type(FieldFqn, FieldType),
-    protobufs:proto_meta_field_label(FieldFqn, Label),
-    (   protobufs:proto_meta_field_option_packed(FieldFqn)
+    proto_meta_field_name(MessageType, Tag, FieldName, FieldFqn),
+    proto_meta_field_type(FieldFqn, FieldType),
+    proto_meta_field_label(FieldFqn, Label),
+    (   proto_meta_field_option_packed(FieldFqn)
     ->  Packed = packed
     ;   Packed = not_packed
     ),
