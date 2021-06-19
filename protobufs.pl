@@ -855,15 +855,55 @@ tag_and_codes(Tag, Codes) -->
 % Segment is a segment from protobuf_segment_message/2
 % TODO: if performance is an issue, this code can be combined with
 %       protobuf_segment_message/2 (and thereby avoid the use of protobuf_segment_convert/2)
-segment_to_term(ContextType0, Segment0, FieldAndValue) =>
-    segment_type_tag(Segment0, _, Tag),
+segment_to_term(ContextType0, Segment, FieldAndValue) =>
+    segment_type_tag(Segment, _, Tag),
     field_and_type(ContextType0, Tag, FieldName, _FqnName, ContextType, RepeatOptional, Type),
     (   RepeatOptional = repeat_packed
-    ->  convert_segment(packed(Type), ContextType, Segment0, Segment)
-    ;   convert_segment(Type, ContextType, Segment0, Segment)
+    ->  convert_segment_packed(Type, ContextType, Segment, Value)
+    ;   convert_segment(Type, ContextType, Segment, Value)
     ),
     !, % TODO: get rid of this?
-    FieldAndValue = field_and_value(FieldName,RepeatOptional,Segment).
+    FieldAndValue = field_and_value(FieldName,RepeatOptional,Value).
+
+% TODO: these are very similar to convert_segment - can they be combined?
+convert_segment_packed('TYPE_DOUBLE', _ContextType, Segment0, Values) =>
+    protobuf_segment_convert(Segment0, packed(_, fixed64(Values0))),
+    maplist(convert_fixed64_double, Values0, Values), !.
+convert_segment_packed('TYPE_FLOAT', _ContextType, Segment0, Values) =>
+    protobuf_segment_convert(Segment0, packed(_, fixed32(Values0))),
+    maplist(convert_fixed32_float, Values0, Values), !.
+convert_segment_packed('TYPE_INT64', _ContextType, Segment0, Values) =>
+    protobuf_segment_convert(Segment0, packed(_, varint(Values0))),
+    maplist(convert_varint_int64, Values0, Values), !.
+convert_segment_packed('TYPE_UINT64', _ContextType, Segment0, Values) =>
+    protobuf_segment_convert(Segment0, packed(_, varint(Values))), !.
+convert_segment_packed('TYPE_INT32', _ContextType, Segment0, Values) =>
+    protobuf_segment_convert(Segment0, packed(_, varint(Values0))),
+    maplist(convert_varint_int32, Values0, Values), !.
+convert_segment_packed('TYPE_FIXED64', _ContextType, Segment0, Values) =>
+    protobuf_segment_convert(Segment0, packed(_, fixed64(Values0))),
+    maplist(convert_fixed64_fixed64, Values0, Values), !.
+convert_segment_packed('TYPE_FIXED32', _ContextType, Segment0, Values) =>
+    protobuf_segment_convert(Segment0, packed(_, fixed32(Values0))),
+    maplist(convert_fixed32_fixed32, Values0, Values), !.
+convert_segment_packed('TYPE_BOOL', _ContextType, Segment0, Values) =>
+    protobuf_segment_convert(Segment0, packed(_, varint(Values0))),
+    maplist(int_bool, Values0, Values), !.
+convert_segment_packed('TYPE_UINT32', _ContextType, Segment0, Values) =>
+    protobuf_segment_convert(Segment0, packed(_, varint(Values))), !.
+convert_segment_packed('TYPE_ENUM', ContextType, Segment0, Values) =>
+    protobuf_segment_convert(Segment0, packed(_, varint(Values0))), !,
+    maplist(protobufs:proto_meta_enum_value(ContextType), Values, Values0). % meta data
+convert_segment_packed('TYPE_SFIXED32', _ContextType, Segment0, Values) =>
+    protobuf_segment_convert(Segment0, packed(_, fixed32(Values))), !.
+convert_segment_packed('TYPE_SFIXED64', _ContextType, Segment0, Values) =>
+    protobuf_segment_convert(Segment0, packed(_, fixed64(Values))), !.
+convert_segment_packed('TYPE_SINT32', _ContextType, Segment0, Values) =>
+    protobuf_segment_convert(Segment0, packed(_, varint(Values0))),
+    maplist(convert_varint_sint32, Values0, Values), !.
+convert_segment_packed('TYPE_SINT64', _ContextType, Segment0, Values) =>
+    protobuf_segment_convert(Segment0, packed(_, varint(Values0))),
+    maplist(convert_varint_sint64, Values0, Values), !.
 
 %  :- det(convert_segment/4).  % TODO: test scalars1a_parse: protobufs:proto_meta_enum_value/3 left choicepoint
 %! convert_segment(+Type:atom, +ContextType:atom, +Segment, -Value) is det.
@@ -873,16 +913,10 @@ convert_segment('TYPE_DOUBLE', _ContextType, Segment0, Value) =>
     Segment = fixed64(_Tag,Codes),
     protobuf_segment_convert(Segment0, Segment),
     float64_codes(Value, Codes), !.
-convert_segment(packed('TYPE_DOUBLE'), _ContextType, Segment0, Values) =>
-    protobuf_segment_convert(Segment0, packed(_, fixed64(Values0))),
-    maplist(convert_fixed64_double, Values0, Values), !.
 convert_segment('TYPE_FLOAT', _ContextType, Segment0, Value) =>
     Segment = fixed32(_Tag,Codes),
     protobuf_segment_convert(Segment0, Segment),
     float32_codes(Value, Codes), !.
-convert_segment(packed('TYPE_FLOAT'), _ContextType, Segment0, Values) =>
-    protobuf_segment_convert(Segment0, packed(_, fixed32(Values0))),
-    maplist(convert_fixed32_float, Values0, Values), !.
 convert_segment('TYPE_INT64', _ContextType, Segment0, Value) =>
     Segment = varint(_Tag,Value0),
     protobuf_segment_convert(Segment0, Segment), !,
@@ -890,14 +924,9 @@ convert_segment('TYPE_INT64', _ContextType, Segment0, Value) =>
     ->  Value is -(Value0 xor 0xffffffffffffffff + 1)
     ;   Value = Value0
     ).
-convert_segment(packed('TYPE_INT64'), _ContextType, Segment0, Values) =>
-    protobuf_segment_convert(Segment0, packed(_, varint(Values0))),
-    maplist(convert_varint_int64, Values0, Values), !.
 convert_segment('TYPE_UINT64', _ContextType, Segment0, Value) =>
     Segment = varint(_Tag,Value),
     protobuf_segment_convert(Segment0, Segment), !.
-convert_segment(packed('TYPE_UINT64'), _ContextType, Segment0, Values) =>
-    protobuf_segment_convert(Segment0, packed(_, varint(Values))), !.
 convert_segment('TYPE_INT32', _ContextType, Segment0, Value) =>
     Segment = varint(_Tag,Value0),
     protobuf_segment_convert(Segment0, Segment), !,
@@ -905,9 +934,6 @@ convert_segment('TYPE_INT32', _ContextType, Segment0, Value) =>
     ->  Value is -(Value0 xor 0xffffffffffffffff + 1)
     ;   Value = Value0
     ).
-convert_segment(packed('TYPE_INT32'), _ContextType, Segment0, Values) =>
-    protobuf_segment_convert(Segment0, packed(_, varint(Values0))),
-    maplist(convert_varint_int32, Values0, Values), !.
 convert_segment('TYPE_FIXED64', _ContextType, Segment0, Value) =>
     Segment = fixed64(_Tag,Codes),
     protobuf_segment_convert(Segment0, Segment), !,
@@ -916,9 +942,6 @@ convert_segment('TYPE_FIXED64', _ContextType, Segment0, Value) =>
     ->  Value is -(Value0 xor 0xffffffffffffffff + 1)
     ;   Value = Value0
     ).
-convert_segment(packed('TYPE_FIXED64'), _ContextType, Segment0, Values) =>
-    protobuf_segment_convert(Segment0, packed(_, fixed64(Values0))),
-    maplist(convert_fixed64_fixed64, Values0, Values), !.
 convert_segment('TYPE_FIXED32', _ContextType, Segment0, Value) =>
     Segment = fixed32(_Tag,Codes),
     protobuf_segment_convert(Segment0, Segment),
@@ -927,16 +950,10 @@ convert_segment('TYPE_FIXED32', _ContextType, Segment0, Value) =>
     ->  Value is -(Value0 xor 0xffffffff + 1)
     ;   Value = Value0
     ).
-convert_segment(packed('TYPE_FIXED32'), _ContextType, Segment0, Values) =>
-    protobuf_segment_convert(Segment0, packed(_, fixed32(Values0))),
-    maplist(convert_fixed32_fixed32, Values0, Values), !.
 convert_segment('TYPE_BOOL', _ContextType, Segment0, Value) =>
     Segment = varint(_Tag,Value0),
     protobuf_segment_convert(Segment0, Segment),
     int_bool(Value0, Value), !.
-convert_segment(packed('TYPE_BOOL'), _ContextType, Segment0, Values) =>
-    protobuf_segment_convert(Segment0, packed(_, varint(Values0))),
-    maplist(int_bool, Values0, Values), !.
 convert_segment('TYPE_STRING', _ContextType, Segment0, Value) =>
     Segment = string(_,ValueStr),
     protobuf_segment_convert(Segment0, Segment), !,
@@ -960,41 +977,27 @@ convert_segment('TYPE_BYTES', _ContextType, Segment0, Value) =>
 convert_segment('TYPE_UINT32', _ContextType, Segment0, Value) =>
     Segment = varint(_Tag,Value),
     protobuf_segment_convert(Segment0, Segment), !.
-convert_segment(packed('TYPE_UINT32'), _ContextType, Segment0, Values) =>
-    protobuf_segment_convert(Segment0, packed(_, varint(Values))), !.
 convert_segment('TYPE_ENUM', ContextType, Segment0, Value) =>
     Segment = varint(_,Value0),
-    protobuf_segment_convert(Segment0, Segment), !,
-    protobufs:proto_meta_enum_value(ContextType, Value, Value0). % meta data
-convert_segment(packed('TYPE_ENUM'), ContextType, Segment0, Values) =>
-    protobuf_segment_convert(Segment0, packed(_, varint(Values0))), !,
-    maplist(protobufs:proto_meta_enum_value(ContextType), Values, Values0). % meta data
+    protobuf_segment_convert(Segment0, Segment),
+    protobufs:proto_meta_enum_value(ContextType, Value, Value0), % meta data
+    !.
 convert_segment('TYPE_SFIXED32', _ContextType, Segment0, Value) =>
     Segment = fixed32(_,Codes),
     protobuf_segment_convert(Segment0, Segment), !,
     int32_codes(Value, Codes).
-convert_segment(packed('TYPE_SFIXED32'), _ContextType, Segment0, Values) =>
-    protobuf_segment_convert(Segment0, packed(_, fixed32(Values))), !.
 convert_segment('TYPE_SFIXED64', _ContextType, Segment0, Value) =>
     Segment = fixed64(_,Codes),
     protobuf_segment_convert(Segment0, Segment), !,
     int64_codes(Value, Codes).
-convert_segment(packed('TYPE_SFIXED64'), _ContextType, Segment0, Values) =>
-    protobuf_segment_convert(Segment0, packed(_, fixed64(Values))), !.
 convert_segment('TYPE_SINT32', _ContextType, Segment0, Value) =>
     Segment = varint(_,Value0),
     protobuf_segment_convert(Segment0, Segment), !,
     integer_zigzag(Value, Value0).
-convert_segment(packed('TYPE_SINT32'), _ContextType, Segment0, Values) =>
-    protobuf_segment_convert(Segment0, packed(_, varint(Values0))),
-    maplist(convert_varint_sint32, Values0, Values), !.
 convert_segment('TYPE_SINT64', _ContextType, Segment0, Value) =>
     Segment = varint(_,Value0),
     protobuf_segment_convert(Segment0, Segment), !,
     integer_zigzag(Value, Value0).
-convert_segment(packed('TYPE_SINT64'), _ContextType, Segment0, Values) =>
-    protobuf_segment_convert(Segment0, packed(_, varint(Values0))),
-    maplist(convert_varint_sint64, Values0, Values), !.
 
 convert_fixed64_double(V0, V) :-
     int64_codes(V0, Codes),
@@ -1142,23 +1145,23 @@ term_field(MessageType, FieldName-Value, Segment) :-
     ->  Packed = packed
     ;   Packed = not_packed
     ),
-    format(user_error, 'TERM_FIELD ~q~n', [term_field(MessageType, FieldName-Value, FieldType,Label,Packed,Tag,FieldFqn)]),
     term_field2(FieldType, Label, Packed, Tag, FieldFqn, Value, Segment).
 
-term_field2(FieldType, 'LABEL_OPTIONAL', not_packed, Tag, FieldFqn, Value, Value) :- !,
-    % format(user_error, 'FIELD-single ~q~n', [[FieldType, Tag, FieldFqn, Value]]).
-    true.
-term_field2(FieldType, 'LABEL_REQUIRED', Packed, Tag, FieldFqn, Value, Value) :- !,
-    term_field2(FieldType, 'LABEL_OPTIONAL', Packed, Tag, FieldFqn, Value, Value).
+term_field2(FieldType, 'LABEL_OPTIONAL', not_packed, _Tag, FieldFqn, Value, Segment) :- !,
+    convert_segment(FieldType, FieldFqn, Segment, Value).
+
+term_field2(FieldType, 'LABEL_REQUIRED', not_packed, _Tag, FieldFqn, Value, Segment) :- !,  % same as LABEL_OPTIONAL
+    convert_segment(FieldType, FieldFqn, Segment, Value).
+
 term_field2(FieldType, 'LABEL_REPEATED', packed, Tag, FieldFqn, Values, packed(Tag,FieldValues)) :- !,
-    % format(user_error, 'FIELD-packed ~q~n', [[FieldType, Tag, FieldFqn, Value]]).
-    maplist(convert_segment(FieldType,FieldFqn), Values, FieldValues).
-term_field2(FieldType, 'LABEL_REPEATED', not_packed, Tag, FieldFqn, Value, -) :- !,
-    % format(user_error, 'FIELD-repeated ~q~n', [[FieldType, Tag, FieldFqn, Value]]).
-    true.
+    convert_segment_packed(FieldType, FieldFqn, Values, FieldValues).
+
+term_field2(FieldType, 'LABEL_REPEATED', not_packed, _Tag, FieldFqn, Values, _Segment) :- !,
+    maplist(convert_segment(FieldType), FieldFqn, Values, repeated(Values)).
+
 term_field2(FieldType, Label, Packed, Tag, FieldFqn, Value, Segment) :-
     % TODO: this is a bit funky:
-    domain_error(type(field_type=FieldType, label=Label, packed=Packed), value(tag=Tag, field_fqn=FieldFqn, value=Value)).
+    domain_error(type(field_type=FieldType, label=Label, packed=Packed), value(tag=Tag, field_fqn=FieldFqn, value=Value, segment=Segment)).
 
 
 end_of_file.
