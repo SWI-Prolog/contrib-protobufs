@@ -7,19 +7,6 @@
 
 :- module(plugin_pb, []).
 
-:- discontiguous
-    protobufs:proto_meta_package/3,
-    protobufs:proto_meta_message_type/3,
-    protobufs:proto_meta_field_name/4,
-    protobufs:proto_meta_field_json_name/2,
-    protobufs:proto_meta_field_label/2,
-    protobufs:proto_meta_field_type/2,
-    protobufs:proto_meta_field_type_name/2,
-    protobufs:proto_meta_field_default_value/2,
-    protobufs:proto_meta_field_option_packed/1,
-    protobufs:proto_meta_enum_type/3,
-    protobufs:proto_meta_enum_value/3.
-
 :- multifile
     protobufs:proto_meta_package/3,
     protobufs:proto_meta_message_type/3,

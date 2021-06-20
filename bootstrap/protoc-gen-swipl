@@ -90,7 +90,7 @@ main2(Argv, FileName) :-
     generated_preds(Preds),
     atomic_list_concat(Preds, ',\n    ', PredsStr),
     format(':- multifile~n    ~w~n', [PredsStr]),
-    format(':- discontiguous~n    ~w~n~n~n', [PredsStr]),
+    % format(':- discontiguous~n    ~w~n~n~n', [PredsStr]), % Not needed: multifile implies this
     format('% for debugging:~n', []),
     % remove the source code stuff for debugging output - we don't use it:
     maplist(nb_set_dict_value(source_code_info, ' <deleted> '), Request.proto_file),
