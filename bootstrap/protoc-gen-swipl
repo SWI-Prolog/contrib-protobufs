@@ -92,7 +92,7 @@ main2(Argv, FileName) :-
     generated_preds(Preds),
     atomic_list_concat(Preds, ',\n    ', PredsStr),
     format(':- multifile~n    ~w~n', [PredsStr]),
-    format(':- discontiguous~n    ~w~n~n~n', [PredsStr]),
+    format(':- discontiguous~n    ~w~n~n~n', [PredsStr]), % Not needed: multifile implies this
     (   false  % change to "true" for debugging
                % these 2 facts add a lot to load time (0.33 sec vs 0.02 sec)
     ->  format('~n% for debugging:~n', []),
