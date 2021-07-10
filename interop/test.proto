@@ -7,6 +7,7 @@ enum MyEnum {
   E1 = 0;
   Enum2 = 1;
   AnotherEnum = 2;
+  NegEnum = -1; // For testing
 }
 
 message KeyValue {
@@ -80,29 +81,3 @@ message Packed1 {
   repeated MyEnum   v_enum     =11016 [packed=true];
   repeated KeyValue v_key_value=99999 [packed=false];
 }
-
-// TODO: use this for additional testing of Wiretypes?
-// TODO: - needs unsigned32,unsigned64
-// message Scalars2 {
-//   // v_Prolog wrapper types (see Wiretypes {#protobufs-wire-types} table)
-//   optional double   v_double     =   1;
-//   optional fixed64  v1_integer64 =   2;
-//   optional sfixed64 v2_integer64 = 103;
-//   optional float    v_float      =   4;
-//   optional fixed32  v1_integer32 =   5;
-//   optional sfixed64 v2_integer32 =   6;
-//   optional sint32   v_integer1   =   7;
-//   optional sint64   v_integer2   =   8;
-//   optional int32    v1_unsigned  =   9;
-//   optional int64    v2_unsigned  =  10;
-//   optional uint32   v3_unsigned  =  11;
-//   optional uint64   v4_unsigned  =  12;
-//   optional bool     v_boolean    =  13;
-//   optional MyEnum   v_enum       =  14;
-//   optional string   v_atom       =  15;
-//   optional bytes    v_codes      =  16;
-//   optional string   v_utf8_codes =  17;
-//   optional string   v_string     =  18;
-// }
-
-// TODO:  embedded, repeated, packed

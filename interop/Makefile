@@ -3,7 +3,7 @@
 # See comments in ../demo/Makefile about PKG_CONFIG_PATH
 
 .DEFAULT_GOAL=test
-.PHONY=test clean FORCE run_test run_test_cc
+.PHONY=test clean FORCE
 # SHELL:=/bin/bash
 # These files don't need to be kept, but can be useful for debugging:
 .PRECIOUS: %.pb.cc %.pb.h %_pb.h
@@ -20,7 +20,7 @@ UNITTEST_IMPORT_PROTO=google/protobuf/unittest_import.proto
 FORCE:
 
 # TODO: replicate the addressbook sample from the protobufs tutorial
-test: scalars1_wire test_read_prolog test_read_cc test_read_python \
+test: test_read_prolog scalars1_wire test_read_cc test_read_python \
 	addressbook_pb.pl addressbook2_pb.pl
 
 # Protobuf code generator for Python and C++
@@ -41,13 +41,17 @@ test: scalars1_wire test_read_prolog test_read_cc test_read_python \
 # 	PATH=$(PATH_WITH_SWIPL) $(PROTOC) -I google/protobuf $(PROTOC_I) --swipl_out=. --python_out=. --plugin=protoc-gen-swipl=$(realpath ../bootstrap/protoc-gen-swipl) unittest_import_public.proto
 
 .PHONY: test_read_prolog
-test_read_prolog: test_read.pl scalars1b_from_cc.wire scalars1b_from_cc.wire \
-			scalars1b_from_python.wire scalars1b_from_python.wire \
+test_read_prolog: test_read.pl \
+			scalars1a_from_cc.wire scalars1b_from_cc.wire \
+			scalars1a_from_python.wire scalars1b_from_python.wire \
+			repeated1a_from_python.wire \
+			packed1a_from_python.wire \
 			google/protobuf/unittest_pb.pl \
 			google/protobuf/unittest_import_pb.pl \
 			google/protobuf/unittest_import_public_pb.pl \
 			test_pb.pl ../golden_message.2.5.0 ../test_protobufs.pl
-	$(SWIPL) test_read.pl
+	@# "LANG=C" is for testing that we're doing the right thing with encodings
+	LANG=C $(SWIPL) test_read.pl
 
 .PHONY: test_read_python
 test_read_python: test_read.py scalars1a_from_prolog.wire scalars1b_from_prolog.wire
