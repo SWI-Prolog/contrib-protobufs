@@ -20,7 +20,7 @@ UNITTEST_IMPORT_PROTO=google/protobuf/unittest_import.proto
 FORCE:
 
 # TODO: replicate the addressbook sample from the protobufs tutorial
-test: test_read_prolog \
+test: test_interop_prolog \
 	scalars1_wire test_read_cc test_read_python \
 	addressbook_pb.pl addressbook2_pb.pl
 
@@ -47,7 +47,7 @@ scalars1a_from_prolog.wire \
 scalars1b_from_prolog_template.wire \
 scalars1b_from_prolog.wire \
 	: \
-		test_read.pl test_templates.pl test_pb.pl \
+		test_interop.pl test_templates.pl test_pb.pl \
 		google/protobuf/unittest_pb.pl \
 		google/protobuf/unittest_import_pb.pl \
 		google/protobuf/unittest_import_public_pb.pl \
@@ -57,7 +57,7 @@ scalars1b_from_prolog.wire \
 		repeated1a_from_python.wire \
 		packed1a_from_python.wire
 	@# "LANG=C" is for testing that we're doing the right thing with encodings:
-	LANG=C $(SWIPL) test_read.pl
+	LANG=C $(SWIPL) test_interop.pl
 
 # google/protobuf/unittest*.proto are copied from here (see README.md):
 #    $(SRC_PROTOBUF)/src/google/protobuf/unittest.proto
@@ -65,8 +65,8 @@ scalars1b_from_prolog.wire \
 # google/protobuf/unittest_pb2.py google/protobuf/unittest_import_pb2.py: google/protobuf/unittest.proto google/protobuf/unittest_import.proto ../bootstrap/protoc-gen-swipl
 # 	PATH=$(PATH_WITH_SWIPL) $(PROTOC) -I google/protobuf $(PROTOC_I) --swipl_out=. --python_out=. --plugin=protoc-gen-swipl=$(realpath ../bootstrap/protoc-gen-swipl) unittest_import_public.proto
 
-.PHONY: test_read_prolog
-test_read_prolog: test_read.pl \
+.PHONY: test_interop_prolog
+test_interop_prolog: test_interop.pl \
 			scalars1a_from_cc.wire scalars1b_from_cc.wire \
 			scalars1a_from_python.wire scalars1b_from_python.wire \
 			repeated1a_from_python.wire \
@@ -76,7 +76,7 @@ test_read_prolog: test_read.pl \
 			google/protobuf/unittest_import_public_pb.pl \
 			test_pb.pl ../golden_message.2.5.0 ../test_protobufs.pl
 	@# "LANG=C" is for testing that we're doing the right thing with encodings
-	LANG=C $(SWIPL) test_read.pl
+	LANG=C $(SWIPL) test_interop.pl
 	@# $(PROTOC) -I. --decode=test.Scalars1 test.proto <scalars1a_from_prolog.wire
 	@# $(PROTOC) -I. --decode=test.Scalars1 test.proto <scalars1b_from_prolog.wire
 

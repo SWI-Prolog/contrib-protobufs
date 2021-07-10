@@ -58,11 +58,10 @@ swipl_examples(
                interop/addressbook2.proto
                interop/test.proto
                interop/test_read.cc
-               interop/test_read.pl
                interop/test_read.py
+               interop/test_interop.pl
                interop/test_templates.pl
                interop/test_write.cc
-               interop/test_write.pl
                interop/test_write.py
                # TODO: the following should go into a subdir (see following stanza):
                  interop/google/protobuf/unittest_import.proto
