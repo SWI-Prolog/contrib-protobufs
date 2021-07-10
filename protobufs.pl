@@ -478,11 +478,11 @@ payload(packed, TypedPayloadSeq) -->
     },
     payload(codes, Codes),
     !.
-payload(packed, enum(EnumSpec)) -->
+payload(packed, enum(EnumSeq)) -->
     !,
     % TODO: combine with next clause
     % TODO: replace =.. with a predicate that gives all the possibilities - see detag/6.
-    { EnumSpec =.. [ Enum, Values ] }, % EnumSpec = Enum(Values)
+    { EnumSeq =.. [ Enum, Values ] }, % EnumSeq = Enum(Values)
     payload(codes, Codes),
     { phrase(packed_enum(Enum, Values), Codes) }.
 payload(packed, TypedPayloadSeq) -->
@@ -491,6 +491,11 @@ payload(packed, TypedPayloadSeq) -->
     { TypedPayloadSeq =.. [PrologType, PayloadSeq] },  % TypedPayloadSeq = PrologType(PayloadSeq)
     { phrase(packed_payload(PrologType, PayloadSeq), Codes) }.
 
+packed_payload(enum, EnumSeq) -->
+    { ground(EnumSeq) }, !,
+    { format(user_error, '*** ~q~n', [packed_payload(enum, EnumSeq)]) },
+    { EnumSeq =.. [EnumType, Values] }, % EnumSeq = EnumType(Values)
+    packed_enum(EnumType, Values).
 packed_payload(PrologType, PayloadSeq) -->
     sequence(payload(PrologType), PayloadSeq).
 
@@ -499,7 +504,7 @@ packed_enum(Enum, [ A | As ]) -->
     { E =.. [Enum, A] },
     payload(enum, E),
     packed_enum(Enum, As).
-packed_enum(_EnumSpec, []) --> [ ].
+packed_enum(_, []) --> [ ].
 
 start_group(Tag) --> protobuf_tag_type(Tag, start_group).
 
@@ -545,9 +550,9 @@ repeated_embedded_messages(_Tag, _EmbeddedFields, []) -->
 % Processes a single messages (e.g., one item in the list in protobuf([...]).
 % The PrologType, Tag, Payload are from Field =.. [PrologType, Tag, Payload]
 % in the caller
-single_message(repeated, Tag, enum(EnumSpec)) -->
+single_message(repeated, Tag, enum(EnumSeq)) -->
     !,
-    { EnumSpec =.. [EnumType, Values] },  % EnumSpec = EnumType(Values)
+    { EnumSeq =.. [EnumType, Values] },  % EnumSeq = EnumType(Values)
     repeated_message(repeated_enum, Tag, EnumType, Values).
 single_message(repeated, Tag, Payload) -->
     !,

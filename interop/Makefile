@@ -20,7 +20,8 @@ UNITTEST_IMPORT_PROTO=google/protobuf/unittest_import.proto
 FORCE:
 
 # TODO: replicate the addressbook sample from the protobufs tutorial
-test: test_read_prolog scalars1_wire test_read_cc test_read_python \
+test: test_read_prolog \
+	scalars1_wire test_read_cc test_read_python \
 	addressbook_pb.pl addressbook2_pb.pl
 
 # Protobuf code generator for Python and C++
@@ -33,6 +34,30 @@ test: test_read_prolog scalars1_wire test_read_cc test_read_python \
 	@#                         with Request.parameter)
 	PATH=$(PATH_WITH_SWIPL) $(PROTOC) $(PROTOC_I) --swipl_out='OUT_PARAMETER':. \
 		--plugin=protoc-gen-swipl=$(realpath ../bootstrap/protoc-gen-swipl) $<
+
+.PHONY: run_test_read  # a convenience label
+run_test_read \
+golden_message.2.5.0_from_prolog.wire \
+packed1a_from_prolog_template.wire \
+packed1a_from_prolog.wire \
+repeated1a_from_prolog_template.wire \
+repeated1a_from_prolog.wire \
+scalars1a_from_prolog_template.wire \
+scalars1a_from_prolog.wire \
+scalars1b_from_prolog_template.wire \
+scalars1b_from_prolog.wire \
+	: \
+		test_read.pl test_templates.pl test_pb.pl \
+		google/protobuf/unittest_pb.pl \
+		google/protobuf/unittest_import_pb.pl \
+		google/protobuf/unittest_import_public_pb.pl \
+		../golden_message.2.5.0 ../test_protobufs.pl \
+		scalars1a_from_cc.wire scalars1b_from_cc.wire \
+		scalars1a_from_python.wire scalars1b_from_python.wire \
+		repeated1a_from_python.wire \
+		packed1a_from_python.wire
+	@# "LANG=C" is for testing that we're doing the right thing with encodings:
+	LANG=C $(SWIPL) test_read.pl
 
 # google/protobuf/unittest*.proto are copied from here (see README.md):
 #    $(SRC_PROTOBUF)/src/google/protobuf/unittest.proto
@@ -52,9 +77,12 @@ test_read_prolog: test_read.pl \
 			test_pb.pl ../golden_message.2.5.0 ../test_protobufs.pl
 	@# "LANG=C" is for testing that we're doing the right thing with encodings
 	LANG=C $(SWIPL) test_read.pl
+	@# $(PROTOC) -I. --decode=test.Scalars1 test.proto <scalars1a_from_prolog.wire
+	@# $(PROTOC) -I. --decode=test.Scalars1 test.proto <scalars1b_from_prolog.wire
 
 .PHONY: test_read_python
-test_read_python: test_read.py scalars1a_from_prolog.wire scalars1b_from_prolog.wire
+test_read_python: test_read.py test_pb2.py \
+		scalars1a_from_prolog.wire scalars1b_from_prolog.wire
 	$(PYTHON) test_read.py
 
 .PHONY: test_read_cc
@@ -63,20 +91,23 @@ test_read_cc: test_read scalars1a_from_prolog.wire scalars1b_from_prolog.wire
 
 .PHONY: scalars1_wire
 scalars1_wire: scalars1a_from_prolog.wire scalars1b_from_prolog.wire \
+	scalars1a_from_prolog_template.wire scalars1b_from_prolog_template.wire \
 	scalars1a_from_cc.wire scalars1b_from_cc.wire \
-	scalars1a_from_python.wire scalars1b_from_python.wire
-	diff scalars1a_from_prolog.wire scalars1a_from_cc.wire
-	diff scalars1a_from_prolog.wire scalars1a_from_cc.wire
-	diff scalars1a_from_python.wire scalars1a_from_python.wire
-	diff scalars1b_from_prolog.wire scalars1b_from_cc.wire
-	diff scalars1b_from_prolog.wire scalars1b_from_python.wire
+	scalars1a_from_python.wire scalars1b_from_python.wire \
+	repeated1a_from_python.wire \
+	packed1a_from_python.wire \
+	repeated1a_from_prolog_template.wire \
+	packed1a_from_prolog_template.wire
+	@# scalars1a_from_prolog.wire etc have the fields in a different order,
+	@# so they fail the diff. Their "equivalence" is tested elsewhere.
+	diff scalars1a_from_prolog_template.wire scalars1a_from_cc.wire
+	diff scalars1a_from_prolog_template.wire scalars1a_from_python.wire
+	diff scalars1a_from_python.wire scalars1a_from_cc.wire
+	diff scalars1b_from_prolog_template.wire scalars1b_from_cc.wire
+	diff scalars1b_from_prolog_template.wire scalars1b_from_python.wire
 	diff scalars1b_from_python.wire scalars1b_from_cc.wire
-
-scalars1a_from_prolog.wire scalars1b_from_prolog.wire: test_write.pl test_templates.pl
-	$(RM) scalars1a_from_prolog.wire scalars1b_from_prolog.wire
-	$(SWIPL) ./test_write.pl
-	@# $(PROTOC) -I. --decode=test.Scalars1 test.proto <scalars1a_from_prolog.wire
-	@# $(PROTOC) -I. --decode=test.Scalars1 test.proto <scalars1b_from_prolog.wire
+	diff repeated1a_from_prolog_template.wire repeated1a_from_python.wire
+	diff packed1a_from_prolog_template.wire packed1a_from_python.wire
 
 scalars1a_from_cc.wire scalars1b_from_cc.wire: test_write
 	$(RM) scalars1a_from_cc.wire scalars1b_from_cc.wire
@@ -85,7 +116,8 @@ scalars1a_from_cc.wire scalars1b_from_cc.wire: test_write
 	@# $(PROTOC) -I. --decode=test.Scalars1 test.proto <scalars1b_from_cc.wire
 
 scalars1a_from_python.wire scalars1b_from_python.wire \
-		repeated1a_from_python.wire packed1a_from_python.wire: \
+repeated1a_from_python.wire \
+packed1a_from_python.wire: \
 			test_write.py test_pb2.py
 	$(RM) scalars1a_from_python.wire scalars1b_from_python.wire
 	$(PYTHON) test_write.py
@@ -114,3 +146,10 @@ test_read.o: test.pb.h test.pb.cc test_read.cc
 clean:
 	$(RM) -r *_pb2.py *.wire *.o *_pb.pl *.pb.h *.pb.cc test_write test_read __pycache__ \
 		google/protobuf/*_pb.pl google/protobuf/*_pb2.py
+
+.PHONY: tar tkdiff
+tar:
+	$(MAKE) -C ../bootstrap tar
+
+tkdiff:
+	$(MAKE) -C ../bootstrap tkdiff
