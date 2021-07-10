@@ -44,18 +44,21 @@ all: plugin.proto.wiredump plugin.proto.wire plugin.proto.parse plugin.proto.seg
 	bootstrap
 
 .PHONY: bootstrap
+# The *_pb.qlf files aren't used (just the *_pb.pl files)
+# but are generated for the "--undefined" check.
 bootstrap: protoc_gen_prolog_pb/plugin_pb.qlf \
 	   protoc_gen_prolog_pb/descriptor_pb.qlf
 
 %_pb.pl: %.proto protoc-gen-swipl
 	@# PATH=".:$$PATH" $(PROTOC) $(PROTOC_I) --swipl_out=. $<
-	@# s/OUT_PARAMETER/all/ ? (see comment in protoc-gen-swipl
-	@#                         with Request.parameter)
+	@# TODO: s/OUT_PARAMETER/all/ ? (see comment in protoc-gen-swipl
+	@#                              with Request.parameter)
 	PATH=$(PATH_WITH_SWIPL) $(PROTOC) $(PROTOC_I) --swipl_out='OUT_PARAMETER':. \
 		--plugin=protoc-gen-swipl=$(realpath protoc-gen-swipl) $<
 
 %.qlf: %.pl
-	$(SWIPL) -o $*.qlf -c <$*.pl
+	@# --undefined is for double-checking
+	$(SWIPL) --undefined=error --verbose=false -o $*.qlf -c <$*.pl
 
 protoc_gen_prolog_pb/plugin_pb.pl: $(PLUGIN_PROTO) protoc-gen-swipl
 	PATH=$(PATH_WITH_SWIPL) $(PROTOC) $(PROTOC_I) \
@@ -122,13 +125,17 @@ clean:
 
 # For testing: this is what the build does.
 
-.PHONY: test_protobufs
-test_protobufs:  # TODO: remove this
+.PHONY: ctest_protobufs
+ctest_protobufs:
 	@# The top level runs protobufs:protobufs:
 	@# $(SWIPL) "-p" "foreign=" "-f" "none" "--no-packs" "-s" ../test_protobufs.pl "-g" "test_protobufs" "-t" "halt"
 	@# And ../CMakeLists.txt runs the others
 	@# The following command runs everything (assuming that directory "build" exists):
 	cd ../../../build && cmake -G Ninja .. && ninja && ctest  -j5 -R protobufs
+
+.PHONY: test_protobufs
+test_protobufs:
+	cd .. && $(SWIPL) -g run_tests -t halt test_protobufs.pl
 
 # For looking at the generated documentation.  This assumes that
 # you're working in ~/src/contrib-protobufs and that there's also
@@ -172,6 +179,9 @@ tar: # TODO: remove this
 	$(MAKE) -C ../interop clean
 	$(MAKE) -C ../demo clean
 	cd ../../.. && tar --create --bzip2 --file ~/Downloads/contrib-protobufs-$$(date +%Y-%m-%d-%H-%M).tbz2 packages/protobufs
+	-$(MAKE)
+	-$(MAKE) -C ../demo
+	-$(MAKE) -C ../interop
 	$(MAKE) etags
 
 .PHONY: etags

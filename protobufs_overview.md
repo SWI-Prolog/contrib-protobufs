@@ -224,10 +224,10 @@ in some of the interoperability tests.)
 | Prolog     | Wirestream       | .proto file       | C++      | Python3  | Notes   |
 | ---------- | ---------------- | ----------------- | -------- | -------- | ------- |
 | double     | fixed64          | double            | double   | float    |         |
-| unsigned64 | fixed64          | fixed64           | uint64   | int      | 11      |
+| unsigned64 | fixed64          | fixed64           | uint64   | int      |         |
 | integer64  | fixed64          | sfixed64          | int64    |          |         |
 | float      | fixed32          | float             | float    | float    |         |
-| unsigned32 | fixed32          | fixed32           | uint32   | int      | 11      |
+| unsigned32 | fixed32          | fixed32           | uint32   | int      |         |
 | integer32  | fixed32          | sfixed32          | int32    |          |         |
 | integer    | varint           | sint32            | int32    | int      | 1, 2, 9 |
 | integer    | varint           | sint64            | int64    | int      | 1, 2, 9 |
@@ -243,7 +243,7 @@ in some of the interoperability tests.)
 | string     | length delimited | string            | string   | str (unicode) |    |
 | embedded   | length delimited | message           |          | (class)  | 5       |
 | repeated   | length delimited | repeated          |          | (list)   | 6       |
-| repeated_embedded | length delimited | repeated   |          | (list)   | 12      |
+| repeated_embedded | length delimited | repeated   |          | (list)   | 11      |
 | packed     | length delimited | packed repeated   |          | (list)   |         |
 
 *|Notes:|*
@@ -256,8 +256,9 @@ in some of the interoperability tests.)
        its magnitude. The intrinsic word length is decoupled between
        parties. If zig-zagging is not used (see note 1), negative
        numbers become maximum length.
-    3. Prolog's unbounded integer may be expressed as unsigned. This
-       is not portable across languages.
+    3. SWI-Prolog has unbounded integers, so an unsigned integer isn't
+       a special case (it is range-checked and an exception thrown if
+       its representation would require more than 32 or 64 bits).
     4. Encoded as UTF8 in the wire-stream.
     5. Specified as =|embedded(Tag,protobuf([...]))|=.
     6. Specified as =|repeated(Tag,Type([...,...]))|=, where
@@ -271,14 +272,11 @@ in some of the interoperability tests.)
     0. The documentation says that this doesn't use "zig-zag"
        encoding, so it's less space-efficient for negative numbers.
        In particular, both C++ and Python encode negative numbers as
-       10 bytes, and Prolog follows this for wire-stream compatibility
+       10 bytes, and this implementation does the same for wire-stream compatibility
        (note that SWI-Prolog typically uses 64-bit integers anyway).
        Therefore, signed64 is used for both .proto types =int32= and
        =int64=.
-    1. =integer32= and =integer64= are not checked for negative values;
-       if you use a negative value, it will be treated as the 2s complement
-       (this is the same as C++ behavior; Python throws an exception).
-    2. Specified as =|repeated_embedded(Tag,protobuf([...]),Fields)|=
+    1. Specified as =|repeated_embedded(Tag,protobuf([...]),Fields)|=
 
 ## Tags (field numbers) {#protobufs-tags}
 
@@ -326,6 +324,8 @@ which gets repeated items and combines them into a list.
 For example,
 =|repeated_embedded(Tag, protobuf([string(1,_Key),string(2,_Value)]), Fields)|=
 could unify =Fields= to =|[protobuf([string(1,"key1"),string(2,"value1")]), protobuf([string(1,"key2"),string(2,"value2")])]|=.
+Note that the variables in the =protobuf= part of the term do not get instantiated: they are
+similar to the =Template= in findall/3 and similar.
 
 *|Note:|* It is an error to attempt to encode a message using a template
 that is not ground. Decoding a message  into a template that has unbound
@@ -490,7 +490,7 @@ Enumerations are a compact method of sending   tokens from one system to
 another. Most occupy only two bytes   in the wire-stream. An enumeration
 requires that you specify a callable   predicate like commands/2, below.
 The first argument is an atom  specifying   the  name  of token, and the
-second is an non-negative integer  that   specifies  the  token's value.
+second is an integer  that   specifies  the  token's value.
 These  must  of  course,  match  a   corresponding  enumeration  in  the
 .proto file.
 
@@ -531,11 +531,13 @@ V = double([1.0, 22.0, 3.0, 4.0]).
 
 *|Compatibility Note:|* The protobuf   grammar  (protobuf-2.1.0) permits
 enumerations to assume negative values. This requires them to be encoded
-as integers. But Google's own  Golden   Message  unit-test framework has
-enumerations encoded as unsigned. Consequently, parsers that encode them
-as integers cannot properly parse the Golden Message. So it's probably a
-good idea to avoid negative values   in enumerations. Our parser forbids
-it anyway.
+as integers. Google's own  Golden   Message  unit-test framework has
+enumerations encoded as regular integers, without the "zigzag" encoding.
+Therefore, negative values are space-inefficient, but they are allowed.
+
+An earlier version of protobuf_message/2 assumed that enumeration values
+could not be zero, and there might still be incorrect assumptions in the code,'
+resulting in either exceptions or silent failure.
 
 ### Heterogeneous Collections {#protobufs-heterogeneous}
 

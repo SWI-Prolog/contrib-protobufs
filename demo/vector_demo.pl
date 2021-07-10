@@ -101,8 +101,8 @@ test_basic_usage(['X'=X,
                 varint(4,Yzig)],
     % The following conversions are based on our knowledge
     % of the Proto template:
-    integer_zigzag(Xseg, Xzig),
-    integer_zigzag(Yseg, Yzig),
+    protobufs:int64_zigzag(Xseg, Xzig),
+    protobufs:int64_zigzag(Yseg, Yzig),
     protobuf_segment_message(Segments, WireCodes4),
     assertion(WireCodes == WireCodes4).
 

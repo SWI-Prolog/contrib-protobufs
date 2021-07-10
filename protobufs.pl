@@ -1,7 +1,7 @@
 /*  Part of SWI-Prolog
 
     Author:        Jeffrey Rosenwald, extended by Peter Ludemann
-    E-mail:        jeffrose@acm.org, peter.ludemann.gmail.com
+    E-mail:        jeffrose@acm.org, peter.ludemann@gmail.com
     WWW:           http://www.swi-prolog.org
     Copyright (c)  2010-2013, Jeffrey Rosenwald
     All rights reserved.
@@ -38,21 +38,44 @@
             protobuf_segment_message/2,  % ?Segments ?Codes
             protobuf_segment_convert/2,  % +Form1 ?Form2
             protobuf_parse_from_codes/3, % +WireCodes, +MessageType, -Term
-            protobuf_serialize_to_codes/3, % +Term, +MessageType, -WireCodes
-            int32_codes/2,
-            float32_codes/2,
-            int64_codes/2,
-            float64_codes/2,
-            integer_zigzag/2,
-            protobuf_var_int//1,
-            protobuf_tag_type//2
+            protobuf_serialize_to_codes/3  % +Term, +MessageType, -WireCodes
+
+            % TODO: Restore the following to the pubblic interface, if
+            %       someone needs them.  For now, the tests directly specify
+            %       them using, e.g. protobufs:uint32_codes(..., ...).
+            %
+            % uint32_codes/2,
+            % int32_codes/2,
+            % float32_codes/2,
+            % uint64_codes/2,
+            % int64_codes/2,
+            % float64_codes/2,
+            % int64_zigzag/2,
+            % uint32_int32/2,
+            % uint64_int64/2,
+            % uint32_codes_when/2,
+            % int32_codes_when/2,  % TODO: unused
+            % float32_codes_when/2,
+            % uint64_codes_when/2,
+            % int64_codes_when/2,  % TODO: unused
+            % float64_codes_when/2,
+            % int64_zigzag_when/2,
+            % uint32_int32_when/2,
+            % uint64_int64_when/2,
+            % int64_float64_when/2,
+            % int32_float32_when/2,
+            % protobuf_var_int//1,
+            % protobuf_tag_type//2
           ]).
-:- autoload(library(error), [must_be/2, domain_error/2]).
+:- autoload(library(error), [must_be/2, domain_error/2, instantiation_error/2]).
 :- autoload(library(lists), [append/3]).
-:- autoload(library(utf8), [utf8_codes/3]).
+:- autoload(library(utf8), [utf8_codes//1]).
 :- autoload(library(dif), [dif/2]).
 :- autoload(library(dcg/high_order), [sequence//2]).
 :- autoload(library(apply), [maplist/3]).
+:- autoload(library(when), [when/2]).
+
+% TODO: :- set_prolog_flag(optimise, true). % For arithmetic using is/2.
 
 /** <module> Google's Protocol Buffers ("protobufs")
 
@@ -68,17 +91,40 @@ word size or endianness. Techniques  exist   to  safely extend your data
 structure without breaking deployed programs   that are compiled against
 the "old" format.
 
-See https://developers.google.com/protocol-buffers
+The idea behind Google's Protocol Buffers is that you define your
+structured messages using a domain-specific language and tool
+set. Further documentation on this is at
+https://developers.google.com/protocol-buffers
 
-There are two ways you can use protobufs in Prolog: with a compiled
-".proto" file and protobuf_parse_from_codes/3 or with a lower-level
-interface protobuf_message/2, which allows you to define your own
-domain-specific language for parsing and serliazing protobufs.
-(Currently there is no protobuf_serialize_to_codes/3.)
+There are two ways you can use protobufs in Prolog:
+  * with a compiled =|.proto|= file: protobuf_parse_from_codes/3 and
+    protobuf_serialize_to_codes/3.
+  * with a lower-level interface protobuf_message/2, which allows you
+    to define your own domain-specific language for parsing and
+    serializing protobufs.
 
-The idea behind Google's  Protocol  Buffers   is  that  you  define your
-structured messages using a domain-specific language   and  tool set. In
-SWI-Prolog, you define your message  template   as  a list of predefined
+The protobuf_parse_from_codes/3 and protobuf_serialize_to_codes/3
+interface translates between a "wire stream" and a Prolog term. This
+interface takes advantage of SWI-Prolog's
+[dict](https://www.swi-prolog.org/pldoc/man?section=bidicts).
+There is a =protoc= plugin (=protoc-gen-swipl=) that generates a
+Prolog file of meta-information that captures the =|.proto|= file's
+definition in the =protobufs= module:
+   * =|proto_meta_normalize(Unnormalized, Normalized)|=
+   * =|proto_meta_package(Package, FileName, Options)|=
+   * =|proto_meta_message_type(       Fqn,     Package, Name)|=
+   * =|proto_meta_field_name(         Fqn,     FieldNumber, FieldName, FqnName)|=
+   * =|proto_meta_field_json_name(    FqnName, JsonName)|=
+   * =|proto_meta_field_label(        FqnName, LabelRepeatOptional) % LABEL_OPTIONAL, LABEL_REQUIRED, LABEL_REPEATED|=
+   * =|proto_meta_field_type(         FqnName, Type) % TYPE_INT32, TYPE_MESSAGE, etc|=
+   * =|proto_meta_field_type_name(    FqnName, TypeName)|=
+   * =|proto_meta_field_default_value(FqnName, DefaultValue)|=
+   * =|proto_meta_field_option_packed(FqnName)|=
+   * =|proto_meta_enum_type(          FqnName, Fqn, Name)|=
+   * =|proto_meta_enum_value(         FqnName, Name, Number)|=
+
+The protobuf_message/2 interface allows you to define your message
+template as a list of predefined
 Prolog terms that correspond to production  rules in the Definite Clause
 Grammar (DCG) that realizes the interpreter. Each production rule has an
 equivalent rule in the  protobuf  grammar.   The  process  is not unlike
@@ -106,51 +152,85 @@ directory.
 
 :- use_foreign_library(foreign(protobufs)).
 
-%! protobuf_parse_from_codes(+WireCodes:list, +MessageType:atom, -Term) is semidet.
+%! protobuf_parse_from_codes(+WireCodes:list(int), +MessageType:atom, -Term) is semidet.
+% Process bytes (list of int) that is the serialized form of a message (designated
+% by =MessageType=), creating a Prolog term.
 %
-% Fails if the message can't be parsed.
+% Fails if the message can't be parsed or if the appropriate meta-data from =protoc=
+% hasn't been loaded.
 %
-% @tbd: document the generated terms (see library(http/json) and json_read_dict/3)
-% @tbd: add options such as =true= and =value_string_as= (similar to json_read_dict/3)
-% @tbd: add option for form of the dict tags (fully qualified or not)
-% @tbd: add proto2/proto3 options for processing default values.
-% @tbd: add empty lists for missing repeated fields.
+% @tbd document the generated terms (see library(http/json) and json_read_dict/3)
+% @tbd add options such as =true= and =value_string_as= (similar to json_read_dict/3)
+% @tbd add option for form of the dict tags (fully qualified or not)
+% @tbd add option for outputting fields in the C++/Python/Java order
+%       (by field number rather than by field name).
+% @tbd add proto2/proto3 options for processing default values.
+% @tbd add empty lists for missing repeated fields.
 %
-% @bug Does nothing for "default" values.
-% @bug Ignores extensions.
+% @bug Doesn't fill in "default" values (note that this behavior is different
+%      for proto2 and proto3; and the default information is available in
+%      protobufs:proto_meta_field_default_value/2, which is generated from
+%      the =|.proto|= files).
+% @bug Ignores =|.proto|= [extensions](https://developers.google.com/protocol-buffers/docs/proto#extensions).
 % @bug Doesn't do anything special for =oneof= or =map=.
+% @bug Generates fields in a different order from the C++, Python,
+%      Java implementations, which use the field number to determine
+%      field order whereas currently this implementation uses field
+%      name.  (This isn't stricly speaking a bug, because it's allowed
+%      by the specification; but it might cause some surprise.)
 %
 % @param WireCodes Wire format of the message from e.g., read_stream_to_codes/2.
 %          (The stream should have options `encoding(octet)` and `type(binary)`,
 %          either as options to read_file_to_codes/3 or by calling set_stream/2
 %          on the stream to read_stream_to_codes/2.)
-% @param MessageType Fully qualified message name (from the .proto file's =package= and =message=).
+% @param MessageType Fully qualified message name (from the =|.proto|= file's =package= and =message=).
 %        For example, if the =package= is =google.protobuf= and the
 %        message is =FileDescriptorSet=, then you would use
-%        =|'.google.protobuf.FileDescriptorSet'|=. You can see the message
+%        =|'.google.protobuf.FileDescriptorSet'|= or =|'google.protobuf.FileDescriptorSet'|=.
+%        You can see the message
 %        names by looking at =|protobufs:proto_meta_field_name('.google.protobuf.FileDescriptorSet', FieldNumber, FieldName, FqnName)|=.
 %        The initial '.' on the message type name is optional.
 % @param Term The generated term, as nested dicts.
-% @see  (see [library(protobufs): Google's Protocol Buffers](#protobufs-serialize-to-codes)
+% @see  [library(protobufs): Google's Protocol Buffers](#protobufs-serialize-to-codes)
 protobuf_parse_from_codes(WireCodes, MessageType0, Term) :-
+    must_be(ground, MessageType0),
     proto_meta_normalize(MessageType0, MessageType),
     protobuf_segment_message(Segments, WireCodes),
-    % protobuf_segment_message/2 can leave choicepoints, and we don't
-    % want to backtrack through all the possibilities because that
-    % leads to combinatoric explosion; instead use
-    % protobuf_segment_convert/2 to change segments that were guessed
-    % incorrectly.
-    !, % don't use any other possible Segments - let protobuf_segment_convert/2 do the job
-    % See convert_segment('TYPE_MESSAGE, ...):
+    % protobuf_segment_message/2 can leave choicepoints, backtracking
+    % through all the possibilities would have combinatoric explosion;
+    % instead use segment_to_term/3 call protobuf_segment_convert/2 to
+    % change segments that were guessed incorrectly.
+    !,
     maplist(segment_to_term(MessageType), Segments, MsgFields),
-    combine_fields(MsgFields, MessageType{}, Term).
+    !, % TODO: remove
+    combine_fields(MsgFields, MessageType{}, Term),
+    !. % TODO: remove?
 
-%! protobuf_serialize_to_codes(+Term:dict, -MessageType:atom, -WireCodes) is det.
+%! protobuf_serialize_to_codes(+Term:dict, -MessageType:atom, -WireCodes:list(int)) is det.
+% Process a Prolog term into bytes (list of int) that is the serialized form of a
+% message (designated by =MessageType=).
+%
+% Fails if the term isn't of an appropriate form or if the appropriate
+% meta-data from =protoc= hasn't been loaded.
+%
+% @param Term The Prolog form of the data, as nested dicts.
+% @param MessageType Fully qualified message name (from the =|.proto|= file's =package= and =message=).
+%        For example, if the =package= is =google.protobuf= and the
+%        message is =FileDescriptorSet=, then you would use
+%        =|'.google.protobuf.FileDescriptorSet'|= or =|'google.protobuf.FileDescriptorSet'|=.
+%        You can see the message
+%        names by looking at =|protobufs:proto_meta_field_name('.google.protobuf.FileDescriptorSet', FieldNumber, FieldName, FqnName)|=.
+%        The initial '.' on the message type name is optional.
+% @param WireCodes Wire format of the mssage, which can be output using
+%        =|format('~s', [WireCodes])|=.
+% @see  [library(protobufs): Google's Protocol Buffers](#protobufs-serialize-to-codes)
 protobuf_serialize_to_codes(Term, MessageType0, WireCodes) :-
+    must_be(ground, MessageType0),
     proto_meta_normalize(MessageType0, MessageType),
     term_to_segments(Term, MessageType, Segments),
-    print_term('SEGMENTS':Segments, []), nl,
-    protobuf_segment_message(Segments, WireCodes).
+    !, % TODO: remove
+    protobuf_segment_message(Segments, WireCodes),
+    !. % TODO: remove?
 
 %
 % Map wire type (atom) to its encoding (an int)
@@ -163,28 +243,25 @@ wire_type(end_group,         4). % for groups (deprecated)
 wire_type(fixed32,           5). % for fixed32, sfixed32, float
 
 %
-%  basic wire-type processing handled by C-support code
+%  basic wire-type processing handled by C-support code in DCG-form
 %
 
-fixed_int32(X, [A0, A1, A2, A3 | Rest], Rest) :-
-    (   nonvar(X), X > 0x7fffffff % work around https://github.com/SWI-Prolog/contrib-protobufs/issues/5
-    ->  X2 is -(X xor 0xffffffff + 1)
-    ;   X2 = X
-    ),
-    int32_codes(X2, [A0, A1, A2, A3]).
+fixed_uint32(X, [A0, A1, A2, A3 | Rest], Rest) :-
+    uint32_codes_when(X, [A0, A1, A2, A3]).
+/* equivalent to:
+fixed_uint32_(X) -->
+  [ A0,A1,A2,A3 ],
+  { uint32_codes_when(X, [A0,A1,A2,A3]) }.
+*/
 
-fixed_int64(X, [A0, A1, A2, A3, A4, A5, A6, A7 | Rest], Rest) :-
-    (   nonvar(X), X > 0x7fffffffffffffff % work around https://github.com/SWI-Prolog/contrib-protobufs/issues/5
-    ->  X2 is -(X xor 0xffffffffffffffff + 1)
-    ;   X2 = X
-    ),
-    int64_codes(X2, [A0, A1, A2, A3, A4, A5, A6, A7]).
+fixed_uint64(X, [A0, A1, A2, A3, A4, A5, A6, A7 | Rest], Rest) :-
+    uint64_codes_when(X, [A0, A1, A2, A3, A4, A5, A6, A7]).
 
 fixed_float64(X, [A0, A1, A2, A3, A4, A5, A6, A7 | Rest], Rest) :-
-    float64_codes(X, [A0, A1, A2, A3, A4, A5, A6, A7]).
+    float64_codes_when(X, [A0, A1, A2, A3, A4, A5, A6, A7]).
 
 fixed_float32(X, [A0, A1, A2, A3 | Rest], Rest) :-
-    float32_codes(X, [A0, A1, A2, A3]).
+    float32_codes_when(X, [A0, A1, A2, A3]).
 
 %
 %   Start of the DCG
@@ -277,13 +354,15 @@ prolog_type(Tag, packed) -->     protobuf_tag_type(Tag, length_delimited).
 %
 %   The protobuf-2.1.0 grammar allows negative values in enums.
 %   But they are encoded as unsigned in the  golden message.
-%   Encode as integer and lose. Encode as unsigned and win.
+%   As such, they use the maximum length of a varint, so it is
+%   recommended that they be non-negative. However, that's controlled
+%   by the =|.proto|= file.
 %
 :- meta_predicate enumeration(1,?,?).
 
 enumeration(Type) -->
     { call(Type, Value) },
-    payload(unsigned, Value).
+    payload(signed64, Value).
 
 %! payload(?PrologType, ?Payload) is det.
 % Process the codes into =Payload=, according to =PrologType=
@@ -298,98 +377,63 @@ payload(enum, Payload) -->
 payload(double, Payload) -->
     fixed_float64(Payload).
 payload(integer64, Payload) -->
-    fixed_int64(Payload).
+    { uint64_int64_when(Payload0, Payload) },
+    fixed_uint64(Payload0).
 payload(unsigned64, Payload) -->
-    { var(Payload) },
-    !,
-    fixed_int64(X),
-    {   X < 0
-    ->  Payload is -(X xor 0xffffffffffffffff + 1)
-    ;   Payload = X
-    }.
-payload(unsigned64, Payload) -->
-    {   Payload < 0
-    ->  X is -(Payload xor 0xffffffffffffffff + 1)
-    ;   X = Payload
-    },
-    fixed_int64(X).
+    fixed_uint64(Payload).
 payload(float, Payload) -->
     fixed_float32(Payload).
 payload(integer32, Payload) -->
-    fixed_int32(Payload).
+    { uint32_int32_when(Payload0, Payload) },
+    fixed_uint32(Payload0).
 payload(unsigned32, Payload) -->
-    { var(Payload) },
-    !,
-    fixed_int32(X),
-    {   X < 0
-    ->  Payload is -(X xor 0xffffffff + 1)
-    ;   Payload = X
-    }.
-payload(unsigned32, Payload) -->
-    {   Payload < 0
-    ->  X is -(Payload xor 0xffffffff + 1)
-    ;   X = Payload
-    },
-    fixed_int32(X).
+    fixed_uint32(Payload).
 payload(integer, Payload) -->
-    { nonvar(Payload), integer_zigzag(Payload, X) },
+    { nonvar(Payload), int64_zigzag(Payload, X) }, % TODO: int64_zigzag_when/2
     !,
     protobuf_var_int(X).
 payload(integer, Payload) -->
     protobuf_var_int(X),
-    { integer_zigzag(Payload, X) }.
+    { int64_zigzag(Payload, X) }. % TODO: int64_zigzag_when/2
 payload(unsigned, Payload) -->
-    % TODO: replace payload(unsigned, Payload) with this (needs unit tests +
-    %       comparison with Python,C++):
-    %   payload(unsigned, Payload) -->
-    %       protobuf_var_int(Payload),
-    %       { Payload >= 0 }.
-    {   nonvar(Payload)
-    ->  Payload >= 0
-    ;   true
-    },
-    protobuf_var_int(Payload).
+    protobuf_var_int(Payload),
+    { Payload >= 0 }.
 payload(signed32, Payload) --> % signed32 is not defined by prolog_type//2
                                % for wire-stream compatibility reasons.
-%     % signed32 ought to write 5 bytes for negative numbers, but both
-%     % the C++ and Python implementations write 10 bytes. For
-%     % wire-stream compatibility, we follow C++ and Python, even though
-%     % protoc decode appears to work just fine with 5 bytes --
-%     % presumably there are some issues with decoding 5 bytes and
-%     % getting the sign extension correct with some 32/64-bit integer
-%     % models.  See CodedOutputStream::WriteVarint32SignExtended(int32
-%     % value) in google/protobuf/io/coded_stream.h.  (To write 5 bytes,
-%     % change the "Payload xor % 0xffffffffffffffff" to "Payload xor 0xffffffff".)
-      payload(signed64, Payload).
+    % signed32 ought to write 5 bytes for negative numbers, but both
+    % the C++ and Python implementations write 10 bytes. For
+    % wire-stream compatibility, we follow C++ and Python, even though
+    % protoc decode appears to work just fine with 5 bytes --
+    % presumably there are some issues with decoding 5 bytes and
+    % getting the sign extension correct with some 32/64-bit integer
+    % models.  See CodedOutputStream::WriteVarint32SignExtended(int32
+    % value) in google/protobuf/io/coded_stream.h.
+    payload(signed64, Payload).
 payload(signed64, Payload) -->
     % protobuf_var_int//1 cannot handle negative numbers (note that
     % zig-zag encoding always results in a positive number), so
     % compute the 64-bit 2s complement, which is what is produced
     % form C++ and Python.
-    % TODO: \Payload instead of Payload xor ...?
-    { var(Payload) },
+    { nonvar(Payload) },
     !,
-    protobuf_var_int(X),
-    {   X > 0x7fffffffffffffff
-    ->  Payload is -(X xor 0xffffffffffffffff + 1)
-    ;   Payload = X
-    }.
+    { uint64_int64(X, Payload) }, % TODO: uint64_int64_when
+    protobuf_var_int(X).
 payload(signed64, Payload) -->
     % See comment in previous clause about negative numbers.
-    {   Payload < 0
-    ->  X is -(Payload xor 0xffffffffffffffff + 1)
-    ;   X = Payload
-    },
-    protobuf_var_int(X).
+    protobuf_var_int(X),
+    { uint64_int64(X, Payload) }. % TODO: uint64_int64_when
 payload(codes, Payload) -->
-    { nonvar(Payload), !, length(Payload, Len)},
+    { nonvar(Payload),
+      !,
+      length(Payload, Len)
+    },
     protobuf_var_int(Len),
     code_string(Len, Payload).
 payload(codes, Payload) -->
     protobuf_var_int(Len),
     code_string(Len, Payload).
 payload(utf8_codes, Payload) -->
-    { nonvar(Payload),
+    { nonvar(Payload), % TODO: use freeze/2 or when/2
       !,
       phrase(utf8_codes(Payload), B)
     },
@@ -437,11 +481,13 @@ payload(packed, TypedPayloadSeq) -->
 payload(packed, enum(EnumSpec)) -->
     !,
     % TODO: combine with next clause
+    % TODO: replace =.. with a predicate that gives all the possibilities - see detag/6.
     { EnumSpec =.. [ Enum, Values ] }, % EnumSpec = Enum(Values)
     payload(codes, Codes),
     { phrase(packed_enum(Enum, Values), Codes) }.
 payload(packed, TypedPayloadSeq) -->
     payload(codes, Codes),
+    % TODO: replace =.. with a predicate that gives all the possibilities - see detag/6.
     { TypedPayloadSeq =.. [PrologType, PayloadSeq] },  % TypedPayloadSeq = PrologType(PayloadSeq)
     { phrase(packed_payload(PrologType, PayloadSeq), Codes) }.
 
@@ -449,6 +495,7 @@ packed_payload(PrologType, PayloadSeq) -->
     sequence(payload(PrologType), PayloadSeq).
 
 packed_enum(Enum, [ A | As ]) -->
+    % TODO: replace =.. with a predicate that gives all the possibilities - see detag/6.
     { E =.. [Enum, A] },
     payload(enum, E),
     packed_enum(Enum, As).
@@ -474,6 +521,7 @@ protobuf([Field | Fields]) -->
     !.
 
 repeated_message(repeated_enum, Tag, Type, [A | B]) -->
+    % TODO: replace =.. with a predicate that gives all the possibilities - see detag/6.
     { TypedPayload =.. [Type, A] },  % TypedPayload = Type(A)
     single_message(enum, Tag, TypedPayload),
     (   repeated_message(repeated_enum, Tag, Type, B)
@@ -488,25 +536,27 @@ repeated_message(_Type, _Tag, A) -->
 
 repeated_embedded_messages(Tag, EmbeddedFields, [protobuf(A) | B]) -->
     { copy_term(EmbeddedFields, A) },
-    % TODO: the call to single_message/3 causes analysis of
-    %       missing predicates to fail
     single_message(embedded, Tag, protobuf(A)), !,
     repeated_embedded_messages(Tag, EmbeddedFields, B).
 repeated_embedded_messages(_Tag, _EmbeddedFields, []) -->
     [ ].
 
-%! single_message(+PrologType, ?Tag, ?Payload)// is det.
+%! single_message(+PrologType:atom, ?Tag, ?Payload)// is det.
 % Processes a single messages (e.g., one item in the list in protobuf([...]).
 % The PrologType, Tag, Payload are from Field =.. [PrologType, Tag, Payload]
 % in the caller
 single_message(repeated, Tag, enum(EnumSpec)) -->
+    !,
     { EnumSpec =.. [EnumType, Values] },  % EnumSpec = EnumType(Values)
     repeated_message(repeated_enum, Tag, EnumType, Values).
 single_message(repeated, Tag, Payload) -->
+    !,
+    % TODO: replace =.. with a predicate that gives all the possibilities - see detag/6.
     { Payload =.. [PrologType, A] },  % Payload = PrologType(A)
     { PrologType \= enum },
     repeated_message(PrologType, Tag, A).
 single_message(group, Tag, A) -->
+    !,
     start_group(Tag),
     protobuf(A),
     end_group(Tag).
@@ -550,9 +600,9 @@ protobuf_message(protobuf(TemplateList), WireStream, Residue) :-
 %! protobuf_segment_message(-Segments:list, +WireStream:list(int)) is det.
 %
 %  Low level marshalling and unmarshalling of byte streams. The
-%  processing is independent of the =|.proto|= description, similar
-%  to the processing done by =|protoc --decode_raw|=. This means that
-%  field names aren't shown: only field numbers.
+%  processing is independent of the =|.proto|= description, similar to
+%  the processing done by =|protoc --decode_raw|=. This means that
+%  field names aren't shown, only field numbers.
 %
 %  For unmarshalling, a simple heuristic is used on length-delimited
 %  segments: first interpret it as a message; if that fails, try to
@@ -560,15 +610,17 @@ protobuf_message(protobuf(TemplateList), WireStream, Residue) :-
 %  heuristic was wrong, you can convert to a string or a blob by using
 %  protobuf_segment_convert/2).  32-bit and 64-bit numbers are left as
 %  codes because they could be either integers or floating point (use
-%  int32_codes/2, float32_codes/2, int64_codes/2, float64_codes/2 as
+%  int32_codes_when/2, float32_codes_when/2, int64_codes_when/2,
+%  uint32_codes_when/2, uint64_codes_when/2, float64_codes_when/2 as
 %  appropriate); variable-length numbers ("varint" in the [[Protocol
 %  Buffers encoding
 %  documentation][https://developers.google.com/protocol-buffers/docs/encoding#varints]]),
-%  might require "zigzag" conversion, integer_zigzag/2.
+%  might require "zigzag" conversion, int64_zigzag_when/2.
 %
-%  For marshalling, use the predicates int32_codes/2, float32_codes/2,
-%  int64_codes/2, float64_codes/2, integer_zigzag/2 to put integer
-%  and floating point values into the appropriate form.
+%  For marshalling, use the predicates int32_codes_when/2,
+%  float32_codes_when/2, int64_codes_when/2, uint32_codes_when/2,
+%  uint64_codes_when/2, float64_codes_when/2, int64_zigzag_when/2 to
+%  put integer and floating point values into the appropriate form.
 %
 %  @bug This predicate is preliminary and may change as additional
 %       functionality is added.
@@ -578,14 +630,15 @@ protobuf_message(protobuf(TemplateList), WireStream, Residue) :-
 %  @tbd Functionality similar to =|protoc --decode|=, which will
 %       use field names rather than field numbers and also
 %       will not need heuristics to guess at segment types because
-%       it will have the correct types from the .proto definition.
+%       it will have the correct types from the =|.proto|= definition.
 %
 %  @param Segments a list containing terms of the following form (=Tag= is
 %  the field number; =Codes= is a list of integers):
-%    * varint(Tag,Varint) - =Varint= may need integer_zigzag/2
-%    * fixed64(Tag,Codes) - =Codes= is of length 8, (un)marshalled by int64_codes/2 or float64_codes/2
-%    * fixed32(Tag,Codes) - =Codes= is of length 4, (un)marshalled by int32_codes/2 or float32_codes/2
+%    * varint(Tag,Varint) - =Varint= may need int64_zigzag_when/2
+%    * fixed64(Tag,Int) - =Int= signed, derived from the 8 codes
+%    * fixed32(Tag,Codes) - =Int= is signed, derived from the 4 codes
 %    * message(Tag,Segments)
+%    * group(Tag,Segments)
 %    * string(Tag,String) - =String= is a SWI-Prolog string
 %    * packed(Tag,Type(Scalars)) - =Type= is one of
 %             =varint=, =fixed64=, =fixed32=; =Scalars=
@@ -593,8 +646,8 @@ protobuf_message(protobuf(TemplateList), WireStream, Residue) :-
 %             be interpreted as described under those items.
 %             Note that the protobuf specification does not
 %             allow packed repeated string.
-%    * group(Tag,Segments)
 %    * length_delimited(Tag,Codes)
+%    * repeated(List) - =List= of segments
 %  Of these, =group= is deprecated in the protobuf documentation and
 %  shouldn't appear in modern code, because they have been replaced by
 %  nested message types.
@@ -628,37 +681,29 @@ segment_message(Segments) -->
     sequence(segment, Segments).
 
 segment(Segment) -->
-    { var(Segment) },
+    { nonvar(Segment) },
     !,
-    protobuf_tag_type(Tag, Type),
-    segment(Type, Tag, Segment).
+    % repeated(List) can be created by field_segment_scalar_or_repeated/7
+    (   { Segment = repeated(Segments) }
+    ->  sequence(segment, Segments)
+    ;   { segment_type_tag(Segment, Type, Tag) },
+        protobuf_tag_type(Tag, Type),
+        segment(Type, Tag, Segment)
+    ).
 segment(Segment) -->
-    % { nonvar(Segment) },
-    { segment_type_tag(Segment, Type, Tag) },
+    % { var(Segment) },
     protobuf_tag_type(Tag, Type),
     segment(Type, Tag, Segment).
-
-% See also prolog_type//2
-segment_type_tag(varint(Tag,_Codes),           varint,           Tag).
-segment_type_tag(fixed64(Tag,_Codes),          fixed64,          Tag).
-segment_type_tag(start_group(Tag),             start_group,      Tag). % TODO: delete?
-segment_type_tag(end_group(Tag),               end_group,        Tag). % TODO: delete?
-segment_type_tag(group(Tag,_Segments),         start_group,      Tag).
-segment_type_tag(fixed32(Tag,_Codes),          fixed32,          Tag).
-segment_type_tag(length_delimited(Tag,_Codes), length_delimited, Tag).
-segment_type_tag(message(Tag,_Segments),       length_delimited, Tag).
-segment_type_tag(packed(Tag,_Payload),         length_delimited, Tag).
-segment_type_tag(string(Tag,_String),          length_delimited, Tag).
 
 segment(varint, Tag, varint(Tag,Value)) -->
     protobuf_var_int(Value).
-segment(fixed64, Tag, fixed64(Tag, [A0,A1,A2,A3,A4,A5,A6,A7])) -->
-    [A0, A1, A2, A3, A4, A5, A6, A7].
+segment(fixed64, Tag, fixed64(Tag, Int64)) -->
+    payload(integer64, Int64).
+segment(fixed32, Tag, fixed32(Tag, Int32)) -->
+    payload(integer32, Int32).
 segment(start_group, Tag, group(Tag, Segments)) -->
     segment_message(Segments),
     protobuf_tag_type(Tag, end_group).
-segment(fixed32, Tag, fixed32(Tag, [A0,A1,A2,A3])) -->
-    [A0, A1, A2, A3].
 segment(length_delimited, Tag, Result) -->
     segment_length_delimited(Tag, Result).
 
@@ -676,13 +721,9 @@ segment_length_delimited(Tag, Result) -->
     { length_delimited_segment(Result, Tag, Codes) }.
 
 length_delimited_segment(message(Tag,Segments), Tag, Codes) :-
-    (   var(Segments)
-    ->  protobuf_segment_message(Segments, Codes)
-        % TODO: A more precise check would be that
-        % start_group(Tag)/end_group(Tag) appear properly nested, as
-        % in single_message(group, Tag, A).
-    ;   protobuf_segment_message(Segments, Codes)
-    ).
+    protobuf_segment_message(Segments, Codes).
+length_delimited_segment(group(Tag,Segments), Tag, Codes) :-
+    phrase(segment_group(Tag, Segments), Codes).
 length_delimited_segment(string(Tag,String), Tag, Codes) :-
     (   nonvar(String)
     ->  string_codes(String, StringCodes),
@@ -701,6 +742,38 @@ length_delimited_segment(packed(Tag,Payload), Tag, Codes) :-
     packed_option(Type, Items, Payload),
     phrase(sequence(payload(Type), Items), Codes).
 length_delimited_segment(length_delimited(Tag,Codes), Tag, Codes).
+
+segment_group(Tag, Segments) -->
+    start_group(Tag),
+    segment_message(Segments),
+    end_group(Tag).
+
+% See also prolog_type//2. Note that this doesn't handle repeated(List),
+% which is used internally (see field_segment_scalar_or_repeated/7).
+segment_type_tag(varint(Tag,_Value),           varint,           Tag).
+segment_type_tag(fixed64(Tag,_Value),          fixed64,          Tag).
+segment_type_tag(group(Tag,_Segments),         start_group,      Tag).
+segment_type_tag(fixed32(Tag,_Value),          fixed32,          Tag).
+segment_type_tag(length_delimited(Tag,_Codes), length_delimited, Tag).
+segment_type_tag(message(Tag,_Segments),       length_delimited, Tag).
+segment_type_tag(packed(Tag,_Payload),         length_delimited, Tag).
+segment_type_tag(string(Tag,_String),          length_delimited, Tag).
+
+%! detag(+Compound, -Name, -Tag, -Value, List, -CompoundWithList) is semidet.
+% Deconstruct =Compound= or the form =|Name(Tag,Value)|= and create a
+% new =CompoundWithList= that replaces =Value= with =List=. This is
+% used by packed_list/2 to transform =|[varint(1,0),varint(1,1)]|= to
+% =|varint(1,[0,1])|=.
+%
+% Some of =Compound= items are impossible for =packed= with the
+% current protobuf spec, but they don't do any harm.
+detag(varint(Tag,Value),           varint,            Tag, Value,     List, varint(List)).
+detag(fixed64(Tag,Value),          fixed64,           Tag, Value,     List, fixed64(List)).
+detag(fixed32(Tag,Value),          fixed32,           Tag, Value,     List, fixed32(List)).
+detag(length_delimited(Tag,Codes), length_delimited,  Tag, Codes,     List, length_delimited(List)).
+detag(message(Tag,Segments),       message,           Tag, Segments,  List, message(List)).
+detag(packed(Tag,Payload),         packed,            Tag, Payload,   List, packed(List)). % TODO: delete?
+detag(string(Tag,String),          string,            Tag, String,    List, string(List)).
 
 % See also prolog_type//2, but pick only one for each wirestream type
 % For varint(Items), use one that doesn't do zigzag
@@ -721,7 +794,7 @@ packed_option(unsigned,  Items, varint(Items)).
 % been a UTF8 string).
 %
 % =Form1= is converted back to the original wire stream, then the
-% predicate non-deterinisticly attempts to convert the wire stream to
+% predicate non-deterimisticly attempts to convert the wire stream to
 % a =|string|= or =|length_delimited|= term (or both: the lattter
 % always succeeds).
 %
@@ -731,17 +804,27 @@ packed_option(unsigned,  Items, varint(Items)).
 %   string(Tag,String) => length_delimited(Tag,Codes)
 %   length_delimited(Tag,Codes) => length_delimited(Tag,Codes)
 %
+% Note that for fixed32, fixed64, only the signed integer forms are
+% given; if you want the floating point forms, then you need to do use
+% int64_float64_when/2 and int32_float32_when/2.
+%
 % For example:
 % ==
 % ?- protobuf_segment_convert(
-%        message(10,[fixed64(13,[110,112,117,116,84,121,112,101])]),
+%        message(10,[fixed64(13,7309475598860382318)]),
 %        string(10,"inputType")).
 % ?- protobuf_segment_convert(
-%        message(10,[fixed64(13,[110,112,117,116,84,121,112,101])]),
+%        message(10,[fixed64(13,7309475598860382318)]),
 %        length_delimited(10,[105,110,112,117,116,84,121,112,101])).
 % ?- protobuf_segment_convert(
 %        string(10, "inputType"),
 %        length_delimited(10,[105,110,112,117,116,84,121,112,101])).
+% ?- forall(protobuf_segment_convert(string(1999,"\x1\\x0\\x0\\x0\\x2\\x0\\x0\\x0\"),Z), writeln(Z)).
+%       string(1999,      )
+%       packed(1999,fixed64([8589934593]))
+%       packed(1999,fixed32([1,2]))
+%       packed(1999,varint([1,0,0,0,2,0,0,0]))
+%       length_delimited(1999,[1,0,0,0,2,0,0,0])
 % ==
 % These come from:
 % ==
@@ -759,11 +842,11 @@ packed_option(unsigned,  Items, varint(Items)).
 %       Such as from =|protobuf_segment_convert(message(10,...), string(10,...))|=
 %
 % @param Form1 =|message(Tag,Pieces)|=, =|string(Tag,String)|=, =|length_delimited(Tag,Codes)|=,
-%        =|varint(Tag,Value)|=, =|fixed64(Tag,Codes)|=, =|fixed32(Tag,Codes)|=.
+%        =|varint(Tag,Value)|=, =|fixed64(Tag,Value)|=, =|fixed32(Tag,Value)|=.
 % @param Form2 similar to =Form1=.
 protobuf_segment_convert(Form, Form). % for efficiency, don't generate codes
 protobuf_segment_convert(Form1, Form2) :-
-    dif(Form1, Form2), % Form1=Form2 already generated by first clause
+    dif(Form1, Form2), % Form1=Form2 handled by first clause
     protobuf_segment_message([Form1], WireCodes),
     phrase(tag_and_codes(Tag, Codes), WireCodes),
     length_delimited_segment(Form2, Tag, Codes).
@@ -773,73 +856,253 @@ tag_and_codes(Tag, Codes) -->
     payload(codes, Codes).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Documention of the foreign predicates, which are re-exported
+% Documention of the foreign predicates, which are wrapped and exported.
 
-%! int32_codes(?Value, ?Codes) is det.
-% Convert between a 32-bit integer value and its wirestream codes.
+%! uint32_codes_when(?Uint32, ?Codes) is det.
+% Convert between a 32-bit unsigned integer value and its wirestream codes.
 % This is a low-level predicate; normally, you should use
 % template_message/2 and the appropriate template term.
 %
-% @bug Throws instantiation error for large values.
-%      https://github.com/SWI-Prolog/contrib-protobufs/issues/5
-%      e.g., int32_codes(4294967294, Z).
-%                        0xfffffffe
+% This predicate delays until either =Uint32= or =Codes= is
+% sufficiently instantiated.
 %
-% @param Value an integer
+% There is also a non-delayed protobufs:uint32_codes/2
+%
+% SWI-Prolog doesn't have a 32-bit integer type, so 32-bit integer
+% is simulated by doing a range check.
+%
+% @param Uint32 an unsigned integer that's in the 32-bit range
 % @param Codes a list of 4 integers (codes)
+%
+% @error Type,Domain if =Value= or =Codes= are of the wrong
+%                    type or out of range.
+uint32_codes_when(Uint32, Codes) :-
+    when((nonvar(Uint32) ; ground(Codes)), uint32_codes(Uint32, Codes)).
 
-%! float32_codes(?Value, ?Codes) is det.
+%! int32_codes_when(?Int32, ?Codes) is det.
+% Convert between a 32-bit signed integer value and its wirestream codes.
+% This is a low-level predicate; normally, you should use
+% template_message/2 and the appropriate template term.
+%
+% This predicate delays until either =Int32= or =Codes= is
+% sufficiently instantiated.
+%
+% There is also a non-delayed protobufs:int32_codes/2
+%
+% SWI-Prolog doesn't have a 32-bit integer type, so 32-bit integer
+% is simulated by doing a range check.
+%
+% @param Int32 an unsigned integer that's in the 32-bit range
+% @param Codes a list of 4 integers (codes)
+%
+% @error Type,Domain if =Value= or =Codes= are of the wrong
+%                    type or out of range.
+int32_codes_when(Int32, Codes) :- % TODO: unused
+    when((nonvar(Int32) ; ground(Codes)), int32_codes(Int32, Codes)).
+
+%! float32_codes_when(?Value, ?Codes) is det.
 % Convert between a 32-bit floating point value and its wirestream codes.
 % This is a low-level predicate; normally, you should use
 % template_message/2 and the appropriate template term.
 %
+% This predicate delays until either =Value= or =Codes= is
+% sufficiently instantiated.
+%
+% There is also a non-delayed protobufs:float32_codes/2
+%
 % @param Value a floating point number
 % @param Codes a list of 4 integers (codes)
+float32_codes_when(Value, Codes) :-
+    when((nonvar(Value) ; ground(Codes)), float32_codes(Value, Codes)).
 
-%! int64_codes(?Value, ?Codes) is det.
-% Convert between a 64-bit integer value and its wirestream codes.
+%! uint64_codes_when(?Uint64, ?Codes) is det.
+% Convert between a 64-bit unsigned integer value and its wirestream codes.
 % This is a low-level predicate; normally, you should use
 % template_message/2 and the appropriate template term.
 %
-% @param Value an integer
-% @param Codes a list of 8 integers (codes)
+% SWI-Prolog allows integer values greater than 64 bits, so
+% a range check is done.
+%
+% This predicate delays until either =Uint64= or =Codes= is
+% sufficiently instantiated.
+%
+% There is also a non-delayed protobufs:uint64_codes/2
 
-%! float64_codes(?Value, ?Codes) is det.
+%
+% @param Uint64 an unsigned integer
+% @param Codes a list of 8 integers (codes)
+%
+% @error Type,Domain if =Uint64= or =Codes= are of the wrong
+%                    type or out of range.
+uint64_codes_when(Uint64, Codes) :-
+    when((nonvar(Uint64) ; ground(Codes)), uint64_codes(Uint64, Codes)).
+
+%! int64_codes_when(?Int64, ?Codes) is det.
+% Convert between a 64-bit signed integer value and its wirestream codes.
+% This is a low-level predicate; normally, you should use
+% template_message/2 and the appropriate template term.
+%
+% SWI-Prolog allows integer values greater than 64 bits, so
+% a range check is done.
+%
+% This predicate delays until either =Int64= or =Codes= is
+% sufficiently instantiated.
+%
+% There is also a non-delayed protobufs:int64_codes/2
+
+%
+% @param Int64 an unsigned integer
+% @param Codes a list of 8 integers (codes)
+%
+% @error Type,Domain if =Int64= or =Codes= are of the wrong
+%                    type or out of range.
+int64_codes_when(Int64, Codes) :-  % TODO: unused
+    when((nonvar(Int64) ; ground(Codes)), int64_codes(Int64, Codes)).
+
+%! float64_codes_when(?Value, ?Codes) is det.
 % Convert between a 64-bit floating point value and its wirestream codes.
 % This is a low-level predicate; normally, you should use
 % template_message/2 and the appropriate template term.
 %
+% This predicate delays until either =Value= or =Codes= is
+% sufficiently instantiated.
+%
+% There is also a non-delayed protobufs:float64_codes/2
+%
 % @param Value a floating point number
 % @param Codes a list of 8 integers (codes)
-
-%! integer_zigzag(?Original, ?Encoded) is det.
-% Convert between an integer value and its zigzag encoding
-% This is a low-level predicate; normally, you should use
-% template_message/2 and the appropriate template term.
 %
-% @bug Throws instantiation error for large values.
-%      https://github.com/SWI-Prolog/contrib-protobufs/issues/5
-%      e.g. integer_zigzag(A, 18446744073709551600).
-%                             0xfffffffffffffff0
+% @error instantiation error if both =Value= and =Codes= are uninstantiated.
+%
+% @bug May give misleading exception under some circumstances
+%      (e.g., float64_codes(_, [_,_,_,_,_,_,_,_]).
+float64_codes_when(Value, Codes) :-
+    when((nonvar(Value) ; ground(Codes)), float64_codes(Value, Codes)).
+
+%! int64_zigzag_when(?Original, ?Encoded) is det.
+% Convert between a signed integer value and its zigzag encoding,
+% used for the protobuf =sint32= and =sint64= types. This is a
+% low-level predicate; normally, you should use template_message/2 and
+% the appropriate template term.
+%
+% SWI-Prolog allows integer values greater than 64 bits, so
+% a range check is done.
+%
+% This predicate delays until either =Original= or =Encoded= is
+% sufficiently instantiated.
+%
+% There is also a non-delayed protobufs:int64_zigzag/2
+%
+% @see https://developers.google.com/protocol-buffers/docs/encoding#types
 %
 % @param Original an integer in the original form
 % @param Encoded the zigzag encoding of =Original=
+%
+% @error Type,Domain if =Original= or =Encoded= are of the wrong
+%                    type or out of range.
+%
+% @error instantiation error if both =Original= and =Encoded= are uninstantiated.
+int64_zigzag_when(Original, Encoded) :-
+    when((nonvar(Original) ; nonvar(Encoded)), int64_zigzag(Original, Encoded)).
+
+%! uint64_int64_when(?Uint64:integer, ?Int64:integer) is det.
+% Reinterpret-cast between uint64 and int64. For example,
+% =|uint64_int64(0xffffffffffffffff,-1)|=.
+%
+% This predicate delays until either =Uint64= or =Int64= is
+% sufficiently instantiated.
+%
+% There is also a non-delayed protobufs:uint64_int64/2
+%
+% @param Uint64 64-bit unsigned integer
+% @param Int64 64-bit signed integer
+%
+% @error Type,Domain if =Value= or =Codes= are of the wrong
+%                    type or out of range.
+%
+% @error instantiation error if both =Value= and =Codes= are uninstantiated.
+uint64_int64_when(Uint64, Int64) :-
+    when((nonvar(Uint64) ; nonvar(Int64)), uint64_int64(Uint64, Int64)).
+
+% Reversed argument ordering for maplist/3
+int64_uint64_when(Int64, Uint64) :-
+    uint64_int64_when(Uint64, Int64).
+
+%! uint32_int32_when(?Uint32, ?Int32) is det.
+% Reinterpret-case between uint32 and int32.
+%
+% This predicate delays until either =Uint32= or =Int32= is
+% sufficiently instantiated.
+%
+% There is also a non-delayed protobufs:uint32_int32/2
+%
+% @param Uint32 32-bit unsigned integer (range between 0 and 4294967295).
+% @param Int32 32-bit signed integer (range between -2147483648 and 2147483647).
+%
+% @error Type,Domain if =Int32= or =Uint32= are of the wrong
+%                    type or out of range.
+%
+% @error instantiation error if both =UInt32= and =Int32= are uninstantiated.
+uint32_int32_when(Uint32, Int32) :-
+    when((nonvar(Uint32) ; nonvar(Int32)), uint32_int32(Uint32, Int32)).
+
+% Reversed argument ordering for maplist/3
+int32_uint32_when(Int32, Uint32) :-
+
+    uint32_int32_when(Uint32, Int32).
+
+%! int64_float64_when(?Int64:integer, ?Float64:float) is det.
+% Reinterpret-cast between uint64 and float64. For example,
+% =|int64_float64(3ff0000000000000,1.0)|=.
+%
+% This predicate delays until either =Int64= or =Float64= is
+% sufficiently instantiated.
+%
+% There is also a non-delayed protobufs:uint64_int64/2
+%
+% @param Int64 64-bit unsigned integer
+% @param Float64 64-bit float
+%
+% @error Type,Domain if =Value= or =Codes= are of the wrong
+%                    type or out of range.
+%
+% @error instantiation error if both =Value= and =Codes= are uninstantiated.
+int64_float64_when(Int64, Float64) :-
+    when((nonvar(Int64) ; nonvar(Float64)), int64_float64(Int64, Float64)).
+
+%! int32_float32_when(?Int32:integer, ?Float32:float) is det.
+% Reinterpret-cast between uint32 and float32. For example,
+% =|int32_float32(0x3f800000,1.0)|=.
+%
+% This predicate delays until either =Int32= or =Float32= is
+% sufficiently instantiated.
+%
+% There is also a non-delayed protobufs:uint32_int32/2
+%
+% @param Int32 32-bit unsigned integer
+% @param Float32 32-bit float
+%
+% @error Type,Domain if =Value= or =Codes= are of the wrong
+%                    type or out of range.
+%
+% @error instantiation error if both =Value= and =Codes= are uninstantiated.
+int32_float32_when(Int32, Float32) :-
+    when((nonvar(Int32) ; nonvar(Float32)), int32_float32(Int32, Float32)).
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 % Use protobufs meta-data (from protoc --swipl_out=DIR) to parse
 % protobuf wire format.
-%
-% TODO: protobuf_seralize_to_codes/3
 
-% The protoc plugin generates the following facts (all starting with "proto_meta_"):
+% The protoc plugin generates the following facts (all starting with "proto_meta_").
+% The are documented in protoc-gen-swipl and in the overview section.
 
 :- multifile
-     proto_meta_normalize/2,           %   proto_meta_normalize(Unnormalized, Normalized),
+     proto_meta_normalize/2,           %   proto_meta_normalize(Unnormalized, Normalized)
      proto_meta_package/3,             %   proto_meta_package(Package, FileName, Options)
      proto_meta_message_type/3,        %   proto_meta_message_type(       Fqn,     Package, Name)
-     proto_meta_field_name/4,          %   proto_meta_field_name(         Fqn,     FieldNumber, FieldName, FqnName),
+     proto_meta_field_name/4,          %   proto_meta_field_name(         Fqn,     FieldNumber, FieldName, FqnName)
      proto_meta_field_json_name/2,     %   proto_meta_field_json_name(    FqnName, JsonName)
      proto_meta_field_label/2,         %   proto_meta_field_label(        FqnName, LabelRepeatOptional) % LABEL_OPTIONAL, LABEL_REQUIRED, LABEL_REPEATED
      proto_meta_field_type/2,          %   proto_meta_field_type(         FqnName, Type) % TYPE_INT32, TYPE_MESSAGE, etc
@@ -848,6 +1111,10 @@ tag_and_codes(Tag, Codes) -->
      proto_meta_field_option_packed/1, %   proto_meta_field_option_packed(FqnName)
      proto_meta_enum_type/3,           %   proto_meta_enum_type(          FqnName, Fqn, Name)
      proto_meta_enum_value/3.          %   proto_meta_enum_value(         FqnName, Name, Number)
+
+proto_meta_enum_value_when(ContextType, EnumValue, IntValue) :-
+    when((nonvar(EnumValue) ; nonvar(IntValue)),
+         proto_meta_enum_value(ContextType, EnumValue, IntValue)).
 
 % :- det(segment_to_term/3).  % TODO - test scalars1a_parse left choicepoint
 %! segment_to_term(+ContextType:atom, +Segment, -FieldAndValue) is det.
@@ -859,188 +1126,172 @@ segment_to_term(ContextType0, Segment, FieldAndValue) =>
     segment_type_tag(Segment, _, Tag),
     field_and_type(ContextType0, Tag, FieldName, _FqnName, ContextType, RepeatOptional, Type),
     (   RepeatOptional = repeat_packed
-    ->  convert_segment_packed(Type, ContextType, Segment, Value)
-    ;   convert_segment(Type, ContextType, Segment, Value)
+    ->  convert_segment_packed(Type, ContextType, Tag, Segment, Value)
+    ;   convert_segment(Type, ContextType, Tag, Segment, Value)
     ),
     !, % TODO: get rid of this?
     FieldAndValue = field_and_value(FieldName,RepeatOptional,Value).
 
+% :- det(convert_segment_packed/6). % TODO
+%! convert_segment_packed(+Type:atom, +ContextType:atom, +Tag:atom, ?Segment, ?Values) is det.
+% Reversible on =Segment=, =Values=.
+%
 % TODO: these are very similar to convert_segment - can they be combined?
-convert_segment_packed('TYPE_DOUBLE', _ContextType, Segment0, Values) =>
-    protobuf_segment_convert(Segment0, packed(_, fixed64(Values0))),
-    maplist(convert_fixed64_double, Values0, Values), !.
-convert_segment_packed('TYPE_FLOAT', _ContextType, Segment0, Values) =>
-    protobuf_segment_convert(Segment0, packed(_, fixed32(Values0))),
-    maplist(convert_fixed32_float, Values0, Values), !.
-convert_segment_packed('TYPE_INT64', _ContextType, Segment0, Values) =>
-    protobuf_segment_convert(Segment0, packed(_, varint(Values0))),
-    maplist(convert_varint_int64, Values0, Values), !.
-convert_segment_packed('TYPE_UINT64', _ContextType, Segment0, Values) =>
-    protobuf_segment_convert(Segment0, packed(_, varint(Values))), !.
-convert_segment_packed('TYPE_INT32', _ContextType, Segment0, Values) =>
-    protobuf_segment_convert(Segment0, packed(_, varint(Values0))),
-    maplist(convert_varint_int32, Values0, Values), !.
-convert_segment_packed('TYPE_FIXED64', _ContextType, Segment0, Values) =>
-    protobuf_segment_convert(Segment0, packed(_, fixed64(Values0))),
-    maplist(convert_fixed64_fixed64, Values0, Values), !.
-convert_segment_packed('TYPE_FIXED32', _ContextType, Segment0, Values) =>
-    protobuf_segment_convert(Segment0, packed(_, fixed32(Values0))),
-    maplist(convert_fixed32_fixed32, Values0, Values), !.
-convert_segment_packed('TYPE_BOOL', _ContextType, Segment0, Values) =>
-    protobuf_segment_convert(Segment0, packed(_, varint(Values0))),
-    maplist(int_bool, Values0, Values), !.
-convert_segment_packed('TYPE_UINT32', _ContextType, Segment0, Values) =>
-    protobuf_segment_convert(Segment0, packed(_, varint(Values))), !.
-convert_segment_packed('TYPE_ENUM', ContextType, Segment0, Values) =>
-    protobuf_segment_convert(Segment0, packed(_, varint(Values0))), !,
-    maplist(proto_meta_enum_value(ContextType), Values, Values0).
-convert_segment_packed('TYPE_SFIXED32', _ContextType, Segment0, Values) =>
-    protobuf_segment_convert(Segment0, packed(_, fixed32(Values))), !.
-convert_segment_packed('TYPE_SFIXED64', _ContextType, Segment0, Values) =>
-    protobuf_segment_convert(Segment0, packed(_, fixed64(Values))), !.
-convert_segment_packed('TYPE_SINT32', _ContextType, Segment0, Values) =>
-    protobuf_segment_convert(Segment0, packed(_, varint(Values0))),
-    maplist(convert_varint_sint32, Values0, Values), !.
-convert_segment_packed('TYPE_SINT64', _ContextType, Segment0, Values) =>
-    protobuf_segment_convert(Segment0, packed(_, varint(Values0))),
-    maplist(convert_varint_sint64, Values0, Values), !.
 
-%  :- det(convert_segment/4).  % TODO: test scalars1a_parse: proto_meta_enum_value/3 left choicepoint
-%! convert_segment(+Type:atom, +ContextType:atom, +Segment, -Value) is det.
+convert_segment_packed('TYPE_DOUBLE', _ContextType, Tag, Segment0, Values) =>
+    freeze(Segment0, protobuf_segment_convert(Segment0, packed(Tag, fixed64(Values0)))),
+    maplist(int64_float64_when, Values0, Values), !.
+convert_segment_packed('TYPE_FLOAT', _ContextType, Tag, Segment0, Values) =>
+    freeze(Segment0, protobuf_segment_convert(Segment0, packed(Tag, fixed32(Values0)))),
+    maplist(int32_float32_when, Values0, Values), !.
+convert_segment_packed('TYPE_INT64', _ContextType, Tag, Segment0, Values) =>
+    freeze(Segment0, protobuf_segment_convert(Segment0, packed(Tag, varint(Values0)))),
+    maplist(uint64_int64_when, Values0, Values).
+convert_segment_packed('TYPE_UINT64', _ContextType, Tag, Segment0, Values) =>
+    protobuf_segment_convert(Segment0, packed(Tag, varint(Values))), !.
+convert_segment_packed('TYPE_INT32', _ContextType, Tag, Segment0, Values) =>
+    freeze(Segment0, protobuf_segment_convert(Segment0, packed(Tag, varint(Values0)))),
+    maplist(uint32_int32_when, Values0, Values).
+convert_segment_packed('TYPE_FIXED64', _ContextType, Tag, Segment0, Values) =>
+    freeze(Segment0, protobuf_segment_convert(Segment0, packed(Tag, fixed64(Values0)))),
+    maplist(int64_uint64_when, Values0, Values).
+convert_segment_packed('TYPE_FIXED32', _ContextType, Tag, Segment0, Values) =>
+    freeze(Segment0, protobuf_segment_convert(Segment0, packed(Tag, fixed32(Values0)))),
+    maplist(int32_uint32_when, Values0, Values).
+convert_segment_packed('TYPE_BOOL', _ContextType, Tag, Segment0, Values) =>
+    freeze(Segment0, protobuf_segment_convert(Segment0, packed(Tag, varint(Values0)))),
+    maplist(int_bool_when, Values0, Values).
+% TYPE_STRING  isn't allowed TODO: add it anyway?
+% TYPE_GROUP   isn't allowed
+% TYPE_MESSAGE isn't allowed
+% TYPE_BYTES   isn't allowed TODO: add it anyway?
+convert_segment_packed('TYPE_UINT32', _ContextType, Tag, Segment0, Values) =>
+    protobuf_segment_convert(Segment0, packed(Tag, varint(Values))), !.
+convert_segment_packed('TYPE_ENUM', ContextType, Tag, Segment0, Values) =>
+    % uint64_int64_when(...), % TODO! https://github.com/SWI-Prolog/contrib-protobufs/issues/9
+    freeze(Segment0, protobuf_segment_convert(Segment0, packed(Tag, varint(Values0)))),
+    maplist(convert_enum(ContextType), Values, Values0).
+convert_segment_packed('TYPE_SFIXED32', _ContextType, Tag, Segment0, Values) =>
+    protobuf_segment_convert(Segment0, packed(Tag, fixed32(Values))).
+convert_segment_packed('TYPE_SFIXED64', _ContextType, Tag, Segment0, Values) =>
+    protobuf_segment_convert(Segment0, packed(Tag, fixed64(Values))).
+convert_segment_packed('TYPE_SINT32', _ContextType, Tag, Segment0, Values) =>
+    freeze(Segment0, protobuf_segment_convert(Segment0, packed(Tag, varint(Values0)))),
+    maplist(int64_zigzag_when, Values, Values0).
+convert_segment_packed('TYPE_SINT64', _ContextType, Tag, Segment0, Values) =>
+    freeze(Segment0, protobuf_segment_convert(Segment0, packed(Tag, varint(Values0)))),
+    maplist(int64_zigzag_when, Values, Values0).
+convert_segment_packed(Type, ContextType, Tag, Segment, Values) => % TODO: delete this clause
+    domain_error(type(type=Type, % TODO: this is a bit funky
+                      context_type=ContextType),
+                 value(segment=Segment,
+                       tag=Tag,
+                       values=Values)).
+
+%  :- det(convert_segment/5).  % TODO: test scalars1a_parse: proto_meta_enum_value/3 left choicepoint
+%! convert_segment(+Type:atom, +ContextType:atom, Tag:atom, ?Segment, ?Value) is det.
 % Compute an appropriate =Value= from the combination of descriptor
 % "type" (in =Type=) and a =Segment=.
-convert_segment('TYPE_DOUBLE', _ContextType, Segment0, Value) =>
-    Segment = fixed64(_Tag,Codes),
-    protobuf_segment_convert(Segment0, Segment),
-    float64_codes(Value, Codes), !.
-convert_segment('TYPE_FLOAT', _ContextType, Segment0, Value) =>
-    Segment = fixed32(_Tag,Codes),
-    protobuf_segment_convert(Segment0, Segment),
-    float32_codes(Value, Codes), !.
-convert_segment('TYPE_INT64', _ContextType, Segment0, Value) =>
-    Segment = varint(_Tag,Value0),
-    protobuf_segment_convert(Segment0, Segment), !,
-    (   Value0 > 0x7fffffffffffffff  % TODO: test case
-    ->  Value is -(Value0 xor 0xffffffffffffffff + 1)
-    ;   Value = Value0
-    ).
-convert_segment('TYPE_UINT64', _ContextType, Segment0, Value) =>
-    Segment = varint(_Tag,Value),
+% Reversible on =Segment=, =Values=.
+
+convert_segment('TYPE_DOUBLE', _ContextType, Tag, Segment0, Value) =>
+    Segment = fixed64(Tag,Int64),
+    int64_float64_when(Int64, Value),
     protobuf_segment_convert(Segment0, Segment), !.
-convert_segment('TYPE_INT32', _ContextType, Segment0, Value) =>
-    Segment = varint(_Tag,Value0),
-    protobuf_segment_convert(Segment0, Segment), !,
-    (   Value0 > 0x7fffffff  % TODO: test case
-    ->  Value is -(Value0 xor 0xffffffffffffffff + 1)
-    ;   Value = Value0
-    ).
-convert_segment('TYPE_FIXED64', _ContextType, Segment0, Value) =>
-    Segment = fixed64(_Tag,Codes),
-    protobuf_segment_convert(Segment0, Segment), !,
-    int64_codes(Value0, Codes),
-    (   Value0 < 0
-    ->  Value is -(Value0 xor 0xffffffffffffffff + 1)
-    ;   Value = Value0
-    ).
-convert_segment('TYPE_FIXED32', _ContextType, Segment0, Value) =>
-    Segment = fixed32(_Tag,Codes),
-    protobuf_segment_convert(Segment0, Segment),
-    int32_codes(Value0, Codes), !,
-    (   Value0 < 0
-    ->  Value is -(Value0 xor 0xffffffff + 1)
-    ;   Value = Value0
-    ).
-convert_segment('TYPE_BOOL', _ContextType, Segment0, Value) =>
-    Segment = varint(_Tag,Value0),
-    protobuf_segment_convert(Segment0, Segment),
-    int_bool(Value0, Value), !.
-convert_segment('TYPE_STRING', _ContextType, Segment0, Value) =>
-    Segment = string(_,ValueStr),
-    protobuf_segment_convert(Segment0, Segment), !,
-    (   false    % TODO: control whether atom or string with an option
-    ->  atom_string(Value, ValueStr)
-    ;   Value = ValueStr
-    ).
-convert_segment('TYPE_GROUP', ContextType, Segment0, Value) =>
-    Segment = group(_,GroupSegments),
-    protobuf_segment_convert(Segment0, Segment),
-    maplist(segment_to_term(ContextType), GroupSegments, GroupFields),
-    combine_fields(GroupFields, ContextType{}, Value), !.
-convert_segment('TYPE_MESSAGE', ContextType, Segment0, Value) =>
-    Segment = message(_,MsgSegments),
-    protobuf_segment_convert(Segment0, Segment),
-    maplist(segment_to_term(ContextType), MsgSegments, MsgFields),
-    combine_fields(MsgFields, ContextType{}, Value), !.
-convert_segment('TYPE_BYTES', _ContextType, Segment0, Value) =>
-    Segment = length_delimited(_,Value),
+convert_segment('TYPE_FLOAT', _ContextType, Tag, Segment0, Value) =>
+    Segment = fixed32(Tag,Int32),
+    int32_float32_when(Int32, Value),
     protobuf_segment_convert(Segment0, Segment), !.
-convert_segment('TYPE_UINT32', _ContextType, Segment0, Value) =>
-    Segment = varint(_Tag,Value),
+convert_segment('TYPE_INT64', _ContextType, Tag, Segment0, Value) =>
+    Segment = varint(Tag,Value0),
+    uint64_int64_when(Value0, Value),
     protobuf_segment_convert(Segment0, Segment), !.
-convert_segment('TYPE_ENUM', ContextType, Segment0, Value) =>
-    Segment = varint(_,Value0),
-    protobuf_segment_convert(Segment0, Segment),
-    proto_meta_enum_value(ContextType, Value, Value0),
-    !.
-convert_segment('TYPE_SFIXED32', _ContextType, Segment0, Value) =>
-    Segment = fixed32(_,Codes),
-    protobuf_segment_convert(Segment0, Segment), !,
-    int32_codes(Value, Codes).
-convert_segment('TYPE_SFIXED64', _ContextType, Segment0, Value) =>
-    Segment = fixed64(_,Codes),
-    protobuf_segment_convert(Segment0, Segment), !,
-    int64_codes(Value, Codes).
-convert_segment('TYPE_SINT32', _ContextType, Segment0, Value) =>
-    Segment = varint(_,Value0),
-    protobuf_segment_convert(Segment0, Segment), !,
-    integer_zigzag(Value, Value0).
-convert_segment('TYPE_SINT64', _ContextType, Segment0, Value) =>
-    Segment = varint(_,Value0),
-    protobuf_segment_convert(Segment0, Segment), !,
-    integer_zigzag(Value, Value0).
+convert_segment('TYPE_UINT64', _ContextType, Tag, Segment0, Value) =>
+    Segment = varint(Tag,Value),
+    protobuf_segment_convert(Segment0, Segment), !.
+convert_segment('TYPE_INT32', _ContextType, Tag, Segment0, Value) =>
+    Segment = varint(Tag,Value0),
+    uint32_int32_when(Value0, Value),
+    protobuf_segment_convert(Segment0, Segment), !.
+convert_segment('TYPE_FIXED64', _ContextType, Tag, Segment0, Value) =>
+    Segment = fixed64(Tag,Value0),
+    uint64_int64_when(Value, Value0),
+    protobuf_segment_convert(Segment0, Segment), !.
+convert_segment('TYPE_FIXED32', _ContextType, Tag, Segment0, Value) =>
+    Segment = fixed32(Tag,Value0),
+    uint32_int32_when(Value, Value0),
+    protobuf_segment_convert(Segment0, Segment), !.
+convert_segment('TYPE_BOOL', _ContextType, Tag, Segment0, Value) =>
+    Segment = varint(Tag,Value0),
+    int_bool_when(Value0, Value),
+    protobuf_segment_convert(Segment0, Segment), !.
+% convert_segment('TYPE_STRING', _ContextType, Tag, Segment0, Value) =>
+%     Segment = string(Tag,ValueStr),
+%     protobuf_segment_convert(Segment0, Segment), !,
+%     (   false    % TODO: control whether atom or string with an option
+%     ->  atom_string(Value, ValueStr)
+%     ;   Value = ValueStr
+%     ).
+convert_segment('TYPE_STRING', _ContextType, Tag, Segment0, Value) =>
+    % TODO: option to control whether to use atom_string(Value,ValueStr)
+    Segment = string(Tag,Value),
+    protobuf_segment_convert(Segment0, Segment), !.
+convert_segment('TYPE_GROUP', ContextType, Tag, Segment0, Value) =>
+    Segment = group(Tag,MsgSegments),
+    % TODO: combine with TYPE_MESSAGE code:
+    (   nonvar(Value)
+    ->  dict_pairs(Value, _, FieldValues),
+        maplist(field_segment(ContextType), FieldValues, MsgSegments),
+        protobuf_segment_convert(Segment0, Segment)
+    ;   protobuf_segment_convert(Segment0, Segment),
+        maplist(segment_to_term(ContextType), MsgSegments, MsgFields),
+        combine_fields(MsgFields, ContextType{}, Value)
+    ), !.
+convert_segment('TYPE_MESSAGE', ContextType, Tag, Segment0, Value) =>
+    Segment = message(Tag,MsgSegments),
+    (   nonvar(Value)
+    ->  dict_pairs(Value, _, FieldValues),
+        maplist(field_segment(ContextType), FieldValues, MsgSegments),
+        protobuf_segment_convert(Segment0, Segment)
+    ;   protobuf_segment_convert(Segment0, Segment),
+        maplist(segment_to_term(ContextType), MsgSegments, MsgFields),
+        combine_fields(MsgFields, ContextType{}, Value)
+    ), !.
+convert_segment('TYPE_BYTES', _ContextType, Tag, Segment0, Value) =>
+    Segment = length_delimited(Tag,Value),
+    protobuf_segment_convert(Segment0, Segment), !.
+convert_segment('TYPE_UINT32', _ContextType, Tag, Segment0, Value) =>
+    Segment = varint(Tag,Value),
+    protobuf_segment_convert(Segment0, Segment), !.
+convert_segment('TYPE_ENUM', ContextType, Tag, Segment0, Value) =>
+    Segment = varint(Tag,Value0),
+    convert_enum(ContextType, Value, Value0), % DO NOT SUBMIT - need a test case for negative
+    protobuf_segment_convert(Segment0, Segment), !.
+convert_segment('TYPE_SFIXED32', _ContextType, Tag, Segment0, Value) =>
+    Segment = fixed32(Tag,Value),
+    protobuf_segment_convert(Segment0, Segment), !.
+convert_segment('TYPE_SFIXED64', _ContextType, Tag, Segment0, Value) =>
+    Segment = fixed64(Tag,Value),
+    protobuf_segment_convert(Segment0, Segment), !.
+convert_segment('TYPE_SINT32', _ContextType, Tag, Segment0, Value) =>
+    Segment = varint(Tag,Value0),
+    int64_zigzag_when(Value, Value0),
+    protobuf_segment_convert(Segment0, Segment), !.
+convert_segment('TYPE_SINT64', _ContextType, Tag, Segment0, Value) =>
+    Segment = varint(Tag,Value0),
+    int64_zigzag_when(Value, Value0),
+    protobuf_segment_convert(Segment0, Segment), !.
 
-convert_fixed64_double(V0, V) :-
-    int64_codes(V0, Codes),
-    float64_codes(V, Codes).
-
-convert_fixed32_float(V0, V) :-
-    int32_codes(V0, Codes),
-    float32_codes(V, Codes).
-
-convert_varint_int64(V0, V) :-
-    (   V0 > 0x7fffffffffffffff
-    ->  V is -(V0 xor 0xffffffffffffffff + 1)
-    ;   V = V0
-    ).
-
-convert_varint_int32(V0, V) :-
-    (   V0 > 0x7fffffff
-    ->  V is -(V0 xor 0xffffffffffffffff + 1)
-    ;   V = V0
-    ).
-
-convert_fixed64_fixed64(V0, V) :-
-        (   V0 < 0
-    ->  V is -(V0 xor 0xffffffffffffffff + 1)
-    ;   V = V0
-    ).
-
-convert_fixed32_fixed32(V0, V) :-
-        (   V0 < 0
-    ->  V is -(V0 xor 0xffffffff + 1)
-    ;   V = V0
-    ).
-
-convert_varint_sint64(V0, V) :-
-    integer_zigzag(V, V0).
-
-convert_varint_sint32(V0, V) :-
-    integer_zigzag(V, V0).
+convert_enum(ContextType, Enum, Uint) :-
+    uint64_int64_when(Uint, Int),
+    proto_meta_enum_value_when(ContextType, Enum, Int).
 
 % TODO: use options to translate to/from false, true (see json_read/3)
 int_bool(0, false).
 int_bool(1, true).
 
+int_bool_when(Int, Bool) :-
+    when((nonvar(Int) ; nonvar(Bool)), int_bool(Int, Bool)).
 
 :- det(combine_fields/3).
 %! combine_fields(+Fields:list, +MsgDict0, -MsgDict) is det.
@@ -1104,7 +1355,6 @@ field_and_type(ContextType, Tag, FieldName, FqnName, ContextType2, RepeatOptiona
 % =norepeat=, =repeat=, =repeat_packed=.
 fqn_repeat_optional(FqnName, RepeatOptional) =>
     proto_meta_field_label(FqnName, LabelRepeatOptional),
-    % proto_meta_enum_value('.google.protobuf.FieldDescriptorProto.Label', 'LABEL_REPEATED', _).
     (   LabelRepeatOptional = 'LABEL_REPEATED',
         proto_meta_field_option_packed(FqnName)
     ->  RepeatOptional = repeat_packed
@@ -1122,6 +1372,7 @@ fqn_repeat_optional_2('LABEL_REPEATED', repeat).
 
 %! field_descriptor_label_repeated(+Label:atom) is semidet.
 % From proto_meta_enum_value('.google.protobuf.FieldDescriptorProto.Label', 'LABEL_REPEATED', _).
+% TODO: unused
 field_descriptor_label_repeated('LABEL_REPEATED').
 
 %! field_descriptor_label_single(+Label:atom) is semidet.
@@ -1130,38 +1381,62 @@ field_descriptor_label_single('LABEL_OPTIONAL').
 field_descriptor_label_single('LABEL_REQUIRED').
 
 % :- det(term_to_segments/3).  % TODO
-%! term_to_segments(+Term:dict, +MessageType:atom, -Segments:list) is det.
+%! term_to_segments(+Term:dict, +MessageType:atom, Segments) is det.
 % Recursively traverse a =Term=, generating message segments
 term_to_segments(Term, MessageType, Segments) :-
-    is_dict(Term),
     dict_pairs(Term, _, FieldValues),
-    maplist(term_field(MessageType), FieldValues, Segments).
+    maplist(field_segment(MessageType), FieldValues, Segments).
 
-term_field(MessageType, FieldName-Value, Segment) :-
+% :- det(field_segment/3). % TODO: leaves a choicepoint
+% MessageType is the FQN of the field type (e.g., '.test.Scalars1')
+% FieldName-Value is from the dict_pairs of the term.
+field_segment(MessageType, FieldName-Value, Segment) :-
     proto_meta_field_name(MessageType, Tag, FieldName, FieldFqn),
     proto_meta_field_type(FieldFqn, FieldType),
+    proto_meta_field_type_name(FieldFqn, FieldTypeName),
     proto_meta_field_label(FieldFqn, Label),
     (   proto_meta_field_option_packed(FieldFqn)
     ->  Packed = packed
     ;   Packed = not_packed
     ),
-    term_field2(FieldType, Label, Packed, Tag, FieldFqn, Value, Segment).
+    !, % TODO: remove
+    field_segment_scalar_or_repeated(Label, Packed, FieldType, Tag, FieldTypeName, Value, Segment),
+    !. % TODO: remove
 
-term_field2(FieldType, 'LABEL_OPTIONAL', not_packed, _Tag, FieldFqn, Value, Segment) :- !,
-    convert_segment(FieldType, FieldFqn, Segment, Value).
+:- det(field_segment_scalar_or_repeated/7).
+%! field_segment_scalar_or_repeated(+Label, +Packed, +FieldType, +Tag, +FieldTypeName, ?Value, Segment) is det.
+% =FieldType= is from the =|.proto|= meta information ('TYPE_SINT32', etc.)
+field_segment_scalar_or_repeated('LABEL_OPTIONAL', not_packed, FieldType, Tag, FieldTypeName, Value, Segment) :- !,
+    convert_segment(FieldType, FieldTypeName, Tag, Segment, Value).
+field_segment_scalar_or_repeated('LABEL_REQUIRED', not_packed, FieldType, Tag, FieldTypeName, Value, Segment) :- !,  % same as LABEL_OPTIONAL
+    convert_segment(FieldType, FieldTypeName, Tag, Segment, Value).
+field_segment_scalar_or_repeated('LABEL_REPEATED', packed, FieldType, Tag, FieldTypeName, Values, packed(Tag,FieldValues)) :- !,
+    maplist(convert_segment_v_s(FieldType, FieldTypeName, Tag), Values, Segments0),
+    packed_list(Segments0, FieldValues).
 
-term_field2(FieldType, 'LABEL_REQUIRED', not_packed, _Tag, FieldFqn, Value, Segment) :- !,  % same as LABEL_OPTIONAL
-    convert_segment(FieldType, FieldFqn, Segment, Value).
+field_segment_scalar_or_repeated('LABEL_REPEATED', not_packed, FieldType, Tag, FieldTypeName, Values, repeated(Segments)) :- !,
+    maplist(convert_segment_v_s(FieldType, FieldTypeName, Tag), Values, Segments).
+field_segment_scalar_or_repeated(Label, Packed, FieldType, Tag, FieldTypeName, Value, Segment) :- % TODO: delete this clause
+    domain_error(type(field_type=FieldType,     % TODO: this is a bit funky
+                      label=Label,
+                      packed=Packed),
+                 value(tag=Tag, field_type_name=FieldTypeName, value=Value, segment=Segment)).
 
-term_field2(FieldType, 'LABEL_REPEATED', packed, Tag, FieldFqn, Values, packed(Tag,FieldValues)) :- !,
-    convert_segment_packed(FieldType, FieldFqn, Values, FieldValues).
+convert_segment_v_s(FieldType, FieldTypeName, Tag, Value, Segment) :-
+    convert_segment(FieldType, FieldTypeName, Tag, Segment, Value).
 
-term_field2(FieldType, 'LABEL_REPEATED', not_packed, _Tag, FieldFqn, Values, _Segment) :- !,
-    maplist(convert_segment(FieldType), FieldFqn, Values, repeated(Values)).
+% Convert [varint(1,10),varint(1,20)] to varint(1,[10,20]).
+packed_list([], []).
+packed_list([T1|Ts], PackedList) :-
+    detag(T1, Functor, Tag, _V1, List, PackedList),
+    packed_list_([T1|Ts], Functor, Tag, List).
 
-term_field2(FieldType, Label, Packed, Tag, FieldFqn, Value, Segment) :-
-    % TODO: this is a bit funky:
-    domain_error(type(field_type=FieldType, label=Label, packed=Packed), value(tag=Tag, field_fqn=FieldFqn, value=Value, segment=Segment)).
+% Functor and Tag are only for verifying that the terms are of the
+% expected form.
+packed_list_([], _, _, []).
+packed_list_([T1|Ts], Functor, Tag, [X1|Xs]) :-
+    detag(T1, Functor, Tag, X1, _, _),
+    packed_list_(Ts, Functor, Tag, Xs).
 
 
 end_of_file.
