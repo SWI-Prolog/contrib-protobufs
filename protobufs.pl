@@ -1270,7 +1270,7 @@ convert_segment('TYPE_UINT32', _ContextType, Tag, Segment0, Value) =>
     protobuf_segment_convert(Segment0, Segment), !.
 convert_segment('TYPE_ENUM', ContextType, Tag, Segment0, Value) =>
     Segment = varint(Tag,Value0),
-    convert_enum(ContextType, Value, Value0), % DO NOT SUBMIT - need a test case for negative
+    convert_enum(ContextType, Value, Value0), % TODO: negative values: https://github.com/SWI-Prolog/contrib-protobufs/issues/9
     protobuf_segment_convert(Segment0, Segment), !.
 convert_segment('TYPE_SFIXED32', _ContextType, Tag, Segment0, Value) =>
     Segment = fixed32(Tag,Value),

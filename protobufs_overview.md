@@ -17,12 +17,6 @@ the "old" format.
 
 See https://developers.google.com/protocol-buffers
 
-There are two ways you can use protobufs in Prolog: with a compiled
-".proto" file and protobuf_parse_from_codes/3 or with a lower-level
-interface protobuf_message/2, which allows you to define your own
-domain-specific language for parsing and serliazing protobufs.
-(Currently there is no protobuf_serialize_to_codes/3.)
-
 The idea behind Google's  Protocol  Buffers   is  that  you  define your
 structured messages using a  domain-specific   language.  This takes the
 form of a .proto source file. You   pass  this file through a Google
@@ -31,6 +25,14 @@ an interpreter that can encode/decode  your   structured  data. You then
 compile and build  this  interpreter   into  your  application  program.
 Depending on the platform, the underlying runtime support is provided by
 a Google supplied library that is also bound into your program.
+
+## Processing protobufs with Prolog {#protobufs-processing-with-prolog}
+
+There are two ways you can use protobufs in Prolog: with a compiled
+".proto" file and protobuf_parse_from_codes/3 and
+protobuf_serialize_to_codes/3; or with a lower-level interface
+protobuf_message/2, which allows you to define your own
+domain-specific language for parsing and serliazing protobufs.
 
 ## protoc {#protobufs-protoc}
 
@@ -48,6 +50,8 @@ information, and meta-data facts that go into the =protobufs= module (and all
 the facts start with =proto_meta_+. protobuf_parse_from_codes/3 uses these
 facts to parse the wire form of the message into a Prolog term.
 
+The generated code does not rely on any Google-supplied code.
+
 TODO: add an "imports" option to (recursively) process all imported
 .proto files.
 
@@ -64,17 +68,40 @@ optional field is not in the wire stream, it isn't in the dict
 not in the dict rather than being given a value of =|[]|=, although this
 will probably change in the future).
 
+When serializing, the dict tag is treated as ignored.
+
 NOTE: if the wire codes can't be parsed, protobuf_parse_from_codes/3
 fails.  One common cause of this failure is not including all the
 meta-data. For example, if =foo.proto= imports =bar.proto=, then you
 must import =foo_pb= and =bar_pb=.
 
-## The SWI-Prolog Implementation {#protobufs-swipl}
+### protobuf_parse_from_codes/3 {#protobufs-parse-from-codes}
 
-In SWI-Prolog, the wire stream interpreter is  embodied in the form of a
+This is the inverse of protobuf_serialize_to_codes/3 -- it takes
+a wire stream (list of codes) and creates a dict.
+
+### addressbook example {#protobufs-addressbook-example}
+
+The Google documentation has a tutorial example of a simple
+addressbook:
+https://developers.google.com/protocol-buffers/docs/tutorials The
+Prolog equivalent is in
+=|/usr/lib/swi-prolog/oc/packages/examples/protobufs/interop/addressbook.pl|=
+and you can run it by =|make run_addressbook|=, which will run =|protoc|=
+to generate the _pb.pl files and then run the example. The resulting file
+is =|addressbook.wire|=.
+
+## The low-level SWI-Prolog Implementation {#protobufs-swipl}
+
+For most users, protobuf_serialize_to_codes/3 and
+protobuf_parse_from_codes/3 suffice. However, if you need greater
+control, or wish to define your own domain-specific language that maps
+to protobufs, you can use protobuf_message/2.
+
+The wire stream interpreter is  embodied in the form of a
 Definite Clause Grammar (DCG).  It  has   a  small  underlying C-support
 library that loads when the  Prolog   module  loads. This implementation
-does not depend on any code that is  provided by Google and thus, is not
+does not depend on any code that is  provided by Google and thus is not
 bound by its license terms.
 
 On the Prolog side, you  define  your   message  template  as  a list of
@@ -197,7 +224,7 @@ their tags) and if there is no value for a field, it would be simply
 omitted in the template. The field names and message names can be
 changed without any change to the wire format.
 
-## Wiretypes {#protobufs-wire-types}
+### Wiretypes {#protobufs-wire-types}
 
 The wire-stream consists of six primitive   payload  types, two of which
 have been deprecated. A primitive  in   the  wire-stream is a multi-byte
@@ -278,7 +305,7 @@ in some of the interoperability tests.)
        =int64=.
     1. Specified as =|repeated_embedded(Tag,protobuf([...]),Fields)|=
 
-## Tags (field numbers) {#protobufs-tags}
+### Tags (field numbers) {#protobufs-tags}
 
 A tag (or field number) is a small integer that is present in every wire-stream primitive.
 The tag is the only means that  the interpreter has to synchronize the
@@ -289,7 +316,7 @@ each field within a message has a unique field number; the protobuf compiler
 are unique only within a message; an embedded message can use the same
 field numbers without ambigituity).
 
-## Basic Usage {#protobufs-basic-usage}
+### Basic Usage {#protobufs-basic-usage}
 
 A protobuf wire-stream is a byte  string   that  is comprised of zero or
 more of the above multi-byte wire-stream primitives. Templates are lists
@@ -379,9 +406,9 @@ systems and languages, then the protobuf   templates  that you supply to
 protobuf_message/2  must  be  equivalent  to   those  described  in  the
 .proto file that is used on the other side.
 
-## Alternation, Aggregation, Encapsulation, and Enumeration {#protobufs-aaee}
+### Alternation, Aggregation, Encapsulation, and Enumeration {#protobufs-aaee}
 
-### Alternation {#protobufs-alternation}
+#### Alternation {#protobufs-alternation}
 
 The  protobuf  grammar  provides  a   reserved  word,  =optional=,  that
 indicates that the production rule that it  refers to may appear once or
@@ -401,7 +428,7 @@ proto2 and proto3 -- proto2 allows specifying a default value but proto3
 uses 0 and =""= as defaults for numbers and strings and omits encoding
 any field that has one of those default values.
 
-### Aggregation {#protobufs-aggregation}
+#### Aggregation {#protobufs-aggregation}
 
 It is possible to specify homogeneous vectors   of things (e.g. lists of
 numbers) using the =repeated= attribute. You specify a repeated field as
@@ -447,7 +474,7 @@ where =Fields= gets a list (possibly empty), with each item of the form
     packed(23, enum(tank_state([empty, half_full, full]))).
 ```
 
-### Handling missing fields {#protobufs-missing}
+#### Handling missing fields {#protobufs-missing}
 
 For input, you can wrap fields in `repeated`, so that if a field is there,
 it gets a length-1 list and if it's missing, an empty list:
@@ -479,7 +506,7 @@ Codes = [].
 S = [].
 ```
 
-### Encapsulation and Enumeration {#protobufs-encapsulation}
+#### Encapsulation and Enumeration {#protobufs-encapsulation}
 
 It is possible to embed one protocol buffer specification inside
 another using the =embedded= term.  The following example shows a
@@ -539,7 +566,7 @@ An earlier version of protobuf_message/2 assumed that enumeration values
 could not be zero, and there might still be incorrect assumptions in the code,'
 resulting in either exceptions or silent failure.
 
-### Heterogeneous Collections {#protobufs-heterogeneous}
+#### Heterogeneous Collections {#protobufs-heterogeneous}
 
 Using Protocol Buffers, it is          easy        to specify fixed data
 structures and homogeneous vectors like one might find in languages like
@@ -555,7 +582,7 @@ message. You do this by supplying the  _structure_. Tell the parser what
 is possible and let the parser figure it  out on its own, one production
 at a time. An example may be found in the appendix.
 
-## Groups (deprecated) {#protobufs-groups}
+### Groups (deprecated) {#protobufs-groups}
 
 Protocol Buffer Groups provide a means for constructing unitary messages
 consisting of ad-hoc lists of  terms.   The  following protobuf fragment
@@ -568,9 +595,9 @@ shows the definition of a group carrying a complex number.
 Groups have been replaced by _embedded_ messages, which are slightly
 less expensive to encode.
 
-## Advanced Topics {#protobufs-advanced}
+### Advanced Topics {#protobufs-advanced}
 
-### Precompiled Messages {#protobufs-precompiled}
+#### Precompiled Messages {#protobufs-precompiled}
 
 Performance  can  be                 improved    using   a  strategy  of
 precompiling the constant portions  of   your  message. Enumerations for
@@ -602,7 +629,7 @@ term_expansion(precompile_commands, Clauses) :-
 precompile_commands.  % Trigger the term-expansion precompilation
 ```
 
-### Supplying Your Own Host Type Message Sequences {#protobufs-user-types}
+#### Supplying Your Own Host Type Message Sequences {#protobufs-user-types}
 
 You can extend the parser to support your own compound host types. These
 are treated as first class entities by the   parser. That is they can be
@@ -617,6 +644,9 @@ shown in the appendix.
 # Appendix {#protobufs-appendix}
 
 ## Example: A Simple XML Like Structure {#protobufs-ex-xml}
+
+This is an example of using the low-level interface for implementing
+a domain-specific language that maps to protobufs.
 
 In this example we demonstrate managing  a recursive structure like XML.
 The structure shown in xml_proto/1 below,   is  similar to the structure
@@ -787,6 +817,8 @@ elements {
 
 ## Example: Vectors of Numbers {#protobufs-ex-vector-of-numbers}
 
+This is an example of using the low-level interface.
+
 In the Prolog client:
 
 ```prolog
@@ -874,6 +906,8 @@ double_values: 2.5400000000000002e+222
 ```
 
 ## Example: Heterogeneous Collections {#protobufs-ex-heterogeneous}
+
+This is an example of using the low-level interface.
 
 The following example shows  how  one   can  specify  a  Protocol Buffer
 message  that  can  deal  with  variable-length,  unstructured  bags  of

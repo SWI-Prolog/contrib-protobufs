@@ -6,7 +6,7 @@
 #    https://github.com/protocolbuffers/protobuf/blob/master/src/README.md
 
 # The demo is run by:
-#   make check
+#   make test
 
 # Assumption: protoc and swipl are in your $PATH ... you can override
 # these by setting PROTOC= or SWIPL= when envoking "make".

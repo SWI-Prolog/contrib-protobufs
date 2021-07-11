@@ -49,10 +49,12 @@ Missing from this is (where `$SRC` is the top-level source directory, into which
 `git@github.com:protocolbuffers/protobuf.git` is cloned):
 ```
 $SRC/protobuf/src/google/protobuf/unittest.proto
+$SRC/protobuf/src/google/protobuf/unittest_import.proto
+$SRC/protobuf/src/google/protobuf/unittest_import_public.proto
 ```
 
-So, a copy of this `unittest.proto` file has been made here.
-It is related to the "golden_message" test in `../test_protobufs.pl`.
+So, a copy of these files hav been made here.
+They related to the "golden_message" test in `../test_protobufs.pl`.
 
 ## addressbook.proto, addressbook2.proto
 

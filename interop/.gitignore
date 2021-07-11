@@ -6,3 +6,4 @@ test_read
 # google/protobuf/unittest_import_pb.pl
 # google/protobuf/unittest_import_public_pb.pl
 *_pb.pl
+addressbook.wire

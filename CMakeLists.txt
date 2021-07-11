@@ -56,6 +56,7 @@ swipl_examples(
                interop/Makefile
                interop/addressbook.proto
                interop/addressbook2.proto
+               interop/addressbook.pl
                interop/test.proto
                interop/test_read.cc
                interop/test_read.py

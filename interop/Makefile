@@ -24,6 +24,11 @@ test: test_interop_prolog \
 	scalars1_wire test_read_cc test_read_python \
 	addressbook_pb.pl addressbook2_pb.pl
 
+.PHONY: run_addressbook
+run_addressbook: addressbook.pl addressbook_pb.pl addressbook2_pb.pl timestamp_pb.pl FORCE
+	$(RM) addressbook.msg
+	$(SWIPL) -g test_write -g test_write -g test_read -t halt addressbook.pl
+
 # Protobuf code generator for Python and C++
 %_pb2.py %.pb.h %.pb.cc: %.proto
 	$(PROTOC) -Igoogle/protobuf $(PROTOC_I) --python_out=. --cpp_out=. $?
@@ -34,6 +39,10 @@ test: test_interop_prolog \
 	@#                         with Request.parameter)
 	PATH=$(PATH_WITH_SWIPL) $(PROTOC) $(PROTOC_I) --swipl_out='OUT_PARAMETER':. \
 		--plugin=protoc-gen-swipl=$(realpath ../bootstrap/protoc-gen-swipl) $<
+
+timestamp_pb.pl:  # in ~/.local/include/google/protobuf or similar
+	PATH=$(PATH_WITH_SWIPL) $(PROTOC) $(PROTOC_I) --swipl_out='OUT_PARAMETER':. \
+		--plugin=protoc-gen-swipl=$(realpath ../bootstrap/protoc-gen-swipl) timestamp.proto
 
 .PHONY: run_test_read  # a convenience label
 run_test_read \
@@ -145,7 +154,7 @@ test_read.o: test.pb.h test.pb.cc test_read.cc
 
 clean:
 	$(RM) -r *_pb2.py *.wire *.o *_pb.pl *.pb.h *.pb.cc test_write test_read __pycache__ \
-		google/protobuf/*_pb.pl google/protobuf/*_pb2.py
+		google/protobuf/*_pb.pl google/protobuf/*_pb2.py addressbook.wire
 
 .PHONY: tar tkdiff
 tar:
