@@ -19,7 +19,7 @@ See https://developers.google.com/protocol-buffers
 
 The idea behind Google's  Protocol  Buffers   is  that  you  define your
 structured messages using a  domain-specific   language.  This takes the
-form of a .proto source file. You   pass  this file through a Google
+form of a ".proto" source file. You   pass  this file through a Google
 provided tool that generates source code for a target language, creating
 an interpreter that can encode/decode  your   structured  data. You then
 compile and build  this  interpreter   into  your  application  program.
@@ -36,7 +36,7 @@ domain-specific language for parsing and serliazing protobufs.
 
 ## protoc {#protobufs-protoc}
 
-A protobuf .proto file can be processed by the protobuf compiler
+A protobuf ".proto" file can be processed by the protobuf compiler
 (=protoc=), using a Prolog specific plugin. You can do this by either
 adding =|/usr/lib/swi-prolog/library/protobufs|= to your =PATH= or by
 specifying the option
@@ -44,41 +44,52 @@ specifying the option
 You specify where the generated files go with the =|--swipl_out|=
 option, which must be an existing directory.
 
-Each =X.proto= file generates a =X_pb.pl= file in the directory specified
-by =|--swipl_out|=. The file contains a module name =X=, some debugging
-information, and meta-data facts that go into the =protobufs= module (and all
-the facts start with =proto_meta_+. protobuf_parse_from_codes/3 uses these
-facts to parse the wire form of the message into a Prolog term.
+Each =X.proto= file generates a =X_pb.pl= file in the directory
+specified by =|--swipl_out|=. The file contains a module name =X=,
+some debugging information, and meta-data facts that go into the
+=protobufs= module (all the facts start with "=|proto_meta_|=") --
+protobuf_parse_from_codes/3 uses these facts to parse the wire form of
+the message into a Prolog term and protobuf_serialize_to_codes/3 uses
+them to serialize the data to wire form.
 
 The generated code does not rely on any Google-supplied code.
 
-TODO: add an "imports" option to (recursively) process all imported
-.proto files.
+TODO: Currently, you must compile all the ".proto" files separately
+and also import them separately. This behavior should change in the future,
+see [Issue #7](https://github.com/SWI-Prolog/contrib-protobufs/issues/7).
 
 ### protobuf_serialize_to_codes/3 {#protobufs-serialize-to-codes}
 
 The Prolog term corresponding to a protobuf =message= is a dict, with
 the keys corresponding to the field names in the =message= (the dict
 tag is the fully qualified name of the =message= type). Repeated
-fields are represented by lists; enums are looked up; bools are
-represented by =false= and =true=; strings are represented by Prolog
-strings (not atoms); bytes are represented by lists of codes. If an
-optional field is not in the wire stream, it isn't in the dict
-(default values are not yet handled and empty repeated fields are also
-not in the dict rather than being given a value of =|[]|=, although this
-will probably change in the future).
+fields are represented by lists; enums are looked up and converted to
+atoms; bools are represented by =false= and =true=; strings are
+represented by Prolog strings (not atoms); bytes are represented by
+lists of codes. If an optional field is not in the wire stream, it
+isn't in the dict (default values are not yet handled and empty
+repeated fields are also not in the dict rather than being given a
+value of =|[]|=, although this will probably change in the future).
 
-When serializing, the dict tag is treated as ignored.
+When serializing, the dict tag is treated as a comment and is ignored.
+So, you can use any dict tags when creating data for output. For
+example, both of these will generate the same output:
+~~~{.pl}
+protobuf_serialize_to_codes(_{people:[_{id:1234,name:"John Doe"}]}, 'tutorial.AddressBook', WireCodes).
+protobuf_serialize_to_codes('tutorial.AddressBook'{people:['tutorial.Person'{name:"John Doe",id:1234}]}, 'tutorial.AddressBook', WireCodes).
+~~~
 
 NOTE: if the wire codes can't be parsed, protobuf_parse_from_codes/3
 fails.  One common cause of this failure is not including all the
 meta-data. For example, if =foo.proto= imports =bar.proto=, then you
-must import =foo_pb= and =bar_pb=.
+must import =foo_pb= and =bar_pb=. This behavior will change in future
+(see [Issue #7](https://github.com/SWI-Prolog/contrib-protobufs/issues/7)).
 
 ### protobuf_parse_from_codes/3 {#protobufs-parse-from-codes}
 
 This is the inverse of protobuf_serialize_to_codes/3 -- it takes
 a wire stream (list of codes) and creates a dict.
+The dict tags are the fully qualified names of the messages.
 
 ### addressbook example {#protobufs-addressbook-example}
 

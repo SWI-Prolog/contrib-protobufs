@@ -35,15 +35,15 @@
 :- module(protobufs,
           [ protobuf_message/2,   % ?Template ?Codes
             protobuf_message/3,   % ?Template ?Codes ?Rest
-            protobuf_segment_message/2,  % ?Segments ?Codes
-            protobuf_segment_convert/2,  % +Form1 ?Form2
             protobuf_parse_from_codes/3, % +WireCodes, +MessageType, -Term
             protobuf_serialize_to_codes/3  % +Term, +MessageType, -WireCodes
 
-            % TODO: Restore the following to the pubblic interface, if
+            % TODO: Restore the following to the public interface, if
             %       someone needs them.  For now, the tests directly specify
             %       them using, e.g. protobufs:uint32_codes(..., ...).
             %
+            % protobuf_segment_message/2,  % ?Segments ?Codes
+            % protobuf_segment_convert/2,  % +Form1 ?Form2
             % uint32_codes/2,
             % int32_codes/2,
             % float32_codes/2,
@@ -94,7 +94,7 @@ the "old" format.
 The idea behind Google's Protocol Buffers is that you define your
 structured messages using a domain-specific language and tool
 set. Further documentation on this is at
-https://developers.google.com/protocol-buffers
+[https://developers.google.com/protocol-buffers](https://developers.google.com/protocol-buffers).
 
 There are two ways you can use protobufs in Prolog:
   * with a compiled =|.proto|= file: protobuf_parse_from_codes/3 and
@@ -115,8 +115,8 @@ definition in the =protobufs= module:
    * =|proto_meta_message_type(       Fqn,     Package, Name)|=
    * =|proto_meta_field_name(         Fqn,     FieldNumber, FieldName, FqnName)|=
    * =|proto_meta_field_json_name(    FqnName, JsonName)|=
-   * =|proto_meta_field_label(        FqnName, LabelRepeatOptional) % LABEL_OPTIONAL, LABEL_REQUIRED, LABEL_REPEATED|=
-   * =|proto_meta_field_type(         FqnName, Type) % TYPE_INT32, TYPE_MESSAGE, etc|=
+   * =|proto_meta_field_label(        FqnName, LabelRepeatOptional) % 'LABEL_OPTIONAL', 'LABEL_REQUIRED', 'LABEL_REPEATED'|=
+   * =|proto_meta_field_type(         FqnName, Type) % 'TYPE_INT32', 'TYPE_MESSAGE', etc|=
    * =|proto_meta_field_type_name(    FqnName, TypeName)|=
    * =|proto_meta_field_default_value(FqnName, DefaultValue)|=
    * =|proto_meta_field_option_packed(FqnName)|=
@@ -141,13 +141,15 @@ Examples of usage may also be found by inspecting
 [[test_protobufs.pl][https://github.com/SWI-Prolog/contrib-protobufs/blob/master/test_protobufs.pl]]
 and the
 [[demo][https://github.com/SWI-Prolog/contrib-protobufs/tree/master/demo]]
-directory.
+directory, or by looking at the "addressbook" example that is typically
+installed at
+/usr/lib/swi-prolog/doc/packages/examples/protobufs/interop/addressbook.pl
 
 @see https://developers.google.com/protocol-buffers
 @see https://developers.google.com/protocol-buffers/docs/encoding
-@author: Jeffrey Rosenwald (JeffRose@acm.org)
-@author: Peter Ludemann (peter.ludemann@gmail.org)
-@compat: SWI-Prolog
+@author Jeffrey Rosenwald (JeffRose@acm.org)
+@author Peter Ludemann (peter.ludemann@gmail.org)
+@compat SWI-Prolog
 */
 
 :- use_foreign_library(foreign(protobufs)).
@@ -165,7 +167,7 @@ directory.
 % @tbd add option for outputting fields in the C++/Python/Java order
 %       (by field number rather than by field name).
 % @tbd add proto2/proto3 options for processing default values.
-% @tbd add empty lists for missing repeated fields.
+% @tbd empty lists for missing repeated fields (this is related to proto2/proto3 defaults).
 %
 % @bug Doesn't fill in "default" values (note that this behavior is different
 %      for proto2 and proto3; and the default information is available in
@@ -183,13 +185,15 @@ directory.
 %          (The stream should have options `encoding(octet)` and `type(binary)`,
 %          either as options to read_file_to_codes/3 or by calling set_stream/2
 %          on the stream to read_stream_to_codes/2.)
-% @param MessageType Fully qualified message name (from the =|.proto|= file's =package= and =message=).
+% @param MessageType Fully qualified message name (from the =|.proto|= file's =package= and =message=)
+%        The initial '.' on the message type name is optional.
 %        For example, if the =package= is =google.protobuf= and the
 %        message is =FileDescriptorSet=, then you would use
 %        =|'.google.protobuf.FileDescriptorSet'|= or =|'google.protobuf.FileDescriptorSet'|=.
-%        You can see the message
-%        names by looking at =|protobufs:proto_meta_field_name('.google.protobuf.FileDescriptorSet', FieldNumber, FieldName, FqnName)|=.
-%        The initial '.' on the message type name is optional.
+%        You can see the message names by looking at
+%        =|protobufs:proto_meta_field_name('.google.protobuf.FileDescriptorSet',
+%        FieldNumber, FieldName, FqnName)|= (the initial '.' is not
+%        optional for these facts).
 % @param Term The generated term, as nested dicts.
 % @see  [library(protobufs): Google's Protocol Buffers](#protobufs-serialize-to-codes)
 protobuf_parse_from_codes(WireCodes, MessageType0, Term) :-
@@ -221,9 +225,9 @@ protobuf_parse_from_codes(WireCodes, MessageType0, Term) :-
 %        You can see the message
 %        names by looking at =|protobufs:proto_meta_field_name('.google.protobuf.FileDescriptorSet', FieldNumber, FieldName, FqnName)|=.
 %        The initial '.' on the message type name is optional.
-% @param WireCodes Wire format of the mssage, which can be output using
+% @param WireCodes Wire format of the message, which can be output using
 %        =|format('~s', [WireCodes])|=.
-% @see  [library(protobufs): Google's Protocol Buffers](#protobufs-serialize-to-codes)
+% @see [library(protobufs): Google's Protocol Buffers](#protobufs-serialize-to-codes)
 protobuf_serialize_to_codes(Term, MessageType0, WireCodes) :-
     must_be(ground, MessageType0),
     proto_meta_normalize(MessageType0, MessageType),
@@ -583,7 +587,8 @@ single_message(PrologType, Tag, Payload) -->
 %   @bug The protobuf specification states that the wire-stream can have
 %   the fields in any order and that unknown fields are to be ignored.
 %   This implementation assumes that the fields are in the exact order
-%   of the definition and match exactly.
+%   of the definition and match exactly. If you use
+%   protobuf_parse_from_codes/3, you can avoid this problem.o
 %
 %   @param Template is a  protobuf   grammar  specification.  On decode,
 %   unbound variables in the Template are  unified with their respective
@@ -629,13 +634,6 @@ protobuf_message(protobuf(TemplateList), WireStream, Residue) :-
 %
 %  @bug This predicate is preliminary and may change as additional
 %       functionality is added.
-%  @tbd Expansion of this code to allow generalized handling of wire
-%       streams with fields in arbitrary order. (See bugs for
-%       protobuf_message/2).
-%  @tbd Functionality similar to =|protoc --decode|=, which will
-%       use field names rather than field numbers and also
-%       will not need heuristics to guess at segment types because
-%       it will have the correct types from the =|.proto|= definition.
 %
 %  @param Segments a list containing terms of the following form (=Tag= is
 %  the field number; =Codes= is a list of integers):
@@ -654,26 +652,26 @@ protobuf_message(protobuf(TemplateList), WireStream, Residue) :-
 %    * length_delimited(Tag,Codes)
 %    * repeated(List) - =List= of segments
 %  Of these, =group= is deprecated in the protobuf documentation and
-%  shouldn't appear in modern code, because they have been replaced by
-%  nested message types.
+%  shouldn't appear in modern code, having been superseded by nested
+%  message types.
 %
 %  For deciding how to interpret a length-delimited item (when
 %  =Segments= is a variable), an attempt is made to parse the item in
 %  the following order (although code should not rely on this order):
 %    * message
-%    * string (it must be of the form of a UTF string)
+%    * string (it must be in the form of a UTF string)
 %    * packed (which can backtrack through the various =Type=s)
 %    * length_delimited - which always is possible.
 %
-%  The most likely interpretation of length-delimited items can
-%  sometimes guess wrong; the interpretation can be undone by either
-%  backtracking or by using protobuf_segment_convert/2 to convert the
-%  incorrect segment to a string or a list of codes. Backtracking
-%  through all the possibilities is not recommended, because of
-%  combinatoric explosion (there is an example in the unit tests);
-%  instead, it is suggested that you take the first result and iterate
-%  through its items, calling protobuf_segment_convert/2 as needed
-%  to reinterpret incorrectly guessed segments.
+%  The interpretation of length-delimited items can sometimes guess
+%  wrong; the interpretation can be undone by either backtracking or
+%  by using protobuf_segment_convert/2 to convert the incorrect
+%  segment to a string or a list of codes. Backtracking through all
+%  the possibilities is not recommended, because of combinatoric
+%  explosion (there is an example in the unit tests); instead, it is
+%  suggested that you take the first result and iterate through its
+%  items, calling protobuf_segment_convert/2 as needed to reinterpret
+%  incorrectly guessed segments.
 %
 %  @param WireStream a code list that was generated by a protobuf
 %  endoder.
@@ -814,7 +812,7 @@ packed_option(unsigned,  Items, varint(Items)).
 % int64_float64_when/2 and int32_float32_when/2.
 %
 % For example:
-% ==
+% ~~~{.pl}
 % ?- protobuf_segment_convert(
 %        message(10,[fixed64(13,7309475598860382318)]),
 %        string(10,"inputType")).
@@ -830,16 +828,16 @@ packed_option(unsigned,  Items, varint(Items)).
 %       packed(1999,fixed32([1,2]))
 %       packed(1999,varint([1,0,0,0,2,0,0,0]))
 %       length_delimited(1999,[1,0,0,0,2,0,0,0])
-% ==
+% ~~~
 % These come from:
-% ==
+% ~~~{.pl}
 % Codes = [82,9,105,110,112,117,116,84,121,112,101],
 % protobuf_message(protobuf([embedded(T1, protobuf([integer64(T2, I)]))]), Codes),
 % protobuf_message(protobuf([string(T,S)]), Codes).
 %    T = 10, T1 = 10, T2 = 13,
 %    I = 7309475598860382318,
 %    S = "inputType".
-% ==
+% ~~~
 %
 %  @bug This predicate is preliminary and may change as additional
 %       functionality is added.

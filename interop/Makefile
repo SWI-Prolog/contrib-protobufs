@@ -25,6 +25,8 @@ test: test_interop_prolog \
 	addressbook_pb.pl addressbook2_pb.pl
 
 .PHONY: run_addressbook
+# TODO: change the dependencies when import handling
+#       is improved: : https://github.com/SWI-Prolog/contrib-protobufs/issues/7
 run_addressbook: addressbook.pl addressbook_pb.pl addressbook2_pb.pl timestamp_pb.pl FORCE
 	$(RM) addressbook.msg
 	$(SWIPL) -g test_write -g test_write -g test_read -t halt addressbook.pl
