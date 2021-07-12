@@ -87,11 +87,17 @@ test_write(Path) :-
                     email:"jdoe@example.com",
                     phones:[_{number:"555-4321", type:'HOME'}]}),
     write_message(Path,
-                  'tutorial.Person''{id:666,
-                    name:"Satan",
-                    email:"satan@fb.com",
-                    phones:['tutorial.Person.PhoneNumber'{number:"555-1212", type:'WORK'},
-                            'tutorial.Person.PhoneNumber'{number:"555-1234", type:'HOME'}]}).
+                  'tutorial.Person'{id:666,
+                                    name:"Satan",
+                                    email:"satan@fb.com",
+                                    phones:['tutorial.Person.PhoneNumber'{number:"555-1212", type:'WORK'},
+                                            'tutorial.Person.PhoneNumber'{number:"555-1234", type:'HOME'}]}),
+    write_message(Path,
+                  'tutorial.Person'{id:999,
+                                    name:"Crowley"
+                                   % no email
+                                   % no phones
+                                   }).
 
 test_read :-
     test_read('addressbook.wire').

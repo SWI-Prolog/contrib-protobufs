@@ -20,9 +20,9 @@
 %       directory.
 test_segment_messages :-
     read_file_to_codes('descriptor.proto.wire', WireStream, [encoding(octet),type(binary)]),
-    protobuf_segment_message(Segments, WireStream),
+    protobufs:protobuf_segment_message(Segments, WireStream),
     % Check that it reverses:
-    protobuf_segment_message(Segments, WireStream2),
+    protobufs:protobuf_segment_message(Segments, WireStream2),
     assertion(WireStream == WireStream2),
     Segments = [message(1, MessageSegments)],
     length(MessageSegments, MessageSegmentsLen),

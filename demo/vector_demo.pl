@@ -94,7 +94,7 @@ test_basic_usage(['X'=X,
     assertion(Proto == Proto2),
     command2(Command2, Op2, X2, Y2, Extra2, Proto3),
     protobuf_message(Proto3, WireCodes),
-    protobuf_segment_message(Segments, WireCodes),
+    protobufs:protobuf_segment_message(Segments, WireCodes),
     Segments = [string(1,CommandCode),
                 string(2,OpCode),
                 varint(3,Xzig),
@@ -103,7 +103,7 @@ test_basic_usage(['X'=X,
     % of the Proto template:
     protobufs:int64_zigzag(Xseg, Xzig),
     protobufs:int64_zigzag(Yseg, Yzig),
-    protobuf_segment_message(Segments, WireCodes4),
+    protobufs:protobuf_segment_message(Segments, WireCodes4),
     assertion(WireCodes == WireCodes4).
 
 % ======================
@@ -168,7 +168,7 @@ send_command(Command, Vector, WireCodes) :-
 
 test_send_command :-
     test_send_command(WireCodes),
-    protobuf_segment_message(Seg, WireCodes),
+    protobufs:protobuf_segment_message(Seg, WireCodes),
     print_term(Seg, [right_margin(80)]), nl.
 
 test_send_command(WireCodes) :-
@@ -176,7 +176,7 @@ test_send_command(WireCodes) :-
 
 test_send_precompiled_command :-
     test_send_precompiled_command(WireCodes),
-    protobuf_segment_message(Seg, WireCodes),
+    protobufs:protobuf_segment_message(Seg, WireCodes),
     print_term(Seg, [right_margin(80)]), nl.
 
 test_send_precompiled_command(WireCodes) :-
@@ -350,7 +350,7 @@ test_xml(['XmlProto'=XmlProto, 'WireCodes'=WireCodes, 'Segments'=Segments, 'Temp
     test_xml(XmlProto, WireCodes),
     test_xml(XmlProto2, WireCodes),
     XmlProto == XmlProto2,
-    protobuf_segment_message(Segments, WireCodes),
+    protobufs:protobuf_segment_message(Segments, WireCodes),
     % segments_to_template(Segments, T0), print_term(T0, [right_margin(160)]), nl,
     xml_protobuf(Template),
     protobuf_message(Template, WireCodes),

@@ -557,7 +557,7 @@ test(packed1) :-
     %   message WW2 { repeated sfixed64 m2 = 999999 [packed=true]; }
     % protoc --decode=WW1 ww.proto <ww.wire
     Segment = message(999999,[packed(4,varint([3,270,86942]))]),
-    sorted_findall(S, protobuf_segment_convert(Segment, S), Ss),
+    sorted_findall(S, protobufs:protobuf_segment_convert(Segment, S), Ss),
     assertion(Ss == [length_delimited(999999,[34,6,3,142,2,158,167,5]),
                      message(999999,[length_delimited(4,[3,142,2,158,167,5])]),
                      message(999999,[packed(4,varint([3,270,86942]))]),
@@ -570,7 +570,7 @@ test(not_packed_repeated) :-
     Message = protobuf([repeated(4, unsigned([3, 270, 86942]))]),
     Template = protobuf([repeated(Tag, unsigned(Ints))]),
     protobuf_message(Message, WireStream),
-    sorted_findall(Segments, protobuf_segment_message(Segments, WireStream), AllSegments),
+    sorted_findall(Segments, protobufs:protobuf_segment_message(Segments, WireStream), AllSegments),
     % Note: this leaves a choicepoint even though there's
     %       no alternative (it's not a length_delimited segment,
     %       so there's no "Codes" to backtrack over).
@@ -589,7 +589,7 @@ test(not_packed_repeated2) :-
     Template = protobuf([embedded(_Tag0,
                                   protobuf([repeated(_Tag, unsigned(_Ints))]))]),
     protobuf_message(Message, WireStream),
-    sorted_findall(Segments, protobuf_segment_message(Segments, WireStream), AllSegments),
+    sorted_findall(Segments, protobufs:protobuf_segment_message(Segments, WireStream), AllSegments),
     assertion(AllSegments == [[length_delimited(666,[32,3,32,142,2,32,158,167,5])],
                               [message(666,[varint(4,3), varint(4,270), varint(4,86942)])],
                               [packed(666,varint([32,3,32,270,32,86942]))]
@@ -609,7 +609,7 @@ test(packed_repeated) :-
     Message = protobuf([packed(4, unsigned([3, 270, 86942]))]),
     Template = protobuf([packed(_Tag, unsigned([_I0, _I1, _I2]))]),
     protobuf_message(Message, WireStream),
-    sorted_findall(Segments, protobuf_segment_message(Segments, WireStream), AllSegments),
+    sorted_findall(Segments, protobufs:protobuf_segment_message(Segments, WireStream), AllSegments),
     protobuf_message(Template, WireStream),
     assertion(AllSegments == [[length_delimited(4,[3,142,2,158,167,5])],
                               [packed(4, varint([3, 270, 86942]))]
@@ -626,7 +626,7 @@ test(packed_repeated2) :-
     Template = protobuf([embedded(_Tag0,
                                   protobuf([packed(_Tag, unsigned(_Ints))]))]),
     protobuf_message(Message, WireStream),
-    sorted_findall(Segments, protobuf_segment_message(Segments, WireStream), AllSegments),
+    sorted_findall(Segments, protobufs:protobuf_segment_message(Segments, WireStream), AllSegments),
     protobuf_message(Template, WireStream),
     assertion(AllSegments == [[length_delimited(999999,[34,6,3,142,2,158,167,5])],
                               [message(999999,[length_delimited(4,[3,142,2,158,167,5])])],
@@ -649,7 +649,7 @@ test(packed_and_unpacked_repeated) :-
                          embedded(_Tag0_b,
                                   protobuf([packed(_Tag1_b, unsigned(_Ints0_b))]))]),
     protobuf_message(Message, WireStream),
-    sorted_findall(Segments, protobuf_segment_message(Segments, WireStream), AllSegments),
+    sorted_findall(Segments, protobufs:protobuf_segment_message(Segments, WireStream), AllSegments),
     % The result is combinatoric explosion:
     sorted_findall([S1,S2], ( member(S1, [ length_delimited(666,[32,3,32,142,2,32,158,167,5]),
                                            message(666,[varint(4,3),varint(4,270),varint(4,86942)]),
@@ -700,57 +700,57 @@ test_data(Ld, Msg, Packed, Str, Codes) :-
 
 test(protobuf_message) :-
     test_data(Ld, Msg, Packed, Str, Codes),
-    sorted_findall(Segments, protobuf_segment_message(Segments, Codes), AllSegments),
+    sorted_findall(Segments, protobufs:protobuf_segment_message(Segments, Codes), AllSegments),
     assertion(AllSegments == [[Ld], [Msg], [Packed], [Str]]),
-    protobuf_segment_message([Msg], CodesFromMsg),
+    protobufs:protobuf_segment_message([Msg], CodesFromMsg),
     assertion(CodesFromMsg == Codes).
 
 test(protobuf_message2) :-
     test_data(Ld, Msg, Packed, Str, _Codes),
     % Check that we can reinterpret a segment that comes out
     % in an unexpected form:
-    sorted_findall(S, protobuf_segment_convert(Msg, S), Ss),
+    sorted_findall(S, protobufs:protobuf_segment_convert(Msg, S), Ss),
     assertion(Ss == [Ld, Msg, Packed, Str]).
 
 test(message_string1,
      [true(Strs == [Ld, Msg, Packed, Str])]) :-
     test_data(Ld, Msg, Packed, Str, _Codes),
-    sorted_findall(S, protobuf_segment_convert(Msg, S), Strs).
+    sorted_findall(S, protobufs:protobuf_segment_convert(Msg, S), Strs).
 
 test(message_string2,
      [true(Strs == [Str])]) :-
     test_data(_, Msg, _, Str, _),
-    % protobuf_segment_convert/2 leaves a choicepoint - ensure that
+    % protobufs:protobuf_segment_convert/2 leaves a choicepoint - ensure that
     % there's only one result
-    sorted_findall(Str, protobuf_segment_convert(Msg, Str), Strs).
+    sorted_findall(Str, protobufs:protobuf_segment_convert(Msg, Str), Strs).
 
 test(message_string3,
      [true(Strs == [Str])]) :-
     test_data(_, Msg, _, Str, _),
-    % protobuf_segment_convert/2 leaves a choicepoint - ensure that
+    % protobufs:protobuf_segment_convert/2 leaves a choicepoint - ensure that
     % there's only one result
     sorted_findall(S,
-                   ( S = string(_,_), protobuf_segment_convert(Msg, S ) ),
+                   ( S = string(_,_), protobufs:protobuf_segment_convert(Msg, S ) ),
                    Strs).
 
 test(message_length_delimited1) :-
     test_data(Ld, Msg, _, _, _),
-    protobuf_segment_convert(Msg, Ld).
+    protobufs:protobuf_segment_convert(Msg, Ld).
 
 test(message_length_delimited2,
      [true(Ld == Ld2)]) :-
     test_data(Ld, Msg, _, _, _),
     Ld2 = length_delimited(_,_),
-    protobuf_segment_convert(Msg, Ld2).
+    protobufs:protobuf_segment_convert(Msg, Ld2).
 
 test(string_length_delimited1) :-
     test_data(Ld, _, _,  Str, _),
-    protobuf_segment_convert(Str, Ld).
+    protobufs:protobuf_segment_convert(Str, Ld).
 
 test(string_length_delimited2,
      [true(Xs == [Ld, Msg, Packed, Str])]) :-
     test_data(Ld, Msg, Packed, Str,_),
-    sorted_findall(X, protobuf_segment_convert(Str, X), Xs).
+    sorted_findall(X, protobufs:protobuf_segment_convert(Str, X), Xs).
 
 :- end_tests(protobuf_segment_convert).
 
