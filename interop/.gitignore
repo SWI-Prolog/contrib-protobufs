@@ -1,7 +1,9 @@
-*.pb.cc
-*.pb.h
-*_pb2.py
-*.wire
 # executable:
-scalar_test_write
-scalar_test_read
+test_write
+test_read
+# test_pb.pl
+# google/protobuf/unittest_pb.pl
+# google/protobuf/unittest_import_pb.pl
+# google/protobuf/unittest_import_public_pb.pl
+*_pb.pl
+addressbook.wire

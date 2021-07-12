@@ -1,7 +1,3 @@
-*.proto.wire
-addressbook.proto.dump
+*_pb.pl
 foo
-*.pb.cc
-*.pb.h
-*_pb2.py
 tmp99.tmp

@@ -4,16 +4,16 @@
 #include <iostream>
 #include <fstream>
 #include <string>
-#include "scalar_test.pb.h"
+#include "test.pb.h"
 
-void write_wire(const std::string& path, const scalar_test::Scalars1 scalars1) {
+void write_wire(const std::string& path, const test::Scalars1 scalars1) {
   std::ofstream file1;
   file1.open(path);
   scalars1.SerializeToOstream(&file1);
   file1.close();
 }
 
-void make_scalars1a(scalar_test::Scalars1 *scalars1a) {
+void make_scalars1a(test::Scalars1 *scalars1a) {
   scalars1a->set_v_double(     1.5);
   scalars1a->set_v_float(      2.5);
   scalars1a->set_v_int32(      3);
@@ -29,10 +29,12 @@ void make_scalars1a(scalar_test::Scalars1 *scalars1a) {
   scalars1a->set_v_bool(      false);
   scalars1a->set_v_string(    "écran 網目錦蛇");
   scalars1a->set_v_bytes(     "\xc3\x28");  // See https://stackoverflow.com/questions/1301402/example-invalid-utf8-string
-  scalars1a->set_v_enum(      scalar_test::Enum::E1);
+  scalars1a->set_v_enum(      test::MyEnum::E1);
+  scalars1a->mutable_v_key_value()->set_key("reticulated python");
+  scalars1a->mutable_v_key_value()->set_value("網目錦蛇");
 }
 
-void make_scalars1b(scalar_test::Scalars1 *scalars1b) {
+void make_scalars1b(test::Scalars1 *scalars1b) {
   scalars1b->set_v_double(     -1.5);
   scalars1b->set_v_float(      -2.5);
   scalars1b->set_v_int32(      -3);
@@ -48,15 +50,17 @@ void make_scalars1b(scalar_test::Scalars1 *scalars1b) {
   scalars1b->set_v_bool(      true);
   scalars1b->set_v_string(    "[àmímé níshíkíhéꜜbì] reticulated python");
   scalars1b->set_v_bytes(     "\xf0\x28\x8c\x28");  // See https://stackoverflow.com/questions/1301402/example-invalid-utf8-string
-  scalars1b->set_v_enum(      scalar_test::Enum::AnotherEnum);
+  scalars1b->set_v_enum(      test::MyEnum::AnotherEnum);
+  scalars1b->mutable_v_key_value()->set_key("foo");
+  scalars1b->mutable_v_key_value()->set_value("");
 }
 
 void test_write() {
-  scalar_test::Scalars1 scalars1a;
+  test::Scalars1 scalars1a;
   make_scalars1a(&scalars1a);
   write_wire("scalars1a_from_cc.wire", scalars1a);
 
-  scalar_test::Scalars1 scalars1b;
+  test::Scalars1 scalars1b;
   make_scalars1b(&scalars1b);
   // std::cout << scalars1b.DebugString() << std::endl;
   write_wire("scalars1b_from_cc.wire", scalars1b);
