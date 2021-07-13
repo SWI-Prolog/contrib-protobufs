@@ -112,7 +112,7 @@ if(BUILD_TESTING AND TEST_PROTOBUFS_PROTOC)
       add_test(NAME "${SWIPL_PKG}:bootstrap"
                COMMAND make SWIPL=${PROG_SWIPL} -C ${CMAKE_CURRENT_SOURCE_DIR}/bootstrap clean test)
       add_test(NAME "${SWIPL_PKG}:interop"
-               COMMAND make SWIPL=${PROG_SWIPL} -C ${CMAKE_CURRENT_SOURCE_DIR}/interop clean test)
+               COMMAND make SWIPL=${PROG_SWIPL} -C ${CMAKE_CURRENT_SOURCE_DIR}/interop clean test run_addressbook)
       add_test(NAME "${SWIPL_PKG}:demo"
                COMMAND make SWIPL=${PROG_SWIPL} -C ${CMAKE_CURRENT_SOURCE_DIR}/demo clean test)
   else()

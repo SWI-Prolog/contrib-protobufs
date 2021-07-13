@@ -60,16 +60,15 @@ see [Issue #7](https://github.com/SWI-Prolog/contrib-protobufs/issues/7).
 
 ### protobuf_serialize_to_codes/3 {#protobufs-serialize-to-codes}
 
-The Prolog term corresponding to a protobuf =message= is a dict, with
+The Prolog term corresponding to a protobuf =message= is a [dict](</pldoc/man?section=bidicts>), with
 the keys corresponding to the field names in the =message= (the dict
 tag is the fully qualified name of the =message= type). Repeated
-fields are represented by lists; enums are looked up and converted to
+fields are represented as lists; enums are looked up and converted to
 atoms; bools are represented by =false= and =true=; strings are
 represented by Prolog strings (not atoms); bytes are represented by
-lists of codes. If an optional field is not in the wire stream, it
-isn't in the dict (default values are not yet handled and empty
-repeated fields are also not in the dict rather than being given a
-value of =|[]|=, although this will probably change in the future).
+lists of codes. Repeated fields that aren't in the wire stream get
+set to the value =|[]|=; other fields that aren't in the wire stream
+are left out of the dict default values are not yet handled).
 
 When serializing, the dict tag is treated as a comment and is ignored.
 So, you can use any dict tags when creating data for output. For
@@ -88,7 +87,7 @@ must import =foo_pb= and =bar_pb=. This behavior will change in future
 ### protobuf_parse_from_codes/3 {#protobufs-parse-from-codes}
 
 This is the inverse of protobuf_serialize_to_codes/3 -- it takes
-a wire stream (list of codes) and creates a dict.
+a wire stream (list of codes) and creates a [dict](</pldoc/man?section=bidicts>).
 The dict tags are the fully qualified names of the messages.
 
 ### addressbook example {#protobufs-addressbook-example}

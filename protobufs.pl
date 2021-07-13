@@ -72,7 +72,7 @@
 :- autoload(library(utf8), [utf8_codes//1]).
 :- autoload(library(dif), [dif/2]).
 :- autoload(library(dcg/high_order), [sequence//2]).
-:- autoload(library(apply), [maplist/3]).
+:- autoload(library(apply), [maplist/3, foldl/4]).
 :- autoload(library(when), [when/2]).
 
 % TODO: :- set_prolog_flag(optimise, true). % For arithmetic using is/2.
@@ -106,7 +106,7 @@ There are two ways you can use protobufs in Prolog:
 The protobuf_parse_from_codes/3 and protobuf_serialize_to_codes/3
 interface translates between a "wire stream" and a Prolog term. This
 interface takes advantage of SWI-Prolog's
-[dict](https://www.swi-prolog.org/pldoc/man?section=bidicts).
+[dict](</pldoc/man?section=bidicts>).
 There is a =protoc= plugin (=protoc-gen-swipl=) that generates a
 Prolog file of meta-information that captures the =|.proto|= file's
 definition in the =protobufs= module:
@@ -163,11 +163,10 @@ installed at
 %
 % @tbd document the generated terms (see library(http/json) and json_read_dict/3)
 % @tbd add options such as =true= and =value_string_as= (similar to json_read_dict/3)
-% @tbd add option for form of the dict tags (fully qualified or not)
+% @tbd add option for form of the [dict](</pldoc/man?section=bidicts>) tags (fully qualified or not)
 % @tbd add option for outputting fields in the C++/Python/Java order
 %       (by field number rather than by field name).
 % @tbd add proto2/proto3 options for processing default values.
-% @tbd empty lists for missing repeated fields (this is related to proto2/proto3 defaults).
 %
 % @bug Doesn't fill in "default" values (note that this behavior is different
 %      for proto2 and proto3; and the default information is available in
@@ -194,7 +193,7 @@ installed at
 %        =|protobufs:proto_meta_field_name('.google.protobuf.FileDescriptorSet',
 %        FieldNumber, FieldName, FqnName)|= (the initial '.' is not
 %        optional for these facts).
-% @param Term The generated term, as nested dicts.
+% @param Term The generated term, as nested [dict](</pldoc/man?section=bidicts>)s.
 % @see  [library(protobufs): Google's Protocol Buffers](#protobufs-serialize-to-codes)
 protobuf_parse_from_codes(WireCodes, MessageType0, Term) :-
     must_be(ground, MessageType0),
@@ -217,7 +216,7 @@ protobuf_parse_from_codes(WireCodes, MessageType0, Term) :-
 % Fails if the term isn't of an appropriate form or if the appropriate
 % meta-data from =protoc= hasn't been loaded.
 %
-% @param Term The Prolog form of the data, as nested dicts.
+% @param Term The Prolog form of the data, as nested [dict](</pldoc/man?section=bidicts>)s.
 % @param MessageType Fully qualified message name (from the =|.proto|= file's =package= and =message=).
 %        For example, if the =package= is =google.protobuf= and the
 %        message is =FileDescriptorSet=, then you would use
@@ -1248,7 +1247,8 @@ convert_segment('TYPE_GROUP', ContextType, Tag, Segment0, Value) =>
         protobuf_segment_convert(Segment0, Segment)
     ;   protobuf_segment_convert(Segment0, Segment),
         maplist(segment_to_term(ContextType), MsgSegments, MsgFields),
-        combine_fields(MsgFields, ContextType{}, Value)
+        combine_fields(MsgFields, ContextType{}, Value0),
+        add_empty_repeats(Value0, ContextType, Value)
     ), !.
 convert_segment('TYPE_MESSAGE', ContextType, Tag, Segment0, Value) =>
     Segment = message(Tag,MsgSegments),
@@ -1258,7 +1258,8 @@ convert_segment('TYPE_MESSAGE', ContextType, Tag, Segment0, Value) =>
         protobuf_segment_convert(Segment0, Segment)
     ;   protobuf_segment_convert(Segment0, Segment),
         maplist(segment_to_term(ContextType), MsgSegments, MsgFields),
-        combine_fields(MsgFields, ContextType{}, Value)
+        combine_fields(MsgFields, ContextType{}, Value0),
+        add_empty_repeats(Value0, ContextType, Value)
     ), !.
 convert_segment('TYPE_BYTES', _ContextType, Tag, Segment0, Value) =>
     Segment = length_delimited(Tag,Value),
@@ -1295,6 +1296,26 @@ int_bool(1, true).
 
 int_bool_when(Int, Bool) :-
     when((nonvar(Int) ; nonvar(Bool)), int_bool(Int, Bool)).
+
+%! add_empty_repeats(+Value0:dict, ContextType:atom, -Value:dict) is det.
+% TODO: Use the same scan to also add default values (need to check
+%        how proto2 and proto3 differ in defaults; need test cases.
+add_empty_repeats(Value0, ContextType, Value) :-
+    % Can use bagof or findall if we know that there aren't any
+    % duplicated proto_meta_field_name/4 rules, although this isn't
+    % strictly necessary (just avoids processing a field twice).
+    ( setof(Name, repeated_field(ContextType, Name), RepeatedFieldNames) -> true ; RepeatedFieldNames = [] ),
+    foldl(add_empty_field_if_missing, RepeatedFieldNames, Value0, Value).
+
+repeated_field(ContextType, Name) :-
+    proto_meta_field_name(ContextType, _FieldNumber, Name, Fqn),
+    proto_meta_field_label(Fqn, 'LABEL_REPEATED').
+
+add_empty_field_if_missing(FieldName, Value0, Value) :-
+    (   get_dict(FieldName, Value0, _)
+    ->  Value = Value0
+    ;   put_dict(FieldName, Value0, [], Value)
+    ).
 
 :- det(combine_fields/3).
 %! combine_fields(+Fields:list, +MsgDict0, -MsgDict) is det.

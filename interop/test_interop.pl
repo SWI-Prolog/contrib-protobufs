@@ -4,7 +4,8 @@
    e.g., test_write.py -- the values in the tests were taken from the Python source.
    There are also round-trip tests of generating wire format.
 
-   TODO: rename this to test_interop.pl, because it does both reads and writes.
+   TODO: add tests for repeated fields being set to [].
+   TODO: add tests for default values (proto2, proto3).
 */
 
 :- module(test_read, [test_read_main/0]).
