@@ -1266,8 +1266,7 @@ convert_segment('TYPE_GROUP', ContextType, Tag, Segment0, Value) =>
         protobuf_segment_convert(Segment0, Segment)
     ;   protobuf_segment_convert(Segment0, Segment),
         maplist(segment_to_term(ContextType), MsgSegments, MsgFields),
-        combine_fields(MsgFields, ContextType{}, Value0),
-        add_empty_repeats(Value0, ContextType, Value)
+        combine_fields(MsgFields, ContextType{}, Value)
     ), !.
 convert_segment('TYPE_MESSAGE', ContextType, Tag, Segment0, Value) =>
     Segment = message(Tag,MsgSegments),
@@ -1277,8 +1276,7 @@ convert_segment('TYPE_MESSAGE', ContextType, Tag, Segment0, Value) =>
         protobuf_segment_convert(Segment0, Segment)
     ;   protobuf_segment_convert(Segment0, Segment),
         maplist(segment_to_term(ContextType), MsgSegments, MsgFields),
-        combine_fields(MsgFields, ContextType{}, Value0),
-        add_empty_repeats(Value0, ContextType, Value)
+        combine_fields(MsgFields, ContextType{}, Value)
     ), !.
 convert_segment('TYPE_BYTES', _ContextType, Tag, Segment0, Value) =>
     Segment = length_delimited(Tag,Value),
