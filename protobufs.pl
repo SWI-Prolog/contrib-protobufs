@@ -161,19 +161,23 @@ installed at
 % Fails if the message can't be parsed or if the appropriate meta-data from =protoc=
 % hasn't been loaded.
 %
+% All fields that are omitted from the =WireCodes= are set to their
+% default values (typically the empty string or 0, depending on the
+% type; or =|[]|= for repeated groups). There is no way of testing
+% whether a value was specified in =WireCodes= or given its default
+% value (that is, there is no equivalent of the Python
+% implementation's =HasField`). Optional embedded messages and groups
+% do not have any default value -- you must check their existence by
+% using get_dict/3 or similar.
+%
 % @tbd document the generated terms (see library(http/json) and json_read_dict/3)
 % @tbd add options such as =true= and =value_string_as= (similar to json_read_dict/3)
 % @tbd add option for form of the [dict](</pldoc/man?section=bidicts>) tags (fully qualified or not)
 % @tbd add option for outputting fields in the C++/Python/Java order
 %       (by field number rather than by field name).
-% @tbd add proto2/proto3 options for processing default values.
 %
-% @bug Doesn't fill in "default" values (note that this behavior is different
-%      for proto2 and proto3; and the default information is available in
-%      protobufs:proto_meta_field_default_value/2, which is generated from
-%      the =|.proto|= files).
 % @bug Ignores =|.proto|= [extensions](https://developers.google.com/protocol-buffers/docs/proto#extensions).
-% @bug Doesn't do anything special for =oneof= or =map=.
+% @bug =oneof= and =map= fields are not handled correctly.
 % @bug Generates fields in a different order from the C++, Python,
 %      Java implementations, which use the field number to determine
 %      field order whereas currently this implementation uses field
@@ -195,7 +199,10 @@ installed at
 %        optional for these facts).
 % @param Term The generated term, as nested [dict](</pldoc/man?section=bidicts>)s.
 % @see  [library(protobufs): Google's Protocol Buffers](#protobufs-serialize-to-codes)
+% @error version_error(Module-Version) you need to recompile the =Module=
+%        with a newer version of =|protoc|=.
 protobuf_parse_from_codes(WireCodes, MessageType0, Term) :-
+    verify_version,
     must_be(ground, MessageType0),
     proto_meta_normalize(MessageType0, MessageType),
     protobuf_segment_message(Segments, WireCodes),
@@ -209,12 +216,21 @@ protobuf_parse_from_codes(WireCodes, MessageType0, Term) :-
     combine_fields(MsgFields, MessageType{}, Term),
     !. % TODO: remove?
 
+verify_version :-
+    (   protoc_gen_swipl_version(Module, Version),
+        Version @< [0,9] % This must be sync-ed with changes to protoc-gen-swipl
+    ->  throw(error(version_error(Module-Version), _))
+    ;   true
+    ).
+
 %! protobuf_serialize_to_codes(+Term:dict, -MessageType:atom, -WireCodes:list(int)) is det.
 % Process a Prolog term into bytes (list of int) that is the serialized form of a
 % message (designated by =MessageType=).
 %
 % Fails if the term isn't of an appropriate form or if the appropriate
 % meta-data from =protoc= hasn't been loaded.
+%
+% @bug =oneof= and =map= fields are not handled correctly.
 %
 % @param Term The Prolog form of the data, as nested [dict](</pldoc/man?section=bidicts>)s.
 % @param MessageType Fully qualified message name (from the =|.proto|= file's =package= and =message=).
@@ -227,7 +243,10 @@ protobuf_parse_from_codes(WireCodes, MessageType0, Term) :-
 % @param WireCodes Wire format of the message, which can be output using
 %        =|format('~s', [WireCodes])|=.
 % @see [library(protobufs): Google's Protocol Buffers](#protobufs-serialize-to-codes)
+% @error version_error(Module-Version) you need to recompile the =Module=
+%        with a newer version of =|protoc|=.
 protobuf_serialize_to_codes(Term, MessageType0, WireCodes) :-
+    verify_version,
     must_be(ground, MessageType0),
     proto_meta_normalize(MessageType0, MessageType),
     term_to_segments(Term, MessageType, Segments),
@@ -1247,8 +1266,7 @@ convert_segment('TYPE_GROUP', ContextType, Tag, Segment0, Value) =>
         protobuf_segment_convert(Segment0, Segment)
     ;   protobuf_segment_convert(Segment0, Segment),
         maplist(segment_to_term(ContextType), MsgSegments, MsgFields),
-        combine_fields(MsgFields, ContextType{}, Value0),
-        add_empty_repeats(Value0, ContextType, Value)
+        combine_fields(MsgFields, ContextType{}, Value)
     ), !.
 convert_segment('TYPE_MESSAGE', ContextType, Tag, Segment0, Value) =>
     Segment = message(Tag,MsgSegments),
@@ -1258,8 +1276,7 @@ convert_segment('TYPE_MESSAGE', ContextType, Tag, Segment0, Value) =>
         protobuf_segment_convert(Segment0, Segment)
     ;   protobuf_segment_convert(Segment0, Segment),
         maplist(segment_to_term(ContextType), MsgSegments, MsgFields),
-        combine_fields(MsgFields, ContextType{}, Value0),
-        add_empty_repeats(Value0, ContextType, Value)
+        combine_fields(MsgFields, ContextType{}, Value)
     ), !.
 convert_segment('TYPE_BYTES', _ContextType, Tag, Segment0, Value) =>
     Segment = length_delimited(Tag,Value),
@@ -1297,37 +1314,40 @@ int_bool(1, true).
 int_bool_when(Int, Bool) :-
     when((nonvar(Int) ; nonvar(Bool)), int_bool(Int, Bool)).
 
-%! add_empty_repeats(+Value0:dict, ContextType:atom, -Value:dict) is det.
-% TODO: Use the same scan to also add default values (need to check
-%        how proto2 and proto3 differ in defaults; need test cases.
-add_empty_repeats(Value0, ContextType, Value) :-
+%! add_defaulted_fields(+Value0:dict, ContextType:atom, -Value:dict) is det.
+add_defaulted_fields(Value0, ContextType, Value) :-
     % Can use bagof or findall if we know that there aren't any
     % duplicated proto_meta_field_name/4 rules, although this isn't
     % strictly necessary (just avoids processing a field twice).
-    ( setof(Name, repeated_field(ContextType, Name), RepeatedFieldNames) -> true ; RepeatedFieldNames = [] ),
-    foldl(add_empty_field_if_missing, RepeatedFieldNames, Value0, Value).
+    ( setof(Name-DefaultValue, message_field_default(ContextType, Name, DefaultValue), DefaultValues)
+    ->  true
+    ;   DefaultValues = []
+    ),
+    foldl(add_empty_field_if_missing, DefaultValues, Value0, Value).
 
-repeated_field(ContextType, Name) :-
+message_field_default(ContextType, Name, DefaultValue) :-
     proto_meta_field_name(ContextType, _FieldNumber, Name, Fqn),
-    proto_meta_field_label(Fqn, 'LABEL_REPEATED').
+    proto_meta_field_default_value(Fqn, DefaultValue).
 
-add_empty_field_if_missing(FieldName, Value0, Value) :-
-    (   get_dict(FieldName, Value0, _)
-    ->  Value = Value0
-    ;   put_dict(FieldName, Value0, [], Value)
+add_empty_field_if_missing(FieldName-DefaultValue, Dict0, Dict) :-
+    (   get_dict(FieldName, Dict0, _)
+    ->  Dict = Dict0
+    ;   put_dict(FieldName, Dict0, DefaultValue, Dict)
     ).
 
 :- det(combine_fields/3).
 %! combine_fields(+Fields:list, +MsgDict0, -MsgDict) is det.
-% Combines the fields into a dict.
+% Combines the fields into a dict and sets missing fields to their default values.
 % If the field is marked as 'norepeat' (optional/required), then the last
 %    occurrence is kept (as per the protobuf wire spec)
 % If the field is marked as 'repeat', then all the occurrences
 %    are put into a list, in order.
-% Assume that fields normally occur all together, but can handle
+% This code assumes that fields normally occur all together, but can handle
 % (less efficiently) fields not occurring together, as is allowed
 % by the protobuf spec.
-combine_fields([], MsgDict0, MsgDict) => MsgDict = MsgDict0.
+combine_fields([], MsgDict0, MsgDict) =>
+    is_dict(MsgDict0, ContextType),
+    add_defaulted_fields(MsgDict0, ContextType, MsgDict).
 combine_fields([field_and_value(Field,norepeat,Value)|Fields], MsgDict0, MsgDict) =>
     put_dict(Field, MsgDict0, Value, MsgDict1),
     combine_fields(Fields, MsgDict1, MsgDict).

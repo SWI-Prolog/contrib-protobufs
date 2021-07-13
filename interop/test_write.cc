@@ -55,6 +55,9 @@ void make_scalars1b(test::Scalars1 *scalars1b) {
   scalars1b->mutable_v_key_value()->set_value("");
 }
 
+void make_scalars1c(test::Scalars1 *scalars1c) {
+}
+
 void test_write() {
   test::Scalars1 scalars1a;
   make_scalars1a(&scalars1a);
@@ -64,6 +67,10 @@ void test_write() {
   make_scalars1b(&scalars1b);
   // std::cout << scalars1b.DebugString() << std::endl;
   write_wire("scalars1b_from_cc.wire", scalars1b);
+
+  test::Scalars1 scalars1c;
+  make_scalars1c(&scalars1c);
+  write_wire("scalars1c_from_cc.wire", scalars1c);
 }
 
 int main(int argc, char* argv[]) {

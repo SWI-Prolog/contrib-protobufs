@@ -60,15 +60,16 @@ see [Issue #7](https://github.com/SWI-Prolog/contrib-protobufs/issues/7).
 
 ### protobuf_serialize_to_codes/3 {#protobufs-serialize-to-codes}
 
-The Prolog term corresponding to a protobuf =message= is a [dict](</pldoc/man?section=bidicts>), with
-the keys corresponding to the field names in the =message= (the dict
-tag is the fully qualified name of the =message= type). Repeated
-fields are represented as lists; enums are looked up and converted to
-atoms; bools are represented by =false= and =true=; strings are
-represented by Prolog strings (not atoms); bytes are represented by
-lists of codes. Repeated fields that aren't in the wire stream get
-set to the value =|[]|=; other fields that aren't in the wire stream
-are left out of the dict default values are not yet handled).
+The Prolog term corresponding to a protobuf =message= is a
+[dict](</pldoc/man?section=bidicts>), with the keys corresponding to
+the field names in the =message= (the dict tag is treated as a comment).
+Repeated fields are represented as lists;
+enums are looked up and converted to atoms; bools are represented by
+=false= and =true=; strings are represented by Prolog strings (not
+atoms); bytes are represented by lists of codes.
+
+TODO: Add an option to omit default values (this is the =proto3=
+behavior).
 
 When serializing, the dict tag is treated as a comment and is ignored.
 So, you can use any dict tags when creating data for output. For
@@ -86,9 +87,17 @@ must import =foo_pb= and =bar_pb=. This behavior will change in future
 
 ### protobuf_parse_from_codes/3 {#protobufs-parse-from-codes}
 
-This is the inverse of protobuf_serialize_to_codes/3 -- it takes
-a wire stream (list of codes) and creates a [dict](</pldoc/man?section=bidicts>).
-The dict tags are the fully qualified names of the messages.
+This is the inverse of protobuf_serialize_to_codes/3 -- it takes a
+wire stream (list of codes) and creates a
+[dict](</pldoc/man?section=bidicts>).  The dict tags are the fully
+qualified names of the messages.  Repeated fields that aren't in the
+wire stream get set to the value =|[]|=; other fields that aren't in
+the wire stream get their default value (typically the empty string or
+zero, depending on type). Embedded messages and groups are omitted if
+not in the wire stream; you can test for their presence using
+get_dict/3. There is no mechanism for determining whether a field was
+in the wire stream or not (that is, there is no equivalent of the
+Python implementation's =|HasField|=).
 
 ### addressbook example {#protobufs-addressbook-example}
 

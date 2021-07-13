@@ -42,6 +42,10 @@
 
 :- initialization(main, main).
 
+% The term expansion doesn't set the version, so put it here:
+:-multifile protobufs:protoc_gen_swipl_version/2.
+protobufs:protoc_gen_swipl_version(descriptor_proto, [0,9]).
+
 main :-
     sanity_check,
     set_stream(user_input, encoding(octet)),

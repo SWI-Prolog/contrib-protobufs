@@ -211,6 +211,34 @@ test(scalars1b_parse) :-
     round_trip_serialize_parse(Term, '.test.Scalars1', Out),
     !. % TODO: remove this and find where choice points are created
 
+test(scalars1c_parse) :-
+    [In, Out] = ['scalars1c_from_python.wire', 'scalars1c_from_prolog.wire'],
+    read_message_codes(In, WireCodes),
+    protobuf_parse_from_codes(WireCodes, '.test.Scalars1', Term),
+    % Default values:
+    assertion_eq_dict(Term,
+                      '.test.Scalars1'{
+                                       v_double  : 0.0,
+                                       v_float   : 0.0,
+                                       v_int32   : 0,
+                                       v_int64   : 0,
+                                       v_uint32  : 0,
+                                       v_uint64  : 0,
+                                       v_sint32  : 0,
+                                       v_sint64  : 0,
+                                       v_fixed32 : 0,
+                                       v_fixed64 : 0,
+                                       v_sfixed32: 0,
+                                       v_sfixed64: 0,
+                                       v_bool    : false,
+                                       v_string  : "",
+                                       v_bytes   : [],
+                                       v_enum    : 'E1'
+                                      }),
+    round_trip_serialize_parse(Term, '.test.Scalars1', Out),
+    !. % TODO: remove this and find where choice points are created
+
+
 :- end_tests(scalar).
 
 :- begin_tests(repeated).
@@ -388,6 +416,11 @@ test(golden_2_5_0_parse) :-
     % (the ordering is different because Prolog dicts display items in key order)
     assertion_eq_dict(Term,
         '.protobuf_unittest.TestAllTypes'{
+                                          % TODO: need to verify the oneof items - should they get default values?
+                                          oneof_bytes:[],
+                                          oneof_string:"",
+                                          oneof_uint32:0,
+
                                           optional_int32:101,
                                           optional_int64:102,
                                           optional_uint32:103,
@@ -405,7 +438,7 @@ test(golden_2_5_0_parse) :-
                                           optional_bytes:[49,49,54], % "116",
                                           optionalgroup:'.protobuf_unittest.TestAllTypes.OptionalGroup'{ a:117 },
                                           optional_nested_message:'.protobuf_unittest.TestAllTypes.NestedMessage'{ bb:118 },
-                                          optional_foreign_message:'.protobuf_unittest.ForeignMessage'{ c:119 },
+                                          optional_foreign_message:'.protobuf_unittest.ForeignMessage'{ c:119, d:0 },
                                           optional_import_message:'.protobuf_unittest_import.ImportMessage'{ d:120 },
                                           optional_nested_enum:'BAZ',
                                           optional_foreign_enum:'FOREIGN_BAZ',
@@ -437,8 +470,8 @@ test(golden_2_5_0_parse) :-
                                          repeated_nested_message:[ '.protobuf_unittest.TestAllTypes.NestedMessage'{ bb:218 },
                                                                    '.protobuf_unittest.TestAllTypes.NestedMessage'{ bb:318 }
                                                                  ],
-                                          repeated_foreign_message:[ '.protobuf_unittest.ForeignMessage'{ c:219 },
-                                                                     '.protobuf_unittest.ForeignMessage'{ c:319 }
+                                          repeated_foreign_message:[ '.protobuf_unittest.ForeignMessage'{ c:219, d:0 },
+                                                                     '.protobuf_unittest.ForeignMessage'{ c:319, d:0 }
                                                                    ],
                                           repeated_import_message:[ '.protobuf_unittest_import.ImportMessage'{ d:220 },
                                                                     '.protobuf_unittest_import.ImportMessage'{ d:320 }
