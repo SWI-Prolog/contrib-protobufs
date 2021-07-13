@@ -47,6 +47,9 @@ scalars1b = Scalars1(
     v_key_value = KeyValue(key="foo", value=""),
 )
 
+# Default values for everything
+scalars1c = Scalars1()
+
 # Similar to Scalars1, but with additional values from Sclars2; and one test of empty list
 repeated1a = Repeated1(
     v_double   = [ 1.5, 0.0, -1.5],
@@ -97,6 +100,8 @@ def main():
         f.write(scalars1a.SerializeToString())
     with open(os.path.join(dir, "scalars1b_from_python.wire"), "wb") as f:
         f.write(scalars1b.SerializeToString())
+    with open(os.path.join(dir, "scalars1c_from_python.wire"), "wb") as f:
+        f.write(scalars1c.SerializeToString())
     with open(os.path.join(dir, "repeated1a_from_python.wire"), "wb") as f:
         f.write(repeated1a.SerializeToString())
     with open(os.path.join(dir, "packed1a_from_python.wire"), "wb") as f:

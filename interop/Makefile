@@ -63,8 +63,8 @@ scalars1b_from_prolog.wire \
 		google/protobuf/unittest_import_pb.pl \
 		google/protobuf/unittest_import_public_pb.pl \
 		../golden_message.2.5.0 ../test_protobufs.pl \
-		scalars1a_from_cc.wire scalars1b_from_cc.wire \
-		scalars1a_from_python.wire scalars1b_from_python.wire \
+		scalars1a_from_cc.wire scalars1b_from_cc.wire scalars1c_from_cc.wire \
+		scalars1a_from_python.wire scalars1b_from_python.wire scalars1c_from_python.wire\
 		repeated1a_from_python.wire \
 		packed1a_from_python.wire
 	@# "LANG=C" is for testing that we're doing the right thing with encodings:
@@ -78,8 +78,8 @@ scalars1b_from_prolog.wire \
 
 .PHONY: test_interop_prolog
 test_interop_prolog: test_interop.pl \
-			scalars1a_from_cc.wire scalars1b_from_cc.wire \
-			scalars1a_from_python.wire scalars1b_from_python.wire \
+			scalars1a_from_cc.wire scalars1b_from_cc.wire scalars1c_from_cc.wire \
+			scalars1a_from_python.wire scalars1b_from_python.wire scalars1c_from_python.wire \
 			repeated1a_from_python.wire \
 			packed1a_from_python.wire \
 			google/protobuf/unittest_pb.pl \
