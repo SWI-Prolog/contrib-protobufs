@@ -124,10 +124,9 @@ print_entry(Person) :-
     ->  format('  Email: ~w~n', [Email])
     ;   true
     ),
-    (   get_dict(phones, Person, Phones)
-    ->  maplist(print_phone_number, Phones)
-    ;   true
-    ),
+    % Don't need to do get_dict(phones, Person, Phones)
+    % because repeated fields are set to [] if missing.
+    maplist(print_phone_number, Person.phones),
     % TODO: print last update timestamp
     nl.
 
