@@ -5,6 +5,7 @@
 
 import os
 from test_pb2 import Scalars1, Repeated1, Packed1, MyEnum, KeyValue
+from test2_pb2 import OneofMessage, MapMessage
 
 scalars1a = Scalars1(
     v_double    =  1.5,
@@ -94,6 +95,23 @@ packed1a = Packed1(
                   KeyValue(key="àmímé níshíkíhéꜜbì", value="reticulated python")],
 )
 
+# decode=OneofMessage
+# foo: "FOO"
+# number: 666
+oneof1 = OneofMessage(number=666, foo="FOO")
+
+# decode=MapMessage
+# number_ints {
+#   key: "one"
+#   value: 1
+# }
+# number_ints {
+#   key: "two"
+#   value: 2
+# }
+map1 = MapMessage(number_ints = {"one":1, "two":2})
+
+
 def main():
     dir = os.path.dirname(os.path.realpath(__file__))
     with open(os.path.join(dir, "scalars1a_from_python.wire"), "wb") as f:
@@ -106,6 +124,10 @@ def main():
         f.write(repeated1a.SerializeToString())
     with open(os.path.join(dir, "packed1a_from_python.wire"), "wb") as f:
         f.write(packed1a.SerializeToString())
+    with open(os.path.join(dir, "oneof1_from_python.wire"), "wb") as f:
+        f.write(oneof1.SerializeToString())
+    with open(os.path.join(dir, "map1_from_python.wire"), "wb") as f:
+        f.write(map1.SerializeToString())
 
     # For debugging, create specific ".wire" files, e.g.:
     if False:

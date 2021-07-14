@@ -58,7 +58,7 @@ scalars1a_from_prolog.wire \
 scalars1b_from_prolog_template.wire \
 scalars1b_from_prolog.wire \
 	: \
-		test_interop.pl test_templates.pl test_pb.pl \
+		test_interop.pl test_templates.pl test_pb.pl test2_pb.pl \
 		google/protobuf/unittest_pb.pl \
 		google/protobuf/unittest_import_pb.pl \
 		google/protobuf/unittest_import_public_pb.pl \
@@ -127,10 +127,14 @@ scalars1a_from_cc.wire scalars1b_from_cc.wire: test_write
 	@# $(PROTOC) -I. --decode=test.Scalars1 test.proto <scalars1b_from_cc.wire
 
 scalars1a_from_python.wire scalars1b_from_python.wire \
+oneof1_from_python.wire map1_from_python.wire \
 repeated1a_from_python.wire \
 packed1a_from_python.wire: \
-			test_write.py test_pb2.py
-	$(RM) scalars1a_from_python.wire scalars1b_from_python.wire
+			test_write.py test_pb2.py test2_pb2.py
+	$(RM) scalars1a_from_python.wire scalars1b_from_python.wire \
+		oneof1_from_python.wire map1_from_python.wire \
+		repeated1a_from_python.wire \
+		packed1a_from_python.wire
 	$(PYTHON) test_write.py
 	@# $(PROTOC) -I. --decode=test.Scalars1 test.proto <scalars1a_from_python.wire
 	@# $(PROTOC) -I. --decode=test.Scalars1 test.proto <scalars1b_from_python.wire

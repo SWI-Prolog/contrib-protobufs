@@ -62,5 +62,9 @@ that is in the `PATH`, which reads a `CodeGeneratorRequest` from stdin
 and outputs to stdout a `CodeGeneratorResponse` ... to get this
 plugin, use `protoc --swipl_out=DIR`.
 
+If you make an incompatible change to `protoc-gen-swipl`, you should
+increment the version and also `protobufs:verify_version/0`.  (Also
+`descriptor_proto.pl`, which is mostly obsolete.)
+
 See also
 [https://chromium.googlesource.com/external/github.com/protocolbuffers/protobuf/+/refs/heads/master/docs/implementing_proto3_presence.md](How To Implement Field Presence for Proto3).

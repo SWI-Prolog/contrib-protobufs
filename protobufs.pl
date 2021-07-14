@@ -122,6 +122,8 @@ definition in the =protobufs= module:
    * =|proto_meta_field_option_packed(FqnName)|=
    * =|proto_meta_enum_type(          FqnName, Fqn, Name)|=
    * =|proto_meta_enum_value(         FqnName, Name, Number)|=
+   * =|proto_meta_field_oneof_index(  FqnName, Index)|=
+   * =|proto_meta_oneof(              FqnName, Index, Name)|=
 
 The protobuf_message/2 interface allows you to define your message
 template as a list of predefined
@@ -515,7 +517,6 @@ payload(packed, TypedPayloadSeq) -->
 
 packed_payload(enum, EnumSeq) -->
     { ground(EnumSeq) }, !,
-    { format(user_error, '*** ~q~n', [packed_payload(enum, EnumSeq)]) },
     { EnumSeq =.. [EnumType, Values] }, % EnumSeq = EnumType(Values)
     packed_enum(EnumType, Values).
 packed_payload(PrologType, PayloadSeq) -->
@@ -1131,7 +1132,9 @@ int32_float32_when(Int32, Float32) :-
      proto_meta_field_default_value/2, %   proto_meta_field_default_value(FqnName, DefaultValue)
      proto_meta_field_option_packed/1, %   proto_meta_field_option_packed(FqnName)
      proto_meta_enum_type/3,           %   proto_meta_enum_type(          FqnName, Fqn, Name)
-     proto_meta_enum_value/3.          %   proto_meta_enum_value(         FqnName, Name, Number)
+     proto_meta_enum_value/3,          %   proto_meta_enum_value(         FqnName, Name, Number)
+     proto_meta_field_oneof_index/3,   %   proto_meta_field_oneof_index(  FqnName, Index)
+     proto_meta_oneof/3.               %   protobufs:proto_meta_oneof(    FqnName, Index, Name)
 
 proto_meta_enum_value_when(ContextType, EnumValue, IntValue) :-
     when((nonvar(EnumValue) ; nonvar(IntValue)),

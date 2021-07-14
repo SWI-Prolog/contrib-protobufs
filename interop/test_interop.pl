@@ -22,6 +22,7 @@
 :- use_module(library(protobufs)).
 :- use_module(test_templates).
 :- use_module(test_pb).
+:- use_module(test2_pb).
 :- use_module(google/protobuf/unittest_pb).
 :- use_module(google/protobuf/unittest_import_pb).
 :- use_module(google/protobuf/unittest_import_public_pb).
