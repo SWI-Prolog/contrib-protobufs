@@ -10,24 +10,25 @@ protobufs:protoc_gen_swipl_version(descriptor_pb,[0,9]).
 swi_prolog_version('8.3.27-2-g1bd6451e5-DIRTY').
 protoc_version('3.17.1.').
 prototoc_gen_swipl_args([]).
-protoc_run_time('2021-07-14T16:30:55+0000', '2021-07-14T09:30:55-0700').
+protoc_run_time('2021-07-14T16:50:27+0000', '2021-07-14T09:50:27-0700').
 file_to_generate(["descriptor.proto"]).
 
 :- multifile
-    protobufs:proto_meta_normalize/2,           %   proto_meta_normalize(Unnormalized, Normalized),
-    protobufs:proto_meta_package/3,             %   proto_meta_package(Package, FileName, Options),
-    protobufs:proto_meta_message_type/3,        %   proto_meta_message_type(       Fqn,     Package, Name),
-    protobufs:proto_meta_field_name/4,          %   proto_meta_field_name(         Fqn,     FieldNumber, FieldName, FqnName),
-    protobufs:proto_meta_field_json_name/2,     %   proto_meta_field_json_name(    FqnName, JsonName),
-    protobufs:proto_meta_field_label/2,         %   proto_meta_field_label(        FqnName, LabelRepeatOptional) % LABEL_OPTIONAL, LABEL_REQUIRED, LABEL_REPEATED,
-    protobufs:proto_meta_field_type/2,          %   proto_meta_field_type(         FqnName, Type) % TYPE_INT32, TYPE_MESSAGE, etc,
-    protobufs:proto_meta_field_type_name/2,     %   proto_meta_field_type_name(    FqnName, TypeName),
-    protobufs:proto_meta_field_default_value/2, %   proto_meta_field_default_value(FqnName, DefaultValue),
-    protobufs:proto_meta_field_option_packed/1, %   proto_meta_field_option_packed(FqnName),
-    protobufs:proto_meta_enum_type/3,           %   proto_meta_enum_type(          FqnName, Fqn, Name),
-    protobufs:proto_meta_enum_value/3,          %   proto_meta_enum_value(         FqnName, Name, Number),
-    protobufs:proto_meta_field_oneof_index/3,   %   proto_meta_field_oneof_index(  FqnName, Index),
-    protobufs:proto_meta_oneof/3.               %   proto_meta_oneof(              FqnName, Index, Name)
+    protobufs:proto_meta_normalize/2,              % (Unnormalized, Normalized),
+    protobufs:proto_meta_package/3,                % (Package, FileName, Options),
+    protobufs:proto_meta_message_type/3,           % (Fqn, Package, Name),
+    protobufs:proto_meta_message_type_map_entry/3, % (Fqn),
+    protobufs:proto_meta_field_name/4,             % (Fqn, FieldNumber, FieldName, FqnName),
+    protobufs:proto_meta_field_json_name/2,        % (FqnName, JsonName),
+    protobufs:proto_meta_field_label/2,            % (FqnName, LabelRepeatOptional) % LABEL_OPTIONAL, LABEL_REQUIRED, LABEL_REPEATED,
+    protobufs:proto_meta_field_type/2,             % (FqnName, Type) % TYPE_INT32, TYPE_MESSAGE, etc,
+    protobufs:proto_meta_field_type_name/2,        % (FqnName, TypeName),
+    protobufs:proto_meta_field_default_value/2,    % (FqnName, DefaultValue),
+    protobufs:proto_meta_field_option_packed/1,    % (FqnName),
+    protobufs:proto_meta_enum_type/3,              % (FqnName, Fqn, Name),
+    protobufs:proto_meta_enum_value/3,             % (FqnName, Name, Number),
+    protobufs:proto_meta_field_oneof_index/2,      % (FqnName, Index),
+    protobufs:proto_meta_oneof/3.                  % (FqnName, Index, Name)
 
 % Generating proto_meta_... facts:
   % compiler_version: '.google.protobuf.compiler.Version'{major:3,minor:17,patch:1,suffix:""}
@@ -276,14 +277,14 @@ file_to_generate(["descriptor.proto"]).
     protobufs:proto_meta_field_type('.google.protobuf.FieldDescriptorProto.label','TYPE_ENUM').
     protobufs:proto_meta_field_type_name('.google.protobuf.FieldDescriptorProto.label','.google.protobuf.FieldDescriptorProto.Label').
     protobufs:proto_meta_field_oneof_index('.google.protobuf.FieldDescriptorProto.label',0).
-    protobufs:proto_meta_field_default_value('.google.protobuf.FieldDescriptorProto.label',_5820932) :- protobufs:proto_meta_enum_value('.google.protobuf.FieldDescriptorProto.Label',_5820932,0).
+    protobufs:proto_meta_field_default_value('.google.protobuf.FieldDescriptorProto.label',_5820994) :- protobufs:proto_meta_enum_value('.google.protobuf.FieldDescriptorProto.Label',_5820994,0).
     protobufs:proto_meta_field_name('.google.protobuf.FieldDescriptorProto',5,type,'.google.protobuf.FieldDescriptorProto.type').
     protobufs:proto_meta_field_json_name('.google.protobuf.FieldDescriptorProto.type',type).
     protobufs:proto_meta_field_label('.google.protobuf.FieldDescriptorProto.type','LABEL_OPTIONAL').
     protobufs:proto_meta_field_type('.google.protobuf.FieldDescriptorProto.type','TYPE_ENUM').
     protobufs:proto_meta_field_type_name('.google.protobuf.FieldDescriptorProto.type','.google.protobuf.FieldDescriptorProto.Type').
     protobufs:proto_meta_field_oneof_index('.google.protobuf.FieldDescriptorProto.type',0).
-    protobufs:proto_meta_field_default_value('.google.protobuf.FieldDescriptorProto.type',_5822524) :- protobufs:proto_meta_enum_value('.google.protobuf.FieldDescriptorProto.Type',_5822524,0).
+    protobufs:proto_meta_field_default_value('.google.protobuf.FieldDescriptorProto.type',_5822586) :- protobufs:proto_meta_enum_value('.google.protobuf.FieldDescriptorProto.Type',_5822586,0).
     protobufs:proto_meta_field_name('.google.protobuf.FieldDescriptorProto',6,type_name,'.google.protobuf.FieldDescriptorProto.type_name').
     protobufs:proto_meta_field_json_name('.google.protobuf.FieldDescriptorProto.type_name',typeName).
     protobufs:proto_meta_field_label('.google.protobuf.FieldDescriptorProto.type_name','LABEL_OPTIONAL').

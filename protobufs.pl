@@ -112,18 +112,19 @@ Prolog file of meta-information that captures the =|.proto|= file's
 definition in the =protobufs= module:
    * =|proto_meta_normalize(Unnormalized, Normalized)|=
    * =|proto_meta_package(Package, FileName, Options)|=
-   * =|proto_meta_message_type(       Fqn,     Package, Name)|=
-   * =|proto_meta_field_name(         Fqn,     FieldNumber, FieldName, FqnName)|=
-   * =|proto_meta_field_json_name(    FqnName, JsonName)|=
-   * =|proto_meta_field_label(        FqnName, LabelRepeatOptional) % 'LABEL_OPTIONAL', 'LABEL_REQUIRED', 'LABEL_REPEATED'|=
-   * =|proto_meta_field_type(         FqnName, Type) % 'TYPE_INT32', 'TYPE_MESSAGE', etc|=
-   * =|proto_meta_field_type_name(    FqnName, TypeName)|=
-   * =|proto_meta_field_default_value(FqnName, DefaultValue)|=
-   * =|proto_meta_field_option_packed(FqnName)|=
-   * =|proto_meta_enum_type(          FqnName, Fqn, Name)|=
-   * =|proto_meta_enum_value(         FqnName, Name, Number)|=
-   * =|proto_meta_field_oneof_index(  FqnName, Index)|=
-   * =|proto_meta_oneof(              FqnName, Index, Name)|=
+   * =|proto_meta_message_type(                    Fqn,     Package, Name)|=
+   * =|protobufs:proto_meta_message_type_map_entry(Fqn)|=
+   * =|proto_meta_field_name(                      Fqn,     FieldNumber, FieldName, FqnName)|=
+   * =|proto_meta_field_json_name(                 FqnName, JsonName)|=
+   * =|proto_meta_field_label(                     FqnName, LabelRepeatOptional) % 'LABEL_OPTIONAL', 'LABEL_REQUIRED', 'LABEL_REPEATED'|=
+   * =|proto_meta_field_type(                      FqnName, Type) % 'TYPE_INT32', 'TYPE_MESSAGE', etc|=
+   * =|proto_meta_field_type_name(                 FqnName, TypeName)|=
+   * =|proto_meta_field_default_value(             FqnName, DefaultValue)|=
+   * =|proto_meta_field_option_packed(             FqnName)|=
+   * =|proto_meta_enum_type(                       FqnName, Fqn, Name)|=
+   * =|proto_meta_enum_value(                      FqnName, Name, Number)|=
+   * =|proto_meta_field_oneof_index(               FqnName, Index)|=
+   * =|proto_meta_oneof(                           FqnName, Index, Name)|=
 
 The protobuf_message/2 interface allows you to define your message
 template as a list of predefined
@@ -1121,20 +1122,21 @@ int32_float32_when(Int32, Float32) :-
 % The are documented in protoc-gen-swipl and in the overview section.
 
 :- multifile
-     proto_meta_normalize/2,           %   proto_meta_normalize(Unnormalized, Normalized)
-     proto_meta_package/3,             %   proto_meta_package(Package, FileName, Options)
-     proto_meta_message_type/3,        %   proto_meta_message_type(       Fqn,     Package, Name)
-     proto_meta_field_name/4,          %   proto_meta_field_name(         Fqn,     FieldNumber, FieldName, FqnName)
-     proto_meta_field_json_name/2,     %   proto_meta_field_json_name(    FqnName, JsonName)
-     proto_meta_field_label/2,         %   proto_meta_field_label(        FqnName, LabelRepeatOptional) % LABEL_OPTIONAL, LABEL_REQUIRED, LABEL_REPEATED
-     proto_meta_field_type/2,          %   proto_meta_field_type(         FqnName, Type) % TYPE_INT32, TYPE_MESSAGE, etc
-     proto_meta_field_type_name/2,     %   proto_meta_field_type_name(    FqnName, TypeName)
-     proto_meta_field_default_value/2, %   proto_meta_field_default_value(FqnName, DefaultValue)
-     proto_meta_field_option_packed/1, %   proto_meta_field_option_packed(FqnName)
-     proto_meta_enum_type/3,           %   proto_meta_enum_type(          FqnName, Fqn, Name)
-     proto_meta_enum_value/3,          %   proto_meta_enum_value(         FqnName, Name, Number)
-     proto_meta_field_oneof_index/3,   %   proto_meta_field_oneof_index(  FqnName, Index)
-     proto_meta_oneof/3.               %   protobufs:proto_meta_oneof(    FqnName, Index, Name)
+     proto_meta_normalize/2,              % (Unnormalized, Normalized)
+     proto_meta_package/3,                % (Package, FileName, Options)
+     proto_meta_message_type/3,           % (Fqn, Package, Name)
+     proto_meta_message_type_map_entry/3, % (Fqn)
+     proto_meta_field_name/4,             % (Fqn, FieldNumber, FieldName, FqnName)
+     proto_meta_field_json_name/2,        % (FqnName, JsonName)
+     proto_meta_field_label/2,            % (FqnName, LabelRepeatOptional) % LABEL_OPTIONAL, LABEL_REQUIRED, LABEL_REPEATED
+     proto_meta_field_type/2,             % (FqnName, Type) % TYPE_INT32, TYPE_MESSAGE, etc
+     proto_meta_field_type_name/2,        % (FqnName, TypeName)
+     proto_meta_field_default_value/2,    % (FqnName, DefaultValue)
+     proto_meta_field_option_packed/1,    % (FqnName)
+     proto_meta_enum_type/3,              % (FqnName, Fqn, Name)
+     proto_meta_enum_value/3,             % (FqnName, Name, Number)
+     proto_meta_field_oneof_index/2,      % (FqnName, Index)
+     proto_meta_oneof/3.                  % (FqnName, Index, Name)
 
 proto_meta_enum_value_when(ContextType, EnumValue, IntValue) :-
     when((nonvar(EnumValue) ; nonvar(IntValue)),

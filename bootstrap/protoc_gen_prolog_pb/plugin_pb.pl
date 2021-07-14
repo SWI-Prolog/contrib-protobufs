@@ -10,24 +10,25 @@ protobufs:protoc_gen_swipl_version(plugin_pb,[0,9]).
 swi_prolog_version('8.3.27-2-g1bd6451e5-DIRTY').
 protoc_version('3.17.1.').
 prototoc_gen_swipl_args([]).
-protoc_run_time('2021-07-14T16:30:54+0000', '2021-07-14T09:30:54-0700').
+protoc_run_time('2021-07-14T16:50:26+0000', '2021-07-14T09:50:26-0700').
 file_to_generate(["plugin.proto"]).
 
 :- multifile
-    protobufs:proto_meta_normalize/2,           %   proto_meta_normalize(Unnormalized, Normalized),
-    protobufs:proto_meta_package/3,             %   proto_meta_package(Package, FileName, Options),
-    protobufs:proto_meta_message_type/3,        %   proto_meta_message_type(       Fqn,     Package, Name),
-    protobufs:proto_meta_field_name/4,          %   proto_meta_field_name(         Fqn,     FieldNumber, FieldName, FqnName),
-    protobufs:proto_meta_field_json_name/2,     %   proto_meta_field_json_name(    FqnName, JsonName),
-    protobufs:proto_meta_field_label/2,         %   proto_meta_field_label(        FqnName, LabelRepeatOptional) % LABEL_OPTIONAL, LABEL_REQUIRED, LABEL_REPEATED,
-    protobufs:proto_meta_field_type/2,          %   proto_meta_field_type(         FqnName, Type) % TYPE_INT32, TYPE_MESSAGE, etc,
-    protobufs:proto_meta_field_type_name/2,     %   proto_meta_field_type_name(    FqnName, TypeName),
-    protobufs:proto_meta_field_default_value/2, %   proto_meta_field_default_value(FqnName, DefaultValue),
-    protobufs:proto_meta_field_option_packed/1, %   proto_meta_field_option_packed(FqnName),
-    protobufs:proto_meta_enum_type/3,           %   proto_meta_enum_type(          FqnName, Fqn, Name),
-    protobufs:proto_meta_enum_value/3,          %   proto_meta_enum_value(         FqnName, Name, Number),
-    protobufs:proto_meta_field_oneof_index/3,   %   proto_meta_field_oneof_index(  FqnName, Index),
-    protobufs:proto_meta_oneof/3.               %   proto_meta_oneof(              FqnName, Index, Name)
+    protobufs:proto_meta_normalize/2,              % (Unnormalized, Normalized),
+    protobufs:proto_meta_package/3,                % (Package, FileName, Options),
+    protobufs:proto_meta_message_type/3,           % (Fqn, Package, Name),
+    protobufs:proto_meta_message_type_map_entry/3, % (Fqn),
+    protobufs:proto_meta_field_name/4,             % (Fqn, FieldNumber, FieldName, FqnName),
+    protobufs:proto_meta_field_json_name/2,        % (FqnName, JsonName),
+    protobufs:proto_meta_field_label/2,            % (FqnName, LabelRepeatOptional) % LABEL_OPTIONAL, LABEL_REQUIRED, LABEL_REPEATED,
+    protobufs:proto_meta_field_type/2,             % (FqnName, Type) % TYPE_INT32, TYPE_MESSAGE, etc,
+    protobufs:proto_meta_field_type_name/2,        % (FqnName, TypeName),
+    protobufs:proto_meta_field_default_value/2,    % (FqnName, DefaultValue),
+    protobufs:proto_meta_field_option_packed/1,    % (FqnName),
+    protobufs:proto_meta_enum_type/3,              % (FqnName, Fqn, Name),
+    protobufs:proto_meta_enum_value/3,             % (FqnName, Name, Number),
+    protobufs:proto_meta_field_oneof_index/2,      % (FqnName, Index),
+    protobufs:proto_meta_oneof/3.                  % (FqnName, Index, Name)
 
 % Generating proto_meta_... facts:
   % compiler_version: '.google.protobuf.compiler.Version'{major:3,minor:17,patch:1,suffix:""}
