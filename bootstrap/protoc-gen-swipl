@@ -282,44 +282,44 @@ expand_FieldDescriptorProto(Fqn, Field) :-
     output_fact(proto_meta_field_type(FqnName, Field_type)),
     output_fact(proto_meta_field_type_name(FqnName, Field_type_name)),
     output_fact(proto_meta_field_oneof_index(FqnName, Field_oneof_index)),
-    (   default_value(Field_label, Field_type, Field_default_value0, Field_default_value, Field_type_name, Rhs)
+    (   default_value(Field_label, Field_type, Field_default_value0, Field_default_value, Field_type_name, Rhs, VariableNames)
     ->  string_atom(FqnName, FqnNameAtom),
-        output_rule(proto_meta_field_default_value(FqnNameAtom, Field_default_value), Rhs)
+        output_rule(proto_meta_field_default_value(FqnNameAtom, Field_default_value), Rhs, VariableNames)
     ;   true
     ),
     expand_FieldOptions(FqnName, Field_options).
 
-%! default_value(+Field_label:atom, +Fieldtype:atom, +Field_default_value0:atom, -Field_default) is semidet.
+%! default_value(+Field_label:atom, +Fieldtype:atom, +Field_default_value0:atom, -Field_default, -Rhs, -VariableNames) is semidet.
 % protoc compiler gives default '' if not specified; puts it in a
 % string (which we handle as an atom) otherwise.
-default_value('LABEL_REPEATED', _, _, [], _, true) :- !.
+default_value('LABEL_REPEATED', _, _, [], _, true, []) :- !.
 % TODO: verify non-Unicode string, bytes
-default_value('LABEL_OPTIONAL', Type, "", 0, _, true) :-
+default_value('LABEL_OPTIONAL', Type, "", 0, _, true, []) :-
     default_value_int(Type), !.
-default_value('LABEL_OPTIONAL', 'TYPE_DOUBLE', "", 0.0, _, true) :- !.
-default_value('LABEL_OPTIONAL', 'TYPE_DOUBLE', Atom, Value, _, true) :- !,
+default_value('LABEL_OPTIONAL', 'TYPE_DOUBLE', "", 0.0, _, true, []) :- !.
+default_value('LABEL_OPTIONAL', 'TYPE_DOUBLE', Atom, Value, _, true, []) :- !,
     atom_number(Atom, Number0),
     Value is float(Number0).
-default_value('LABEL_OPTIONAL', 'TYPE_FLOAT', Atom, Value, FieldTypeName, Rhs) :- !,
-    default_value('LABEL_OPTIONAL', 'TYPE_DOUBLE', Atom, Value, FieldTypeName, Rhs).
-default_value('LABEL_OPTIONAL', 'TYPE_BOOL', "", false, _, true) :- !.
-default_value('LABEL_OPTIONAL', 'TYPE_BOOL', "false", false, _, true) :- !.
-default_value('LABEL_OPTIONAL', 'TYPE_BOOL', "true", true, _, true) :- !.
-default_value('LABEL_OPTIONAL', 'TYPE_BOOL', DefaultStr, false, _, true) :- !,
+default_value('LABEL_OPTIONAL', 'TYPE_FLOAT', Atom, Value, FieldTypeName, Rhs, VariableNames) :- !,
+    default_value('LABEL_OPTIONAL', 'TYPE_DOUBLE', Atom, Value, FieldTypeName, Rhs, VariableNames).
+default_value('LABEL_OPTIONAL', 'TYPE_BOOL', "", false, _, true, []) :- !.
+default_value('LABEL_OPTIONAL', 'TYPE_BOOL', "false", false, _, true, []) :- !.
+default_value('LABEL_OPTIONAL', 'TYPE_BOOL', "true", true, _, true, []) :- !.
+default_value('LABEL_OPTIONAL', 'TYPE_BOOL', DefaultStr, false, _, true, []) :- !,
     domain_error(["false","true"], DefaultStr).
 % TODO: are there any other possibilities of BOOL ... and does protoc check?
 % TODO: what if string not UTF8?
-default_value('LABEL_OPTIONAL', 'TYPE_STRING', Atom, Value, _, true) :- !,
+default_value('LABEL_OPTIONAL', 'TYPE_STRING', Atom, Value, _, true, []) :- !,
     atom_string(Atom, Value).
 % 'TYPE_GROUP' - fail
 % 'TYPE_MESSAGE' - fail
-default_value('LABEL_OPTIONAL', 'TYPE_BYTES', Atom, Value, _, true) :- !,
+default_value('LABEL_OPTIONAL', 'TYPE_BYTES', Atom, Value, _, true, []) :- !,
     atom_codes(Atom, Value).
-default_value('LABEL_OPTIONAL', 'TYPE_ENUM', "", Value, FieldTypeName,
-              protobufs:proto_meta_enum_value(FieldTypeNameAtom, Value, 0)) :- !,
+default_value('LABEL_OPTIONAL', 'TYPE_ENUM', "", EnumName, FieldTypeName,
+              protobufs:proto_meta_enum_value(FieldTypeNameAtom, EnumName, 0), ['EnumName'=EnumName]) :- !,
     string_atom(FieldTypeName, FieldTypeNameAtom).
 % TODO: does protoc check for valid enum value?
-default_value('LABEL_OPTIONAL', 'TYPE_ENUM', Atom, Atom, _, true) :- !.
+default_value('LABEL_OPTIONAL', 'TYPE_ENUM', Atom, Atom, _, true, []) :- !.
 
 default_value_int('TYPE_FIXED32').
 default_value_int('TYPE_FIXED64').
@@ -423,12 +423,12 @@ output_fact(Fact) =>
     Fact1 =.. [Name|Args1],
     format('    ~q.~n', [protobufs:Fact1]).
 
-:- det(output_rule/2).
-output_rule(Head, Rhs) =>
+:- det(output_rule/3).
+output_rule(Head, Rhs, VariableNames) =>
     % Do *not* convert strings to atoms - this messes up string default values.
     (   Rhs == true
     ->  format('    ~q.~n', [protobufs:Head])
-    ;   format('    ~q :- ~q.~n', [protobufs:Head, Rhs])
+    ;   format('    ~W~n', [(protobufs:Head:-Rhs),[fullstop(true),quoted(true),variable_names(VariableNames)]])
     ).
 
 string_atom(String, Atom) :-

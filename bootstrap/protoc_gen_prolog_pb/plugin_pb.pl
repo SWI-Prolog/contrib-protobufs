@@ -6,11 +6,11 @@
 :-module(plugin_pb,[]).
 :-encoding(utf8).
 :-multifile protobufs:protoc_gen_swipl_version/2.
-protobufs:protoc_gen_swipl_version(plugin_pb,[0,9]).
+protobufs:protoc_gen_swipl_version(plugin_pb,[0,9,1]).
 swi_prolog_version('8.3.27-2-g1bd6451e5-DIRTY').
 protoc_version('3.17.1.').
 prototoc_gen_swipl_args([]).
-protoc_run_time('2021-07-14T16:54:25+0000', '2021-07-14T09:54:25-0700').
+protoc_run_time('2021-07-14T17:45:00+0000', '2021-07-14T10:45:00-0700').
 file_to_generate(["plugin.proto"]).
 
 :- multifile

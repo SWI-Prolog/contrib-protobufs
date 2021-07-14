@@ -6,11 +6,11 @@
 :-module(descriptor_pb,[]).
 :-encoding(utf8).
 :-multifile protobufs:protoc_gen_swipl_version/2.
-protobufs:protoc_gen_swipl_version(descriptor_pb,[0,9]).
+protobufs:protoc_gen_swipl_version(descriptor_pb,[0,9,1]).
 swi_prolog_version('8.3.27-2-g1bd6451e5-DIRTY').
 protoc_version('3.17.1.').
 prototoc_gen_swipl_args([]).
-protoc_run_time('2021-07-14T16:54:25+0000', '2021-07-14T09:54:25-0700').
+protoc_run_time('2021-07-14T17:45:01+0000', '2021-07-14T10:45:01-0700').
 file_to_generate(["descriptor.proto"]).
 
 :- multifile
@@ -277,14 +277,14 @@ file_to_generate(["descriptor.proto"]).
     protobufs:proto_meta_field_type('.google.protobuf.FieldDescriptorProto.label','TYPE_ENUM').
     protobufs:proto_meta_field_type_name('.google.protobuf.FieldDescriptorProto.label','.google.protobuf.FieldDescriptorProto.Label').
     protobufs:proto_meta_field_oneof_index('.google.protobuf.FieldDescriptorProto.label',0).
-    protobufs:proto_meta_field_default_value('.google.protobuf.FieldDescriptorProto.label',_5820994) :- protobufs:proto_meta_enum_value('.google.protobuf.FieldDescriptorProto.Label',_5820994,0).
+    protobufs:proto_meta_field_default_value('.google.protobuf.FieldDescriptorProto.label',EnumName):-protobufs:proto_meta_enum_value('.google.protobuf.FieldDescriptorProto.Label',EnumName,0). 
     protobufs:proto_meta_field_name('.google.protobuf.FieldDescriptorProto',5,type,'.google.protobuf.FieldDescriptorProto.type').
     protobufs:proto_meta_field_json_name('.google.protobuf.FieldDescriptorProto.type',type).
     protobufs:proto_meta_field_label('.google.protobuf.FieldDescriptorProto.type','LABEL_OPTIONAL').
     protobufs:proto_meta_field_type('.google.protobuf.FieldDescriptorProto.type','TYPE_ENUM').
     protobufs:proto_meta_field_type_name('.google.protobuf.FieldDescriptorProto.type','.google.protobuf.FieldDescriptorProto.Type').
     protobufs:proto_meta_field_oneof_index('.google.protobuf.FieldDescriptorProto.type',0).
-    protobufs:proto_meta_field_default_value('.google.protobuf.FieldDescriptorProto.type',_5822586) :- protobufs:proto_meta_enum_value('.google.protobuf.FieldDescriptorProto.Type',_5822586,0).
+    protobufs:proto_meta_field_default_value('.google.protobuf.FieldDescriptorProto.type',EnumName):-protobufs:proto_meta_enum_value('.google.protobuf.FieldDescriptorProto.Type',EnumName,0). 
     protobufs:proto_meta_field_name('.google.protobuf.FieldDescriptorProto',6,type_name,'.google.protobuf.FieldDescriptorProto.type_name').
     protobufs:proto_meta_field_json_name('.google.protobuf.FieldDescriptorProto.type_name',typeName).
     protobufs:proto_meta_field_label('.google.protobuf.FieldDescriptorProto.type_name','LABEL_OPTIONAL').

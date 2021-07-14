@@ -48,6 +48,8 @@ all: plugin.proto.wiredump plugin.proto.wire plugin.proto.parse plugin.proto.seg
 # but are generated for the "--undefined" check.
 bootstrap: protoc_gen_prolog_pb/plugin_pb.qlf \
 	   protoc_gen_prolog_pb/descriptor_pb.qlf
+	$(RM) protoc_gen_prolog_pb/plugin_pb.qlf \
+	      protoc_gen_prolog_pb/descriptor_pb.qlf
 
 %_pb.pl: %.proto protoc-gen-swipl
 	@# PATH=".:$$PATH" $(PROTOC) $(PROTOC_I) --swipl_out=. $<
