@@ -221,7 +221,7 @@ protobuf_parse_from_codes(WireCodes, MessageType0, Term) :-
 
 verify_version :-
     (   protoc_gen_swipl_version(Module, Version),
-        Version @< [0,9] % This must be sync-ed with changes to protoc-gen-swipl
+        Version @< [0,9,1] % This must be sync-ed with changes to protoc-gen-swipl
     ->  throw(error(version_error(Module-Version), _))
     ;   true
     ).

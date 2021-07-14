@@ -80,7 +80,7 @@ main2(Argv, FileName) :-
     % Note: when the following version is changed, also change the
     %       check in protobufs:protobuf_parse_from_codes/3,
     %       protobufs:protobuf_serialize_to_codes/3.
-    format('~q.~n', [protobufs:protoc_gen_swipl_version(ModuleName, [0,9])]),
+    format('~q.~n', [protobufs:protoc_gen_swipl_version(ModuleName, [0,9,1])]),
     (   current_prolog_flag(version_git, Version)
     ->  format('swi_prolog_version(~q).~n', [Version])
     ;   current_prolog_flag(version_data, swi(Major, Minor, Path, Extra)),
