@@ -27,153 +27,6 @@
 :- use_module(protoc_gen_prolog_pb/plugin_pb).
 :- use_module(protoc_gen_prolog_pb/descriptor_pb).
 
-/*
-  message OneofMessage {
-    oneof first {
-        string name = 4;
-        sint64 number = 9;
-    }
-  }
-*/
-one_of_message_example( % DO NOT SUBMIT
-    '.google.protobuf.DescriptorProto'{
-        oneof_decl:[
-            '.google.protobuf.OneofDescriptorProto'{ name:"first" },
-            '.google.protobuf.OneofDescriptorProto'{ name:"second" }
-        ],
-        field:[
-            '.google.protobuf.FieldDescriptorProto'{
-                name:"name",
-                number:4,
-                default_value:"",
-                extendee:"",
-                json_name:"name",
-                label:'LABEL_OPTIONAL',
-                oneof_index:0,
-                proto3_optional:false,
-                type:'TYPE_STRING',
-                type_name:""
-            },
-            '.google.protobuf.FieldDescriptorProto'{
-                name:"number",
-                number:9,
-                default_value:"",
-                extendee:"",
-                json_name:"number",
-                label:'LABEL_OPTIONAL',
-                oneof_index:0,
-                proto3_optional:false,
-                type:'TYPE_SINT64',
-                type_name:""
-            },
-            '.google.protobuf.FieldDescriptorProto'{
-                name:"foo",
-                number:1,
-                default_value:"",
-                extendee:"",
-                json_name:"foo",
-                label:'LABEL_OPTIONAL',
-                oneof_index:1,              % <===
-                proto3_optional:false,
-                type:'TYPE_STRING',
-                type_name:""
-            },
-            '.google.protobuf.FieldDescriptorProto'{
-                name:"bar",
-                number:2,
-                default_value:"",
-                extendee:"",
-                json_name:"bar",
-                label:'LABEL_OPTIONAL',
-                oneof_index:1,
-                proto3_optional:false,
-                type:'TYPE_DOUBLE',
-                type_name:""
-            }
-        ],
-        name:"OneofMessage",
-        nested_type:[],
-        enum_type:[],
-        extension:[],
-        extension_range:[]
-    }
-).
-
-/*
-  message MapMessage {
-      map<string, sint64> number_ints = 5;
-  }
-*/
-map_message_example( % DO NOT SUBMIT
-    '.google.protobuf.DescriptorProto'{
-        name:"MapMessage",
-        enum_type:[],
-        extension:[],
-        extension_range:[],
-        field:[
-            '.google.protobuf.FieldDescriptorProto'{
-                default_value:"",
-                extendee:"",
-                json_name:"numberInts",
-                label:'LABEL_REPEATED',
-                name:"number_ints",
-                number:5,
-                oneof_index:0,
-                proto3_optional:false,
-                type:'TYPE_MESSAGE',
-                type_name:".MapMessage.NumberIntsEntry"
-            }
-        ],
-        nested_type:[
-            '.google.protobuf.DescriptorProto'{
-                name:"NumberIntsEntry",  % <=====
-                enum_type:[],
-                field:[
-                    '.google.protobuf.FieldDescriptorProto'{
-                        default_value:"",
-                        extendee:"",
-                        json_name:"key",
-                        label:'LABEL_OPTIONAL',
-                        name:"key",
-                        number:1,
-                        oneof_index:0,
-                        proto3_optional:false,
-                        type:'TYPE_STRING',
-                        type_name:""
-                    },
-                    '.google.protobuf.FieldDescriptorProto'{
-                        default_value:"",
-                        extendee:"",
-                        json_name:"value",
-                        label:'LABEL_OPTIONAL',
-                        name:"value",
-                        number:2,
-                        oneof_index:0,
-                        proto3_optional:false,
-                        type:'TYPE_SINT64',
-                        type_name:""
-                    }
-                ],
-                extension:[],
-                extension_range:[],
-                nested_type:[],
-                oneof_decl:[],
-                options:'.google.protobuf.MessageOptions'{
-                    deprecated:false,
-                    map_entry:true,
-                    message_set_wire_format:false,
-                    no_standard_descriptor_accessor:false,
-                    uninterpreted_option:[]
-                },
-                reserved_name:[],
-                reserved_range:[]
-            }
-        ],
-        oneof_decl:[],
-        reserved_name:[],
-        reserved_range:[]
-}).
-
 
 main(Argv) :-
     with_output_to(string(Result), main2(Argv, FileName)),
@@ -397,9 +250,9 @@ fqn_no_dot(FqnName, FqnNameNoDot) :-
     atom_concat('.', FqnNameNoDot, FqnName).
 
 :- det(expand_OneofDescriptorProto/3).
-expand_OneofDescriptorProto(Fqn, N, MessageType) :-
+expand_OneofDescriptorProto(Fqn, N, Oneof) :-
     lookup_pieces('.google.protobuf.OneofDescriptorProto',
-                  MessageType,
+                  Oneof,
                   _{
                     name:            ''               -Oneof_name,
                     options:         []               -_ % TODO: ??? unused
