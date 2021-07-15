@@ -520,14 +520,16 @@ test(golden_2_5_0_parse) :-
 test(oneof) :-
     [In, _Out] = ['oneof1_from_python.wire', 'oneof1_from_prolog.wire'],
     read_message_codes(In, WireCodes),
-    protobuf_parse_from_codes(WireCodes, '..OneofMessage', Term),
+    protobuf_parse_from_codes(WireCodes, '.OneofMessage', Term),
     % TODO: This is what's on the wire, after processing default values.
     %       Needs "oneof" processing to remove bar and name
-    assertion(Term == '..OneofMessage'{
+    assertion(Term == '.OneofMessage'{
                           bar:0.0,
                           foo:"FOO",
                           name:"",
                           number:666}).
+
+% TODO: add test(oneofb)
 
 :- end_tests(oneof).
 
@@ -552,16 +554,16 @@ test(map) :-
       Segments =  [ message(5,[string(1,"one"),varint(2,2)]),
                     message(5,[string(1,"two"),varint(2,4)]) ]
     */
-    protobuf_parse_from_codes(WireCodes, '..MapMessage', Term), % No package: needs 1 leading '.'
+    protobuf_parse_from_codes(WireCodes, '.MapMessage', Term), % No package: needs 1 leading '.'
     % TODO: This is what's on the wire without any special map<> handling.
     %       Note the incorrect '.MapMessage.NumberIntsEntry', due to a bug
     %       in protoc
     % Also, the ordering can be "random", due to Python hash randomization
-    assertion((  Term == '..MapMessage'{
+    assertion((  Term == '.MapMessage'{
                              number_ints:[
                                  '.MapMessage.NumberIntsEntry'{key:"one",value:1},
                                  '.MapMessage.NumberIntsEntry'{key:"two",value:2}]}
-             ;   Term == '..MapMessage'{
+             ;   Term == '.MapMessage'{
                              number_ints:[
                                  '.MapMessage.NumberIntsEntry'{key:"two",value:2},
                                  '.MapMessage.NumberIntsEntry'{key:"one",value:1}]}

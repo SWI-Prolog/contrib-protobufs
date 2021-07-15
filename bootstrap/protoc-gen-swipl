@@ -209,7 +209,10 @@ expand_file_impl(File) :-
     format('  %  -- package(~q) name(~q) dependency(~q)~n',
            [File_package, File_name, File_dependency]),
     % TODO: handle _Fileextensions - see unittest.proto
-    add_to_fqn('', File_package, Package),
+    (   File_package == ""
+    ->  Package = ''
+    ;   add_to_fqn('', File_package, Package)
+    ),
     output_fact(proto_meta_package(Package, File_name, File_options)),
     maplist(expand_DescriptorProto(Package), File_message_type),
     maplist(expand_EnumDescriptorProto(Package), File_enum_type).

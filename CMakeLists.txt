@@ -59,6 +59,7 @@ swipl_examples(
                interop/addressbook.pl
                interop/test.proto
                interop/test2.proto
+               interop/test2b.proto
                interop/test_read.cc
                interop/test_read.py
                interop/test_interop.pl

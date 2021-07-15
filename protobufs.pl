@@ -200,8 +200,7 @@ installed at
 %        =|protobufs:proto_meta_field_name('.google.protobuf.FileDescriptorSet',
 %        FieldNumber, FieldName, FqnName)|= (the initial '.' is not optional for these facts,
 %        only for the top-level name given to protobuf_parse_from_codes/3).
-%        The initial '.' on the message type name is optional, except when there's no
-%        package name (in which case, the "canonical" name has two initial '.'s).
+%        The initial '.' on the message type name is optional.
 % @param Term The generated term, as nested [dict](</pldoc/man?section=bidicts>)s.
 % @see  [library(protobufs): Google's Protocol Buffers](#protobufs-serialize-to-codes)
 % @error version_error(Module-Version) you need to recompile the =Module=
@@ -219,7 +218,7 @@ protobuf_parse_from_codes(WireCodes, MessageType0, Term) :-
     maplist(segment_to_term(MessageType), Segments, MsgFields),
     !, % TODO: remove
     combine_fields(MsgFields, MessageType{}, Term),
-    !. % TODO: remove?
+    !. % TODO: remove? - but proto_meta might have left choicepoints if loaded twice
 
 verify_version :-
     (   protoc_gen_swipl_version(Module, Version),
@@ -247,8 +246,7 @@ verify_version :-
 %        =|protobufs:proto_meta_field_name('.google.protobuf.FileDescriptorSet',
 %        FieldNumber, FieldName, FqnName)|= (the initial '.' is not optional for these facts,
 %        only for the top-level name given to protobuf_serialize_to_codes/3).
-%        The initial '.' on the message type name is optional, except when there's no
-%        package name (in which case, the "canonical" name has two initial '.'s).
+%        The initial '.' on the message type name is optional.
 % @param WireCodes Wire format of the message, which can be output using
 %        =|format('~s', [WireCodes])|=.
 % @see [library(protobufs): Google's Protocol Buffers](#protobufs-serialize-to-codes)
@@ -261,7 +259,7 @@ protobuf_serialize_to_codes(Term, MessageType0, WireCodes) :-
     term_to_segments(Term, MessageType, Segments),
     !, % TODO: remove
     protobuf_segment_message(Segments, WireCodes),
-    !. % TODO: remove?
+    !. % TODO: remove? - but proto_meta might have left choicepoints if loaded twice
 
 %
 % Map wire type (atom) to its encoding (an int)
@@ -1398,14 +1396,7 @@ combine_fields_repeat(Fields, _Field, Values, RestFields) => Values = [], RestFi
 % :- det(field_and_type/7). % TODO
 %! field_and_type(+ContextType:atom, +Tag:int, -FieldName:atom, -FqnName:atom, -ContextType2:atom, -RepeatOptional:atom, -Type:atom) is det.
 % Lookup a =ContextType= and =Tag= to get the field name, type, etc.
-field_and_type(ContextType0, Tag, FieldName, FqnName, ContextType2, RepeatOptional, Type) :-
-    % TODO: There appears to be a bug in protoc, which gives the
-    %       wrong type name for a map<> item (and possibly for other things?)
-    %       when there's no package name.
-    %       The work-around is to use proto_meta_normalize/2, but that
-    %       leaves a choice-point.
-    % TODO: Report the bug to the protobuf maintaniners.
-    proto_meta_normalize(ContextType0, ContextType),
+field_and_type(ContextType, Tag, FieldName, FqnName, ContextType2, RepeatOptional, Type) :-
     proto_meta_field_name(ContextType, Tag, FieldName, FqnName),
     proto_meta_field_type_name(FqnName, ContextType2),
     fqn_repeat_optional(FqnName, RepeatOptional),

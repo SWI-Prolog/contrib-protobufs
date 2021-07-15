@@ -1,8 +1,8 @@
-// Simple definitions for testing Oneof, Map
+// This is the same as test.proto, but with a package name, to
+// isolate whether protoc is generating wrong type names in some places.
 
 syntax = "proto2";
-// No package
-// package  PKG;
+package  PKG;
 
 message OneofMessage {
     oneof first {
