@@ -1,7 +1,8 @@
-// For testing Oneof, Map
+// Simple definitions for testing Oneof, Map
 
 syntax = "proto2";
 // No package
+// package  PKG;
 
 message OneofMessage {
     oneof first {
@@ -13,6 +14,14 @@ message OneofMessage {
         double bar = 2;
     }
 }
+
+// a map<...> creates a message that contains a Key and Value.
+// So, number_ints = {"one":1, "two":2} is equivalent to
+// '..MapMessage'{
+//     number_ints:[
+//          '.MapMessage.NumberIntsEntry'{key:"two",value:2},
+//          '.MapMessage.NumberIntsEntry'{key:"one",value:1}]}
+// (TODO: need to deal with the '.MapMessage' that should be '..MapMessage')
 
 message MapMessage {
     map<string, sint64> number_ints = 5;

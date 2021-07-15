@@ -10,14 +10,14 @@ protobufs:protoc_gen_swipl_version(descriptor_pb,[0,9,1]).
 swi_prolog_version('8.3.27-2-g1bd6451e5-DIRTY').
 protoc_version('3.17.1.').
 prototoc_gen_swipl_args([]).
-protoc_run_time('2021-07-14T17:45:01+0000', '2021-07-14T10:45:01-0700').
+protoc_run_time('2021-07-14T18:15:44+0000', '2021-07-14T11:15:44-0700').
 file_to_generate(["descriptor.proto"]).
 
 :- multifile
     protobufs:proto_meta_normalize/2,              % (Unnormalized, Normalized),
     protobufs:proto_meta_package/3,                % (Package, FileName, Options),
     protobufs:proto_meta_message_type/3,           % (Fqn, Package, Name),
-    protobufs:proto_meta_message_type_map_entry/3, % (Fqn),
+    protobufs:proto_meta_message_type_map_entry/1, % (Fqn),
     protobufs:proto_meta_field_name/4,             % (Fqn, FieldNumber, FieldName, FqnName),
     protobufs:proto_meta_field_json_name/2,        % (FqnName, JsonName),
     protobufs:proto_meta_field_label/2,            % (FqnName, LabelRepeatOptional) % LABEL_OPTIONAL, LABEL_REQUIRED, LABEL_REPEATED,

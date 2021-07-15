@@ -18,8 +18,9 @@
 # also set LD_LIBRARY_PATH=$HOME/.local/lib or change the rule for
 # "foo" to be: $(CXX) -static -o $@ ...
 
-# This demo was tested with protoc versions 3.6.1 and 3.17.1
-# on Ubuntu 20.04.2.
+# This demo was tested on Ubuntu 20.04.2 with protoc versions 3.6.1
+# (installed using `sudo apt install protobuf-compiler`) and 3.17.3
+# (from the sources).
 
 # Many of the rules at the end of this Makefile are for development
 # and will eventually be removed.

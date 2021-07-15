@@ -117,21 +117,20 @@ main2(Argv, FileName) :-
     % format(':- discontiguous~n    ~w~n~n~n', [PredsStr]), % Not needed: multifile implies this
     (   false  % change to "true" for debugging
                % these 2 facts add a lot to load time (0.33 sec vs 0.02 sec)
-    ->  format('~n% for debugging:~n', []),
+    ->  format(user_error, '~n% for debugging:~n', []),
         % remove the source code stuff for debugging output - we don't use it:
         maplist(nb_set_dict_value(source_code_info, ' <deleted> '), Request.proto_file),
-        % (   select_dict(_{source_code_info:_}, Request, RequestWithoutSourceCodeInfo)
-        % ->  true
-        % ;   RequestWithoutSourceCodeInfo = Request
-        % ),
-        % print_term(RequestWithoutSourceCodeInfo, [indent_arguments(4),output(current_output)]),
-        % TODO: use print_term to print the request -- there's a bug for dict{x: -5} which outputs as "dict{x:-5}", which can't be read
-        %   format('request(~n', []),
-        %   print_term(Request, [indent_arguments(4),output(current_output)]),
-        %   format(').~n', []),
-        format('~q.~n', [request(Request)]),
-        format('request_wire_stream(~q).~n', [RequestWireStream]),
-        format('% (end of debbuging facts.~n~n', [])
+        (   select_dict(_{source_code_info:_}, Request, RequestWithoutSourceCodeInfo)
+        ->  true
+        ;   RequestWithoutSourceCodeInfo = Request
+        ),
+        print_term(RequestWithoutSourceCodeInfo, [indent_arguments(4),output(user_error)]),
+        % TODO: there's a bug with print_term for dict{x: -5} which outputs as "dict{x:-5}", which can't be read
+        format(user_error, 'request(~n', []),
+        print_term(Request, [indent_arguments(4),output(user_error)]),
+        format(user_error, ').~n', []),
+        format(user_error, 'request_wire_stream(~q).~n', [RequestWireStream]),
+        format(user_error, '% (end of debbuging facts.~n~n', [])
     ;   true
     ),
 
@@ -147,7 +146,7 @@ generated_preds(Preds) :-
      'protobufs:proto_meta_normalize/2,              % (Unnormalized, Normalized)',
      'protobufs:proto_meta_package/3,                % (Package, FileName, Options)',
      'protobufs:proto_meta_message_type/3,           % (Fqn, Package, Name)',
-     'protobufs:proto_meta_message_type_map_entry/3, % (Fqn)',
+     'protobufs:proto_meta_message_type_map_entry/1, % (Fqn)',
      'protobufs:proto_meta_field_name/4,             % (Fqn, FieldNumber, FieldName, FqnName)',
      'protobufs:proto_meta_field_json_name/2,        % (FqnName, JsonName)',
      'protobufs:proto_meta_field_label/2,            % (FqnName, LabelRepeatOptional) % LABEL_OPTIONAL, LABEL_REQUIRED, LABEL_REPEATED',
@@ -196,7 +195,7 @@ expand_file_impl(File) :-
                     dependency:        []              -File_dependency,
                     public_dependency: []              -_,
                     weak_dependency:   []              -_,
-                    message_type:      []              -File_message_type, 
+                    message_type:      []              -File_message_type,
                     enum_type:         []              -File_enum_type,
                     service:           []               -_,
                     extension:         []              -_File_extension,
@@ -292,6 +291,9 @@ expand_FieldDescriptorProto(Fqn, Field) :-
 %! default_value(+Field_label:atom, +Fieldtype:atom, +Field_default_value0:atom, -Field_default, -Rhs, -VariableNames) is semidet.
 % protoc compiler gives default '' if not specified; puts it in a
 % string (which we handle as an atom) otherwise.
+default_value('LABEL_REQUIRED', Field_type, Field_default_value0, Field_default_value, Rhs, VariableNames) :-
+    % TODO: LABEL_REQUIRED shouldn't need a default value, but it doesn't hurt to set it (I think).
+    default_value('LABEL_OPTIONAL', Field_type, Field_default_value0, Field_default_value, Rhs, VariableNames).
 default_value('LABEL_REPEATED', _, _, [], _, true, []) :- !.
 % TODO: verify non-Unicode string, bytes
 default_value('LABEL_OPTIONAL', Type, "", 0, _, true, []) :-
@@ -331,13 +333,6 @@ default_value_int('TYPE_SINT32').
 default_value_int('TYPE_SINT64').
 default_value_int('TYPE_UINT32').
 default_value_int('TYPE_UINT64').
-
-% TODO: LABEL_REQUIRED shouldn't have a default value, but it doesn't hurt to set it (I think).
-default_value('LABEL_REQUIRED', Field_type, Field_default_value0, Field_default_value) :-
-    default_value('LABEL_OPTIONAL', Field_type, Field_default_value0, Field_default_value).
-default_value(Field_label, Field_type, Field_default_value0, Field_default_value) :-
-    format(user_error, '***DEFAULT ~q~n', [default_value(Field_label, Field_type, Field_default_value0, Field_default_value)]),
-    Field_default_value = Field_default_value0.
 
 :- det(expand_FieldOptions/2).
 expand_FieldOptions(FqnName, Options) :-

@@ -191,15 +191,17 @@ installed at
 %          (The stream should have options `encoding(octet)` and `type(binary)`,
 %          either as options to read_file_to_codes/3 or by calling set_stream/2
 %          on the stream to read_stream_to_codes/2.)
-% @param MessageType Fully qualified message name (from the =|.proto|= file's =package= and =message=)
-%        The initial '.' on the message type name is optional.
+% @param MessageType Fully qualified message name (from the =|.proto|= file's =package= and =message=).
 %        For example, if the =package= is =google.protobuf= and the
 %        message is =FileDescriptorSet=, then you would use
 %        =|'.google.protobuf.FileDescriptorSet'|= or =|'google.protobuf.FileDescriptorSet'|=.
+%        If there's no package name, you must have a leading "." (e.g., =|'.MyMessage'|=).
 %        You can see the message names by looking at
 %        =|protobufs:proto_meta_field_name('.google.protobuf.FileDescriptorSet',
-%        FieldNumber, FieldName, FqnName)|= (the initial '.' is not
-%        optional for these facts).
+%        FieldNumber, FieldName, FqnName)|= (the initial '.' is not optional for these facts,
+%        only for the top-level name given to protobuf_parse_from_codes/3).
+%        The initial '.' on the message type name is optional, except when there's no
+%        package name (in which case, the "canonical" name has two initial '.'s).
 % @param Term The generated term, as nested [dict](</pldoc/man?section=bidicts>)s.
 % @see  [library(protobufs): Google's Protocol Buffers](#protobufs-serialize-to-codes)
 % @error version_error(Module-Version) you need to recompile the =Module=
@@ -240,9 +242,13 @@ verify_version :-
 %        For example, if the =package= is =google.protobuf= and the
 %        message is =FileDescriptorSet=, then you would use
 %        =|'.google.protobuf.FileDescriptorSet'|= or =|'google.protobuf.FileDescriptorSet'|=.
-%        You can see the message
-%        names by looking at =|protobufs:proto_meta_field_name('.google.protobuf.FileDescriptorSet', FieldNumber, FieldName, FqnName)|=.
-%        The initial '.' on the message type name is optional.
+%        If there's no package name, you must have a leading "." (e.g., =|'.MyMessage'|=).
+%        You can see the message names by looking at
+%        =|protobufs:proto_meta_field_name('.google.protobuf.FileDescriptorSet',
+%        FieldNumber, FieldName, FqnName)|= (the initial '.' is not optional for these facts,
+%        only for the top-level name given to protobuf_serialize_to_codes/3).
+%        The initial '.' on the message type name is optional, except when there's no
+%        package name (in which case, the "canonical" name has two initial '.'s).
 % @param WireCodes Wire format of the message, which can be output using
 %        =|format('~s', [WireCodes])|=.
 % @see [library(protobufs): Google's Protocol Buffers](#protobufs-serialize-to-codes)
@@ -1125,7 +1131,7 @@ int32_float32_when(Int32, Float32) :-
      proto_meta_normalize/2,              % (Unnormalized, Normalized)
      proto_meta_package/3,                % (Package, FileName, Options)
      proto_meta_message_type/3,           % (Fqn, Package, Name)
-     proto_meta_message_type_map_entry/3, % (Fqn)
+     proto_meta_message_type_map_entry/1, % (Fqn)
      proto_meta_field_name/4,             % (Fqn, FieldNumber, FieldName, FqnName)
      proto_meta_field_json_name/2,        % (FqnName, JsonName)
      proto_meta_field_label/2,            % (FqnName, LabelRepeatOptional) % LABEL_OPTIONAL, LABEL_REQUIRED, LABEL_REPEATED
@@ -1392,7 +1398,14 @@ combine_fields_repeat(Fields, _Field, Values, RestFields) => Values = [], RestFi
 % :- det(field_and_type/7). % TODO
 %! field_and_type(+ContextType:atom, +Tag:int, -FieldName:atom, -FqnName:atom, -ContextType2:atom, -RepeatOptional:atom, -Type:atom) is det.
 % Lookup a =ContextType= and =Tag= to get the field name, type, etc.
-field_and_type(ContextType, Tag, FieldName, FqnName, ContextType2, RepeatOptional, Type) =>
+field_and_type(ContextType0, Tag, FieldName, FqnName, ContextType2, RepeatOptional, Type) :-
+    % TODO: There appears to be a bug in protoc, which gives the
+    %       wrong type name for a map<> item (and possibly for other things?)
+    %       when there's no package name.
+    %       The work-around is to use proto_meta_normalize/2, but that
+    %       leaves a choice-point.
+    % TODO: Report the bug to the protobuf maintaniners.
+    proto_meta_normalize(ContextType0, ContextType),
     proto_meta_field_name(ContextType, Tag, FieldName, FqnName),
     proto_meta_field_type_name(FqnName, ContextType2),
     fqn_repeat_optional(FqnName, RepeatOptional),

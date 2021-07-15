@@ -58,7 +58,8 @@ scalars1a_from_prolog.wire \
 scalars1b_from_prolog_template.wire \
 scalars1b_from_prolog.wire \
 	: \
-		test_interop.pl test_templates.pl test_pb.pl test2_pb.pl \
+		test_pb.pl test2_pb.pl \
+		test_interop.pl test_templates.pl \
 		google/protobuf/unittest_pb.pl \
 		google/protobuf/unittest_import_pb.pl \
 		google/protobuf/unittest_import_public_pb.pl \
@@ -85,7 +86,7 @@ test_interop_prolog: test_interop.pl \
 			google/protobuf/unittest_pb.pl \
 			google/protobuf/unittest_import_pb.pl \
 			google/protobuf/unittest_import_public_pb.pl \
-			test_pb.pl ../golden_message.2.5.0 ../test_protobufs.pl
+			test_pb.pl test2_pb.pl ../golden_message.2.5.0 ../test_protobufs.pl
 	@# "LANG=C" is for testing that we're doing the right thing with encodings
 	LANG=C $(SWIPL) test_interop.pl
 	@# $(PROTOC) -I. --decode=test.Scalars1 test.proto <scalars1a_from_prolog.wire

@@ -515,4 +515,58 @@ test(golden_2_5_0_parse) :-
 
 :- end_tests(golden).
 
+:- begin_tests(oneof).
+
+test(oneof) :-
+    [In, _Out] = ['oneof1_from_python.wire', 'oneof1_from_prolog.wire'],
+    read_message_codes(In, WireCodes),
+    protobuf_parse_from_codes(WireCodes, '..OneofMessage', Term),
+    % TODO: This is what's on the wire, after processing default values.
+    %       Needs "oneof" processing to remove bar and name
+    assertion(Term == '..OneofMessage'{
+                          bar:0.0,
+                          foo:"FOO",
+                          name:"",
+                          number:666}).
+
+:- end_tests(oneof).
+
+:- begin_tests(map).
+
+test(map) :-
+    [In, _Out] = ['map1_from_python.wire', 'map1_from_prolog.wire'],
+    read_message_codes(In, WireCodes),
+    /*
+      $ protoc --decode=MapMessage test2.proto <map1_from_python.wire
+      number_ints {
+        key: "one"
+        value: 1
+      }
+      number_ints {
+        key: "two"
+        value: 2
+      }
+    */
+    /*
+      Codes = [42,7,10,3,111,110,101,16,2,42,7,10,3,116,119,111,16,4]
+      Segments =  [ message(5,[string(1,"one"),varint(2,2)]),
+                    message(5,[string(1,"two"),varint(2,4)]) ]
+    */
+    protobuf_parse_from_codes(WireCodes, '..MapMessage', Term), % No package: needs 1 leading '.'
+    % TODO: This is what's on the wire without any special map<> handling.
+    %       Note the incorrect '.MapMessage.NumberIntsEntry', due to a bug
+    %       in protoc
+    % Also, the ordering can be "random", due to Python hash randomization
+    assertion((  Term == '..MapMessage'{
+                             number_ints:[
+                                 '.MapMessage.NumberIntsEntry'{key:"one",value:1},
+                                 '.MapMessage.NumberIntsEntry'{key:"two",value:2}]}
+             ;   Term == '..MapMessage'{
+                             number_ints:[
+                                 '.MapMessage.NumberIntsEntry'{key:"two",value:2},
+                                 '.MapMessage.NumberIntsEntry'{key:"one",value:1}]}
+             )).
+
+:- end_tests(map).
+
 end_of_file.
