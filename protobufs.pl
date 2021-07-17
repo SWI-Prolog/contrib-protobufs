@@ -232,7 +232,8 @@ verify_version :-
 % message (designated by =MessageType=).
 %
 % Fails if the term isn't of an appropriate form or if the appropriate
-% meta-data from =protoc= hasn't been loaded.
+% meta-data from =protoc= hasn't been loaded, or if a field name is incorrect
+% (and therefore nothing in the meta-data matches it).
 %
 % @bug =oneof= and =map= fields are not handled correctly.
 %
@@ -1443,6 +1444,9 @@ term_to_segments(Term, MessageType, Segments) :-
 % :- det(field_segment/3). % TODO: leaves a choicepoint
 % MessageType is the FQN of the field type (e.g., '.test.Scalars1')
 % FieldName-Value is from the dict_pairs of the term.
+% TODO: Throw an error if proto_meta_field_name/4 fails (need to make
+%       sure of all the possible uses of field_segment/3 and that
+%       nothing depends on it being able to fail without an error).
 field_segment(MessageType, FieldName-Value, Segment) :-
     proto_meta_field_name(MessageType, Tag, FieldName, FieldFqn),
     proto_meta_field_type(FieldFqn, FieldType),

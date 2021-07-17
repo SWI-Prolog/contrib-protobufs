@@ -76,6 +76,23 @@ main2(Argv, FileName) :-
     format('% ~w~n~n', ['as a plugin from protoc (the Protobuf compiler)']),
     format('~q.~n', [(:- module(ModuleName, []))]),
     format('~q.~n', [(:- encoding(utf8))]),
+
+    % Term-expansion that avoids duplicate facts. This can happen if
+    % a_pb imports b_pb and the main program imports both a_pb and b_pb.
+    % TODO: this doesn't work if the *_pb.pl files are compiled to *_pb.qlf.
+    output_rule(term_expansion(protobufs:Head, Clause),
+                (   clause(protobufs:Head, true)
+                ->  Clause = []
+                ;   Clause = [protobufs:Head]
+                ),
+                ['Head'=Head, 'Clause'=Clause]),
+    output_rule(term_expansion((protobufs:Head:-Body), Clause),
+                (   clause(protobufs:Head, Body)
+                ->  Clause = []
+                ;   Clause = [(protobufs:Head :- Body)]
+                ),
+                ['Head'=Head, 'Clause'=Clause, 'Body'=Body]),
+
     format('~q.~n', [(:- multifile protobufs:protoc_gen_swipl_version/2)]),
     % Note: when the following version is changed, also change the
     %       check in protobufs:protobuf_parse_from_codes/3,
@@ -286,7 +303,7 @@ expand_FieldDescriptorProto(Fqn, Field) :-
     output_fact(proto_meta_field_oneof_index(FqnName, Field_oneof_index)),
     (   default_value(Field_label, Field_type, Field_default_value0, Field_default_value, Field_type_name, Rhs, VariableNames)
     ->  string_atom(FqnName, FqnNameAtom),
-        output_rule(proto_meta_field_default_value(FqnNameAtom, Field_default_value), Rhs, VariableNames)
+        output_rule(protobufs:proto_meta_field_default_value(FqnNameAtom, Field_default_value), Rhs, VariableNames)
     ;   true
     ),
     expand_FieldOptions(FqnName, Field_options).
@@ -424,9 +441,10 @@ output_fact(Fact) =>
 :- det(output_rule/3).
 output_rule(Head, Rhs, VariableNames) =>
     % Do *not* convert strings to atoms - this messes up string default values.
+    Opts = [fullstop(false),quoted(true),variable_names(VariableNames)],
     (   Rhs == true
-    ->  format('    ~q.~n', [protobufs:Head])
-    ;   format('    ~W~n', [(protobufs:Head:-Rhs),[fullstop(true),quoted(true),variable_names(VariableNames)]])
+    ->  format('    ~W.~n', [Head, Opts])
+    ;   format('    ~W.~n', [(Head:-Rhs), Opts])
     ).
 
 string_atom(String, Atom) :-

@@ -84,6 +84,9 @@ fails.  One common cause of this failure is not including all the
 meta-data. For example, if =foo.proto= imports =bar.proto=, then you
 must import =foo_pb= and =bar_pb=. This behavior will change in future
 (see [Issue #7](https://github.com/SWI-Prolog/contrib-protobufs/issues/7)).
+Another common cause is if you give an incorrect field name. Typically, this
+shows up in a call to protobufs:field_segment/3, when
+protobufs:proto_meta_field_name/4 fails.
 
 ### protobuf_parse_from_codes/3 {#protobufs-parse-from-codes}
 
@@ -582,7 +585,7 @@ enumerations encoded as regular integers, without the "zigzag" encoding.
 Therefore, negative values are space-inefficient, but they are allowed.
 
 An earlier version of protobuf_message/2 assumed that enumeration values
-could not be zero, and there might still be incorrect assumptions in the code,'
+could not be zero, and there might still be incorrect assumptions in the code,
 resulting in either exceptions or silent failure.
 
 #### Heterogeneous Collections {#protobufs-heterogeneous}

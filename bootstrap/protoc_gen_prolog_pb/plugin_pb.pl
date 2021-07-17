@@ -5,12 +5,14 @@
 
 :-module(plugin_pb,[]).
 :-encoding(utf8).
+    term_expansion(protobufs:Head,Clause):-clause(protobufs:Head,true)->Clause=[];Clause=[protobufs:Head].
+    term_expansion((protobufs:Head:-Body),Clause):-clause(protobufs:Head,Body)->Clause=[];Clause=[(protobufs:Head:-Body)].
 :-multifile protobufs:protoc_gen_swipl_version/2.
 protobufs:protoc_gen_swipl_version(plugin_pb,[0,9,1]).
-swi_prolog_version('8.3.27-2-g1bd6451e5-DIRTY').
-protoc_version('3.17.1.').
+swi_prolog_version('8.3.27-11-g69ff2a977').
+protoc_version('3.17.3.').
 prototoc_gen_swipl_args([]).
-protoc_run_time('2021-07-14T18:15:43+0000', '2021-07-14T11:15:43-0700').
+protoc_run_time('2021-07-16T16:33:38+0000', '2021-07-16T09:33:38-0700').
 file_to_generate(["plugin.proto"]).
 
 :- multifile
@@ -31,7 +33,7 @@ file_to_generate(["plugin.proto"]).
     protobufs:proto_meta_oneof/3.                  % (FqnName, Index, Name)
 
 % Generating proto_meta_... facts:
-  % compiler_version: '.google.protobuf.compiler.Version'{major:3,minor:17,patch:1,suffix:""}
+  % compiler_version: '.google.protobuf.compiler.Version'{major:3,minor:17,patch:3,suffix:""}
   % file_to_generate: ["plugin.proto"]
   % parameter: ""
   % Skipping file "google/protobuf/descriptor.proto"
