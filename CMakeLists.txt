@@ -14,7 +14,6 @@ swipl_plugin(
 
 # The following doesn't work because protoc-gen-swipl has to be marked
 # executable. So, just create this "swipl_plugin" by hand:
-#
 #    swipl_plugin(
 #        protoc-gen-swipl
 #        PL_LIB_SUBDIR protobufs
@@ -34,9 +33,13 @@ add_index(protobufs bootstrap/protoc-gen-swipl)
 
 swipl_plugin(
     protoc-gen-swipl-subdir
-    PL_LIB_SUBDIR protobufs/protoc_gen_prolog_pb
-    PL_LIBS bootstrap/protoc_gen_prolog_pb/plugin_pb.pl
-            bootstrap/protoc_gen_prolog_pb/descriptor_pb.pl)
+    PL_LIB_SUBDIR protobufs/protoc_gen_prolog_pb/google/protobuf
+    PL_LIBS       bootstrap/protoc_gen_prolog_pb/google/protobuf/descriptor_pb.pl)
+
+swipl_plugin(
+    protoc-gen-swipl-subdir2
+        PL_LIB_SUBDIR protobufs/protoc_gen_prolog_pb/google/protobuf/compiler
+        PL_LIBS       bootstrap/protoc_gen_prolog_pb/google/protobuf/compiler/plugin_pb.pl)
 
 swipl_examples(
                some_message.proto
@@ -83,13 +86,13 @@ swipl_examples(
                 bootstrap/README.md
                 bootstrap/common.mk
                 # The following aren't included because they're mainly
-                # for creating protoc) and may disappear when the full
-                # bootstrap is operational
+                #   for creating protoc and may disappear when the full
+                #   bootstrap is operational:
                 # bootstrap/descriptor_proto_expand.pl
                 # bootstrap/descriptor_proto.pl
                 # bootstrap/Makefile
                 # bootstrap/parse_descriptor_proto_dump.pl
-                # # bootstrap/protoc_gen_prolog_pb/* (subdir)
+                # # bootstrap/protoc_gen_prolog_pb/** (subdir)
                 # bootstrap/protoc-gen-swipl
                 # bootstrap/tests.pl
                 SUBDIR bootstrap

@@ -4,7 +4,7 @@
 
 :- module(bootstrap_tests,
           [
-           test_segment_messages/0
+           test_segment_messages/1
           ]).
 
 :- use_module(library(protobufs)).
@@ -14,12 +14,8 @@
 % using the protobuf wire form of descriptor.proto.
 % You may wish to compare the contents of =Segments= with
 % the output from protoc --decode_raw
-%
-% TODO: this test requires generating descriptor.proto.wire, which has
-%       been removed from the Makefile and moved to the bootstrap
-%       directory.
-test_segment_messages :-
-    read_file_to_codes('descriptor.proto.wire', WireStream, [encoding(octet),type(binary)]),
+test_segment_messages(Path) :- % Path = 'descriptor.proto.wire'
+    read_file_to_codes(Path, WireStream, [encoding(octet),type(binary)]),
     protobufs:protobuf_segment_message(Segments, WireStream),
     % Check that it reverses:
     protobufs:protobuf_segment_message(Segments, WireStream2),

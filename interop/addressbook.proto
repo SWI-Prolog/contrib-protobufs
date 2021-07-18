@@ -14,7 +14,6 @@ syntax = "proto2";
 package tutorial;
 
 import "addressbook2.proto";
-// import "google/protobuf/timestamp.proto"; // This is also in addressbook2.proto
 // [END declaration]
 
 // [START java_declaration]
@@ -45,7 +44,6 @@ message Person {
 
   repeated PhoneNumber phones = 4;
 
-  // optional google.protobuf.Timestamp last_updated = 5;
   optional TimeStamps timestamps = 5;
 }
 

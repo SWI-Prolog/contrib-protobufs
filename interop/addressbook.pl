@@ -26,12 +26,8 @@
 %    protoc ... --plugin=protoc-gen-swipl=/usr/lib/swi-prolog/library/protobufs/protoc-gen-swipl
 %
 % You can then run the compiler (eventually this loop won't be necessary;
-% see https://github.com/SWI-Prolog/contrib-protobufs/issues/7):
-%   for PROTO in addressbook.proto addressbook2.proto timestamp.proto
-%   do
-%     protoc -I. -I/usr/include/google/protobuf/compiler -I /usr/include --swipl_out=. $PROTO
-%   done
-% This will create the files addressbook_pb.pl, addressbook2_pb.pl, timestamp_pb.pl
+%    protoc -I. -I /usr/include --swipl_out=. addressbook.proto addressbook2.proto google/protobufs/timestamp.proto
+% This will create the files addressbook_pb.pl, addressbook2_pb.pl, google/protobufs/timestamp_pb.pl
 %
 % You can then run this example:
 %   swipl -g test_write -g test_write -g test_read -t halt addressbook.pl
@@ -47,9 +43,7 @@
 :- module(addressbook, [test_write/0, test_read/0]).
 
 :- use_module(library(protobufs)).
-:- use_module(addressbook_pb).
-:- use_module(addressbook2_pb).
-:- use_module(timestamp_pb).
+:- use_module(addressbook_pb). % loads addressbook2_pb, google/protobuf/timestamp_pb.pl
 
 write_message(Path, Person) :-
     message_file(Path, FullPath),

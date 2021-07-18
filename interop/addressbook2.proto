@@ -4,7 +4,6 @@ syntax = "proto2";
 package tutorial;
 
 import "google/protobuf/timestamp.proto"; // This is also in adressbook.proto
-// import "timestamp.proto";
 
 message TimeStamps {
   optional google.protobuf.Timestamp last_updated = 1;

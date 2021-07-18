@@ -27,29 +27,38 @@
 
 # Naming conventions - see README.md section "descriptor.proto and friends"
 
+# TODO: This doesn't do what I want:
+# MAKEFLAGS=--warn-undefined-variables
+
 include common.mk
 
 .SUFFIXES: .proto .pl .py .wire .wiredump .wirerawdump .segment
 
 .DELETE_ON_ERROR: # Any non-zero return code deletes the target file(s)
 
-.PHONY: FORCE all clean docs test_segment_messages bootstrap
+.PHONY: FORCE all all2 clean docs test_segment_messages bootstrap
 
 .DEFAULT_GOAL=all
 
-test: test_segment_messages descriptor.proto.segment
+all: bootstrap
 
-all: plugin.proto.wiredump plugin.proto.wire plugin.proto.parse plugin.proto.segment \
-	descriptor.proto.wiredump descriptor.proto.wire descriptor.proto.parse descriptor.proto.segment \
-	bootstrap
+test: test_segment_messages $(PROTOC_GEN_PROLOG_PB)/google/protobuf/descriptor.proto.segment
+
+all2: $(PROTOC_GEN_PROLOG_PB)/google/protobuf/compiler/plugin.proto.wiredump \
+     $(PROTOC_GEN_PROLOG_PB)/google/protobuf/compiler/plugin.proto.wire \
+     $(PROTOC_GEN_PROLOG_PB)/google/protobuf/compiler/plugin.proto.parse \
+     $(PROTOC_GEN_PROLOG_PB)/google/protobuf/compiler/plugin.proto.segment \
+     $(PROTOC_GEN_PROLOG_PB)/google/protobuf/descriptor.proto.wiredump \
+     $(PROTOC_GEN_PROLOG_PB)/google/protobuf/descriptor.proto.wire \
+     $(PROTOC_GEN_PROLOG_PB)/google/protobuf/descriptor.proto.parse \
+     $(PROTOC_GEN_PROLOG_PB)/google/protobuf/descriptor.proto.segment \
+     bootstrap
 
 .PHONY: bootstrap
 # The *_pb.qlf files aren't used (just the *_pb.pl files)
 # but are generated for the "--undefined" check.
-bootstrap: protoc_gen_prolog_pb/plugin_pb.qlf \
-	   protoc_gen_prolog_pb/descriptor_pb.qlf
-	$(RM) protoc_gen_prolog_pb/plugin_pb.qlf \
-	      protoc_gen_prolog_pb/descriptor_pb.qlf
+bootstrap: $(PROTOC_GEN_PROLOG_PB)/google/protobuf/descriptor_pb.qlf $(PROTOC_GEN_PROLOG_PB)/google/protobuf/compiler/plugin_pb.qlf
+	$(RM) $(PROTOC_GEN_PROLOG_PB)/google/protobuf/descriptor_pb.qlf $(PROTOC_GEN_PROLOG_PB)/google/protobuf/compiler/plugin_pb.qlf
 
 %_pb.pl: %.proto protoc-gen-swipl
 	@# PATH=".:$$PATH" $(PROTOC) $(PROTOC_I) --swipl_out=. $<
@@ -58,71 +67,64 @@ bootstrap: protoc_gen_prolog_pb/plugin_pb.qlf \
 	PATH=$(PATH_WITH_SWIPL) $(PROTOC) $(PROTOC_I) --swipl_out='OUT_PARAMETER':. \
 		--plugin=protoc-gen-swipl=$(realpath protoc-gen-swipl) $<
 
+$(PROTOC_GEN_PROLOG_PB)/%_pb.pl: $(PROTOC_INCLUDE)/%.proto protoc-gen-swipl
+	PATH=$(PATH_WITH_SWIPL) $(PROTOC) -I$(PROTOC_INCLUDE) --swipl_out=$(PROTOC_GEN_PROLOG_PB) \
+		--plugin=protoc-gen-swipl=$(realpath protoc-gen-swipl) $(subst $(PROTOC_INCLUDE)/,,$<)
+
 %.qlf: %.pl
 	@# --undefined is for double-checking
 	$(SWIPL) --undefined=error --verbose=false -o $*.qlf -c <$*.pl
 
-protoc_gen_prolog_pb/plugin_pb.pl: $(PLUGIN_PROTO) protoc-gen-swipl
-	PATH=$(PATH_WITH_SWIPL) $(PROTOC) $(PROTOC_I) \
-	--plugin=protoc-gen-swipl=$(realpath protoc-gen-swipl) \
-	--swipl_out=protoc_gen_prolog_pb plugin.proto
-
-protoc_gen_prolog_pb/descriptor_pb.pl: $(DESCRIPTOR_PROTO) protoc-gen-swipl
-	PATH=$(PATH_WITH_SWIPL) $(PROTOC) $(PROTOC_I) \
-	--plugin=protoc-gen-swipl=$(realpath protoc-gen-swipl) \
-	--swipl_out=protoc_gen_prolog_pb descriptor.proto
-
 # Protobuf code generator for Python  # TODO: delete when no longer needed
 
-%_pb2.py: %.proto
-	$(PROTOC) $(PROTOC_I) --python_out=. $<
-
-plugin_pb2.py: $(PLUGIN_PROTO) $(DESCRIPTOR_PROTO)
-	$(PROTOC) $(PROTOC_I) --python_out=. $(notdir $<)
-
-descriptor_pb2.py: $(DESCRIPTOR_PROTO) 
-	$(PROTOC) $(PROTOC_I) --python_out=. $(notdir $<)
-
-# Bootstrap rule for prolog plugin
+# TODO: should put the *_pb2.py files in a different directory
+$(PROTOC_GEN_PROLOG_PB)/%_pb2.py: $(PROTOC_INCLUDE)/%.proto
+	$(PROTOC) $(PROTOC_I) -I$(PROTOC_INCLUDE) --python_out=$(PROTOC_GEN_PROLOG_PB) \
+		$(subst $(PROTOC_INCLUDE)/,,$<)
 
 # Make a binary protobuf msg file (see $(DESCRIPTOR_PROTO)) with a
 # FileDescriptorSet message, describing the .proto and all its
 # dependencies:
-%.proto.wire: %.proto
-	$(PROTOC) $(PROTOC_I) --include_imports --descriptor_set_out=$@ $<
-
-descriptor.proto.wire: $(DESCRIPTOR_PROTO)
-	$(PROTOC) $(PROTOC_I) --include_imports --descriptor_set_out=$@ $(notdir $<)
-
-plugin.proto.wire: $(PLUGIN_PROTO)
-	$(PROTOC) $(PROTOC_I) --include_imports --descriptor_set_out=$@ $(notdir $<)
+$(PROTOC_GEN_PROLOG_PB)/%.proto.wire: $(PROTOC_INCLUDE)/%.proto
+	$(PROTOC) -I$(PROTOC_INCLUDE) --include_imports --descriptor_set_out=$@ \
+		$(subst $(PROTOC_INCLUDE)/,,$<)
 
 # Run the protobuf_segment_messages test.
 # See also rules descriptor.proto.wirerawdump, descriptor.proto.wiredump
-test_segment_messages: descriptor.proto.wire tests.pl FORCE
-	$(SWIPL) -g test_segment_messages -g halt tests.pl
+test_segment_messages: $(PROTOC_GEN_PROLOG_PB)/google/protobuf/descriptor.proto.wire tests.pl FORCE
+	$(SWIPL) -g "test_segment_messages('$(PROTOC_GEN_PROLOG_PB)/google/protobuf/descriptor.proto.wire')" -g halt tests.pl
 
 %.proto.wiredump: %.proto.wire
-	$(PROTOC) $(PROTOC_I) \
+	$(PROTOC) -I$(PROTOC_INCLUDE) \
 		--decode=google.protobuf.FileDescriptorSet \
-		descriptor.proto \
-		<$< >$@
+		google/protobuf/descriptor.proto \
+		<$*.proto.wire >$@
 
 %.proto.segment: descriptor_proto.pl descriptor_proto_expand.pl %.proto.wire
 	$(SWIPL) descriptor_proto.pl <$*.proto.wire >$@
 
 %.proto.parse: %.proto.wiredump parse_descriptor_proto_dump.pl
-	$(SWIPL) -g "parse_wiredump('$<')" \
+	$(SWIPL) -g "parse_wiredump('$*.proto.wiredump')" \
 		-g halt parse_descriptor_proto_dump.pl >$@
 
-descriptor.proto.wirerawdump: descriptor.proto.wire
-	$(PROTOC) --decode_raw <descriptor.proto.wire >$@
+%.proto.wirerawdump: %.proto.wire
+	$(PROTOC) --decode_raw <$*.proto.wire >$@
 
 clean:
-	@# TODO: special handling for descriptor.* files
 	$(RM) -r foo *.tmp *.o *.pb.cc *.pb.h *_pb2.py *_pb.pl *_pb0.pl doc/ ../TAGS \
-		*.proto.wire *.proto.wirerawdump *.proto.wiredump *.proto.parse __pycache__ \
-		descriptor.proto.segment plugin.proto.segment
+		$(PROTOC_GEN_PROLOG_PB)/google/protobuf/*.proto.parse \
+		$(PROTOC_GEN_PROLOG_PB)/google/protobuf/*.proto.segment \
+		$(PROTOC_GEN_PROLOG_PB)/google/protobuf/*.proto.wire \
+		$(PROTOC_GEN_PROLOG_PB)/google/protobuf/*.proto.wiredump \
+		$(PROTOC_GEN_PROLOG_PB)/google/protobuf/*.proto.wirerawdump \
+		$(PROTOC_GEN_PROLOG_PB)/google/protobuf/compiler/*_pb2.py \
+		$(PROTOC_GEN_PROLOG_PB)/google/protobuf/compiler/*.proto.parse \
+		$(PROTOC_GEN_PROLOG_PB)/google/protobuf/compiler/*.proto.segment \
+		$(PROTOC_GEN_PROLOG_PB)/google/protobuf/compiler/*.proto.wire \
+		$(PROTOC_GEN_PROLOG_PB)/google/protobuf/compiler/*.proto.wiredump \
+		$(PROTOC_GEN_PROLOG_PB)/google/protobuf/compiler/*.proto.wirerawdump \
+		$(PROTOC_GEN_PROLOG_PB)/google/protobuf/compiler/*_pb2.py \
+		__pycache__
 	git clean -ndxf  # Should find nothing.
 
 # For testing: this is what the build does.

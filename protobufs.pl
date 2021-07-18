@@ -67,7 +67,7 @@
             % protobuf_var_int//1,
             % protobuf_tag_type//2
           ]).
-:- autoload(library(error), [must_be/2, domain_error/2, instantiation_error/2]).
+:- autoload(library(error), [must_be/2, domain_error/2, instantiation_error/2, existence_error/2]).
 :- autoload(library(lists), [append/3]).
 :- autoload(library(utf8), [utf8_codes//1]).
 :- autoload(library(dif), [dif/2]).
@@ -161,6 +161,10 @@ installed at
 % Process bytes (list of int) that is the serialized form of a message (designated
 % by =MessageType=), creating a Prolog term.
 %
+% =Protoc= must have been run (with the =|--swipl_out=|= option and the resulting
+% top-level _pb.pl file loaded. For more details, see the "protoc" section of the
+% overview documentation.
+%
 % Fails if the message can't be parsed or if the appropriate meta-data from =protoc=
 % hasn't been loaded.
 %
@@ -231,6 +235,10 @@ verify_version :-
 % Process a Prolog term into bytes (list of int) that is the serialized form of a
 % message (designated by =MessageType=).
 %
+% =Protoc= must have been run (with the =|--swipl_out=|= option and the resulting
+% top-level _pb.pl file loaded. For more details, see the "protoc" section of the
+% overview documentation.
+%
 % Fails if the term isn't of an appropriate form or if the appropriate
 % meta-data from =protoc= hasn't been loaded, or if a field name is incorrect
 % (and therefore nothing in the meta-data matches it).
@@ -253,6 +261,7 @@ verify_version :-
 % @see [library(protobufs): Google's Protocol Buffers](#protobufs-serialize-to-codes)
 % @error version_error(Module-Version) you need to recompile the =Module=
 %        with a newer version of =|protoc|=.
+% @error existence_error if a field can't be found in the meta-data
 protobuf_serialize_to_codes(Term, MessageType0, WireCodes) :-
     verify_version,
     must_be(ground, MessageType0),
@@ -874,7 +883,7 @@ packed_option(unsigned,  Items, varint(Items)).
 % @param Form2 similar to =Form1=.
 protobuf_segment_convert(Form, Form). % for efficiency, don't generate codes
 protobuf_segment_convert(Form1, Form2) :-
-    dif(Form1, Form2), % Form1=Form2 handled by first clause
+    dif(Form1, Form2),          % Form1=Form2 handled by first clause
     protobuf_segment_message([Form1], WireCodes),
     phrase(tag_and_codes(Tag, Codes), WireCodes),
     length_delimited_segment(Form2, Tag, Codes).
@@ -1120,8 +1129,7 @@ int32_float32_when(Int32, Float32) :-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
-% Use protobufs meta-data (from protoc --swipl_out=DIR) to parse
-% protobuf wire format.
+% Use protobufs meta-data (see the section on protoc in the "overview" documentation).
 
 % The protoc plugin generates the following facts (all starting with "proto_meta_").
 % The are documented in protoc-gen-swipl and in the overview section.
@@ -1163,7 +1171,7 @@ segment_to_term(ContextType0, Segment, FieldAndValue) =>
     !, % TODO: get rid of this?
     FieldAndValue = field_and_value(FieldName,RepeatOptional,Value).
 
-% :- det(convert_segment_packed/6). % TODO
+% :- det(convert_segment_packed/5). % TODO
 %! convert_segment_packed(+Type:atom, +ContextType:atom, +Tag:atom, ?Segment, ?Values) is det.
 % Reversible on =Segment=, =Values=.
 %
@@ -1212,19 +1220,18 @@ convert_segment_packed('TYPE_SINT32', _ContextType, Tag, Segment0, Values) =>
 convert_segment_packed('TYPE_SINT64', _ContextType, Tag, Segment0, Values) =>
     freeze(Segment0, protobuf_segment_convert(Segment0, packed(Tag, varint(Values0)))),
     maplist(int64_zigzag_when, Values, Values0).
-convert_segment_packed(Type, ContextType, Tag, Segment, Values) => % TODO: delete this clause
-    domain_error(type(type=Type, % TODO: this is a bit funky
-                      context_type=ContextType),
-                 value(segment=Segment,
-                       tag=Tag,
-                       values=Values)).
+% convert_segment_packed(Type, ContextType, Tag, Segment, Values) => % TODO: delete this clause
+%     domain_error(type(type=Type, % TODO: this is a bit funky
+%                       context_type=ContextType),
+%                  value(segment=Segment,
+%                        tag=Tag,
+%                        values=Values)).
 
-%  :- det(convert_segment/5).  % TODO: test scalars1a_parse: proto_meta_enum_value/3 left choicepoint
+% :- det(convert_segment/5).  % TODO: test scalars1a_parse: proto_meta_enum_value/3 left choicepoint
 %! convert_segment(+Type:atom, +ContextType:atom, Tag:atom, ?Segment, ?Value) is det.
 % Compute an appropriate =Value= from the combination of descriptor
 % "type" (in =Type=) and a =Segment=.
 % Reversible on =Segment=, =Values=.
-
 convert_segment('TYPE_DOUBLE', _ContextType, Tag, Segment0, Value) =>
     Segment = fixed64(Tag,Int64),
     int64_float64_when(Int64, Value),
@@ -1398,7 +1405,12 @@ combine_fields_repeat(Fields, _Field, Values, RestFields) => Values = [], RestFi
 %! field_and_type(+ContextType:atom, +Tag:int, -FieldName:atom, -FqnName:atom, -ContextType2:atom, -RepeatOptional:atom, -Type:atom) is det.
 % Lookup a =ContextType= and =Tag= to get the field name, type, etc.
 field_and_type(ContextType, Tag, FieldName, FqnName, ContextType2, RepeatOptional, Type) :-
-    proto_meta_field_name(ContextType, Tag, FieldName, FqnName),
+    assertion(ground(ContextType)), % TODO: remove
+    assertion(ground(Tag)), % TODO: remove
+    % TODO: Work-around JITI not being on 1+2:
+    %       See https://swi-prolog.discourse.group/t/first-and-second-argument-indexing-which-should-be-a-first-argument/2659/5
+    %       existence_error might not be the best choice ;)
+    ( proto_meta_field_name(ContextType, Tag, FieldName, FqnName) -> true ; existence_error(ContextType, Tag) ),
     proto_meta_field_type_name(FqnName, ContextType2),
     fqn_repeat_optional(FqnName, RepeatOptional),
     proto_meta_field_type(FqnName, Type).

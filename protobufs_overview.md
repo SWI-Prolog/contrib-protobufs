@@ -44,6 +44,31 @@ specifying the option
 You specify where the generated files go with the =|--swipl_out|=
 option, which must be an existing directory.
 
+When using =protoc=, it's important to specify the =|--protopath|= (or
+=|-I|=) and files correctly. The idea of =protopath= is that it
+gives a list of source "roots", and the files are specified relative
+to that. If you want to include the current directory, you must also
+specify it (e.g., =|protoc -I. swipl_out=. foo.proto|=).
+For example, when bootstrapping the "swipl" plugin, these are
+used:
+~~~{.sh}
+protoc -I/usr/include --swipl_out=protoc_gen_prolog_pb google/include/descriptor.proto google/include/compiler/plugin.proto
+~~~
+which creates these files:
+~~~
+protoc_gen_prolog_pb/google/protobuf/descriptor_pb.pl
+protoc_gen_prolog_pb/google/protobuf/compiler/plugin_pb.pl
+~~~
+
+The =|plugin_pb|= is used by:
+~~~{.pl}
+:- use_module(protoc_gen_prolog_pb/google/protobuf/compiler/plugin_pb)
+~~~
+which has this (import is relative to the current module):
+~~~{.pl}
+:- use_module('../descriptor_pb').
+~~~
+
 Each =X.proto= file generates a =X_pb.pl= file in the directory
 specified by =|--swipl_out|=. The file contains a module name =X=,
 some debugging information, and meta-data facts that go into the
@@ -54,9 +79,11 @@ them to serialize the data to wire form.
 
 The generated code does not rely on any Google-supplied code.
 
-TODO: Currently, you must compile all the ".proto" files separately
-and also import them separately. This behavior should change in the future,
-see [Issue #7](https://github.com/SWI-Prolog/contrib-protobufs/issues/7).
+You must compile all the ".proto" files separately but you only need
+to load the top-level generated file -- it contains the necessary load
+directives for things that it uses.
+You can find out the dependencies for a .proto file by running
+=|PATH="$PATH:/usr/lib/swipl/library/protobufs" protoc -I... --dependency_out=FILE --swipl_out=. SRC.proto|=
 
 ### protobuf_serialize_to_codes/3 {#protobufs-serialize-to-codes}
 
@@ -80,11 +107,7 @@ protobuf_serialize_to_codes('tutorial.AddressBook'{people:['tutorial.Person'{nam
 ~~~
 
 NOTE: if the wire codes can't be parsed, protobuf_parse_from_codes/3
-fails.  One common cause of this failure is not including all the
-meta-data. For example, if =foo.proto= imports =bar.proto=, then you
-must import =foo_pb= and =bar_pb=. This behavior will change in future
-(see [Issue #7](https://github.com/SWI-Prolog/contrib-protobufs/issues/7)).
-Another common cause is if you give an incorrect field name. Typically, this
+fails.  One common cause is if you give an incorrect field name. Typically, this
 shows up in a call to protobufs:field_segment/3, when
 protobufs:proto_meta_field_name/4 fails.
 
