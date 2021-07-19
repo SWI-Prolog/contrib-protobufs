@@ -527,7 +527,8 @@ test(oneof) :-
                           bar:0.0,
                           foo:"FOO",
                           name:"",
-                          number:666}).
+                          number:666,
+                          qqsv:""}).
 
 % TODO: add test(oneofb)
 
