@@ -239,6 +239,11 @@ test(scalars1c_parse) :-
     round_trip_serialize_parse(Term, '.test.Scalars1', Out),
     !. % TODO: remove this and find where choice points are created
 
+test(string_atom) :-
+    Term = _{v_string:abc},
+    protobuf_serialize_to_codes(Term, '.test.Scalars1', WireCodes),
+    protobuf_parse_from_codes(WireCodes, '.test.Scalars1', Term2),
+    assertion(Term2.v_string == "abc").
 
 :- end_tests(scalar).
 

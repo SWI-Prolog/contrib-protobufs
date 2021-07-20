@@ -92,8 +92,8 @@ The Prolog term corresponding to a protobuf =message= is a
 the field names in the =message= (the dict tag is treated as a comment).
 Repeated fields are represented as lists;
 enums are looked up and converted to atoms; bools are represented by
-=false= and =true=; strings are represented by Prolog strings (not
-atoms); bytes are represented by lists of codes.
+=false= and =true=; strings are represented by Prolog strings or atoms;
+bytes are represented by lists of codes.
 
 TODO: Add an option to omit default values (this is the =proto3=
 behavior).
@@ -122,6 +122,10 @@ the wire stream get their default value (typically the empty string or
 zero, depending on type). Embedded messages and groups are omitted if
 not in the wire stream; you can test for their presence using
 get_dict/3.
+Enums are looked up and converted to atoms; bools are represented by
+=false= and =true=; strings are represented by Prolog strings (not atoms);
+bytes are represented by lists of codes.
+
 There is no mechanism for determining whether a field was
 in the wire stream or not (that is, there is no equivalent of the
 Python implementation's =|HasField|=).
@@ -131,6 +135,26 @@ Only the field that's in the wire stream gets set; the other fields
 are omitted. And if none of the fields in the "oneof" are set, then
 none of the fields appears. You can check which field is set by
 using get_dict/3.
+
+Currently, there is no special support for the protobuf "map" feature.
+It is treated as an ordinary message field.
+See also [Issue #12](https://github.com/SWI-Prolog/contrib-protobufs/issues/12)
+For example:
+~~~{.c}
+message MapMessage {
+  map<string, sint64> number_ints = 5;
+}
+~~~
+is treated as if it is
+~~~{.c}
+message MapMessage {
+  message KeyValue {
+    optional string  Key = 1;
+    optional sint64  Value = 2;
+  }
+  repeated KeyValue number_ints = 5;
+}
+~~~
 
 ### addressbook example {#protobufs-addressbook-example}
 

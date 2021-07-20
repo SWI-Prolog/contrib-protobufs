@@ -96,19 +96,13 @@ packed1a = Packed1(
 )
 
 # decode=OneofMessage
-# foo: "FOO"
-# number: 666
+#   foo: "FOO"
+#   number: 666
 oneof1 = OneofMessage(number=666, foo="FOO")
 
 # decode=MapMessage
-# number_ints {
-#   key: "one"
-#   value: 1
-# }
-# number_ints {
-#   key: "two"
-#   value: 2
-# }
+#   number_ints { key: "one"  value: 1 }
+#   number_ints { key: "two"  value: 2 }
 map1 = MapMessage(number_ints = {"one":1, "two":2})
 
 

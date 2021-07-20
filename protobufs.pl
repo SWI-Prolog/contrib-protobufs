@@ -1364,8 +1364,8 @@ message_field_default(ContextType, Name, DefaultValue) :-
     proto_meta_field_name(ContextType, _FieldNumber, Name, Fqn),
     proto_meta_field_default_value(Fqn, DefaultValue),
     % If the field is part of a "oneof" group, then there will be a
-    % proto_meta_oneof entry for it (using the oneof_index. All fields
-    % have a oneof_index, but our code doesn't depend on that.
+    % proto_meta_oneof entry for it (using the oneof_index). All
+    % fields have a oneof_index, but our code doesn't depend on that.
     \+ (proto_meta_field_oneof_index(Fqn, OneofIndex),
         proto_meta_oneof(ContextType, OneofIndex, _)).
 
