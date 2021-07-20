@@ -2,6 +2,11 @@
 
 % TODO: delete this file when all the logic has been moved to protoc-gen-swipl
 %       and everything has been completely bootstrapped.
+%
+% This code has been copied to protoc-gen-swipl, and has not been kept up-to-date
+% with subsequent changes. It is mainly of historical interest, but *might* be
+% needed if there's a signficant change to how protoc outputs its data (highly
+% unlikely, given the amount of change that would require with other plugins).
 
 %% Term expansion for descriptor_proto.pl
 %% (which is used by descriptor_proto.pl to expand a
