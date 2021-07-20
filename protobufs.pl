@@ -175,7 +175,9 @@ installed at
 % value (that is, there is no equivalent of the Python
 % implementation's =HasField`). Optional embedded messages and groups
 % do not have any default value -- you must check their existence by
-% using get_dict/3 or similar.
+% using get_dict/3 or similar. If a field is part of a "oneof" set,
+% then none of the other fields is set. You can determine which field
+% had a value by using get_dict/3.
 %
 % @tbd document the generated terms (see library(http/json) and json_read_dict/3)
 % @tbd add options such as =true= and =value_string_as= (similar to json_read_dict/3)
@@ -184,7 +186,7 @@ installed at
 %       (by field number rather than by field name).
 %
 % @bug Ignores =|.proto|= [extensions](https://developers.google.com/protocol-buffers/docs/proto#extensions).
-% @bug =oneof= and =map= fields are not handled correctly.
+% @bug =map= fields are not handled correctly.
 % @bug Generates fields in a different order from the C++, Python,
 %      Java implementations, which use the field number to determine
 %      field order whereas currently this implementation uses field
@@ -247,7 +249,8 @@ verify_version :-
 % meta-data from =protoc= hasn't been loaded, or if a field name is incorrect
 % (and therefore nothing in the meta-data matches it).
 %
-% @bug =oneof= and =map= fields are not handled correctly.
+% @bug =map= fields are not handled correctly.
+% @bug =oneof= is not checked for validity.
 %
 % @param Term The Prolog form of the data, as nested [dict](</pldoc/man?section=bidicts>)s.
 % @param MessageType Fully qualified message name (from the =|.proto|= file's =package= and =message=).
@@ -1359,7 +1362,12 @@ add_defaulted_fields(Value0, ContextType, Value) :-
 %! message_field_default(+ContextType:atom, Name:atom, -DefaultValue) is semidet.
 message_field_default(ContextType, Name, DefaultValue) :-
     proto_meta_field_name(ContextType, _FieldNumber, Name, Fqn),
-    proto_meta_field_default_value(Fqn, DefaultValue).
+    proto_meta_field_default_value(Fqn, DefaultValue),
+    % If the field is part of a "oneof" group, then there will be a
+    % proto_meta_oneof entry for it (using the oneof_index. All fields
+    % have a oneof_index, but our code doesn't depend on that.
+    \+ (proto_meta_field_oneof_index(Fqn, OneofIndex),
+        proto_meta_oneof(ContextType, OneofIndex, _)).
 
 add_empty_field_if_missing(FieldName-DefaultValue, Dict0, Dict) :-
     (   get_dict(FieldName, Dict0, _)
@@ -1489,7 +1497,6 @@ field_segment(MessageType, FieldName-Value, Segment) :-
     ->  Packed = packed
     ;   Packed = not_packed
     ),
-    !, % TODO: remove
     field_segment_scalar_or_repeated(Label, Packed, FieldType, Tag, FieldTypeName, Value, Segment),
     !. % TODO: remove
 

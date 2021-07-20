@@ -414,13 +414,11 @@ test(golden_2_5_0_parse) :-
     protobuf_parse_from_codes(WireCodes, '.protobuf_unittest.TestAllTypes', Term),
     % To double-check the following:
     %    protoc -I. --decode=protobuf_unittest.TestAllTypes google/protobuf/unittest.proto <../golden_message.2.5.0
-    % (the ordering is different because Prolog dicts display items in key order)
     assertion_eq_dict(Term,
         '.protobuf_unittest.TestAllTypes'{
-                                          % TODO: need to verify the oneof items - should they get default values?
-                                          oneof_bytes:[],
-                                          oneof_string:"",
-                                          oneof_uint32:0,
+                                          % oneof_bytes:[],  % part of a oneof group
+                                          % oneof_string:"", % part of a oneof group
+                                          % oneof_uint32:0,  % part of a oneof group
 
                                           optional_int32:101,
                                           optional_int64:102,
@@ -524,11 +522,12 @@ test(oneof) :-
     % TODO: This is what's on the wire, after processing default values.
     %       Needs "oneof" processing to remove bar and name
     assertion(Term == '.OneofMessage'{
-                          bar:0.0,
-                          foo:"FOO",
-                          name:"",
-                          number:666,
-                          qqsv:""}).
+                                      % bar:0.0, % part of oneof group
+                                      foo:"FOO",
+                                      % name:"", % part of oneof group
+                                      number:666
+                                      % qqsv:"" % part of oneof group
+                                     }).
 
 % TODO: add test(oneofb)
 

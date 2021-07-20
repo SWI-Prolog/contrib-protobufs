@@ -121,9 +121,16 @@ wire stream get set to the value =|[]|=; other fields that aren't in
 the wire stream get their default value (typically the empty string or
 zero, depending on type). Embedded messages and groups are omitted if
 not in the wire stream; you can test for their presence using
-get_dict/3. There is no mechanism for determining whether a field was
+get_dict/3.
+There is no mechanism for determining whether a field was
 in the wire stream or not (that is, there is no equivalent of the
 Python implementation's =|HasField|=).
+
+The "oneof" feature causes a slightly different behavior.
+Only the field that's in the wire stream gets set; the other fields
+are omitted. And if none of the fields in the "oneof" are set, then
+none of the fields appears. You can check which field is set by
+using get_dict/3.
 
 ### addressbook example {#protobufs-addressbook-example}
 
@@ -472,6 +479,8 @@ Also note that the handling of missing fields is slightly different in
 proto2 and proto3 -- proto2 allows specifying a default value but proto3
 uses 0 and =""= as defaults for numbers and strings and omits encoding
 any field that has one of those default values.
+
+TODO: determine correct behvaior for =oneof= with a default field value.
 
 #### Aggregation {#protobufs-aggregation}
 

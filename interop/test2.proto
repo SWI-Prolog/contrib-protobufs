@@ -13,7 +13,7 @@ message OneofMessage {
     string foo = 1;
     double bar = 2;
   }
-  oneof third { // for 
+  oneof singleton_oneof {
     string qqsv = 3;
   }
 }
