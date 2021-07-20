@@ -1503,21 +1503,22 @@ field_segment(MessageType, FieldName-Value, Segment) :-
 :- det(field_segment_scalar_or_repeated/7).
 %! field_segment_scalar_or_repeated(+Label, +Packed, +FieldType, +Tag, +FieldTypeName, ?Value, Segment) is det.
 % =FieldType= is from the =|.proto|= meta information ('TYPE_SINT32', etc.)
-field_segment_scalar_or_repeated('LABEL_OPTIONAL', not_packed, FieldType, Tag, FieldTypeName, Value, Segment) :- !,
+field_segment_scalar_or_repeated('LABEL_OPTIONAL', not_packed, FieldType, Tag, FieldTypeName, Value, Segment) =>
     convert_segment(FieldType, FieldTypeName, Tag, Segment, Value).
-field_segment_scalar_or_repeated('LABEL_REQUIRED', not_packed, FieldType, Tag, FieldTypeName, Value, Segment) :- !,  % same as LABEL_OPTIONAL
+field_segment_scalar_or_repeated('LABEL_REQUIRED', not_packed, FieldType, Tag, FieldTypeName, Value, Segment) =>  % same as LABEL_OPTIONAL
     convert_segment(FieldType, FieldTypeName, Tag, Segment, Value).
-field_segment_scalar_or_repeated('LABEL_REPEATED', packed, FieldType, Tag, FieldTypeName, Values, packed(Tag,FieldValues)) :- !,
+field_segment_scalar_or_repeated('LABEL_REPEATED', packed, FieldType, Tag, FieldTypeName, Values, Segment) =>
+    Segment = packed(Tag,FieldValues),
     maplist(convert_segment_v_s(FieldType, FieldTypeName, Tag), Values, Segments0),
     packed_list(Segments0, FieldValues).
-
-field_segment_scalar_or_repeated('LABEL_REPEATED', not_packed, FieldType, Tag, FieldTypeName, Values, repeated(Segments)) :- !,
+field_segment_scalar_or_repeated('LABEL_REPEATED', not_packed, FieldType, Tag, FieldTypeName, Values, Segment) =>
+    Segment = repeated(Segments),
     maplist(convert_segment_v_s(FieldType, FieldTypeName, Tag), Values, Segments).
-field_segment_scalar_or_repeated(Label, Packed, FieldType, Tag, FieldTypeName, Value, Segment) :- % TODO: delete this clause
-    domain_error(type(field_type=FieldType,     % TODO: this is a bit funky
-                      label=Label,
-                      packed=Packed),
-                 value(tag=Tag, field_type_name=FieldTypeName, value=Value, segment=Segment)).
+% field_segment_scalar_or_repeated(Label, Packed, FieldType, Tag, FieldTypeName, Value, Segment) :- % TODO: delete this clause
+%     domain_error(type(field_type=FieldType,     % TODO: this is a bit funky
+%                       label=Label,
+%                       packed=Packed),
+%                  value(tag=Tag, field_type_name=FieldTypeName, value=Value, segment=Segment)).
 
 convert_segment_v_s(FieldType, FieldTypeName, Tag, Value, Segment) :-
     convert_segment(FieldType, FieldTypeName, Tag, Segment, Value).
