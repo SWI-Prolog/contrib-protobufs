@@ -138,6 +138,9 @@ using get_dict/3.
 
 Currently, there is no special support for the protobuf "map" feature.
 It is treated as an ordinary message field.
+The convenience predicates protobuf_field_is_map/3 and protobuf_map_pairs/3
+can be used to convert between a "map" field and a key-value list, which
+gives you the freedom to use any kind of association list for the map.
 See also [Issue #12](https://github.com/SWI-Prolog/contrib-protobufs/issues/12)
 For example:
 ~~~{.c}
@@ -154,6 +157,16 @@ message MapMessage {
   }
   repeated KeyValue number_ints = 5;
 }
+~~~
+You can handle this on input by
+~~~{.pl}
+protobuf_parse_from_codes(WireCodes, 'MapMessage', Term),
+protobuf_map_pairs(Term.number_ints, _, Pairs).
+~~~
+and on output by
+~~~{.pl}
+protobuf_map_pairs(TermNnumberInts, _, Pairs),
+protobuf_serialize_to_codes(_{number_ints:TermNumberInts}, WireCodes).
 ~~~
 
 ### addressbook example {#protobufs-addressbook-example}

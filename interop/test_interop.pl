@@ -560,10 +560,17 @@ test(map) :-
                     message(5,[string(1,"two"),varint(2,4)]) ]
     */
     protobuf_parse_from_codes(WireCodes, '.MapMessage', Term), % No package: needs 1 leading '.'
-    % TODO: This is what's on the wire without any special map<> handling.
-    %       Note the incorrect '.MapMessage.NumberIntsEntry', due to a bug
-    %       in protoc
-    % Also, the ordering can be "random", due to Python hash randomization
+    is_dict(Term, MessageType),
+    assertion(protobufs:proto_meta_normalize(MessageType, '.MapMessage')),
+    protobuf_field_is_map(MessageType, number_ints),
+    protobuf_map_pairs(Term.number_ints, MapTag, Pairs0),
+    assertion(MapTag == '.MapMessage.NumberIntsEntry'), % TODO: does protobuf spec guarantee this?
+    keysort(Pairs0, Pairs),
+    assertion(Pairs == ["one"-1, "two"-2]),
+    protobuf_map_pairs(RawMap, MapTag, Pairs0), % Create RawMap from Pairs0
+    assertion(RawMap == Term.number_ints),
+    % TODO: The following is what's on the wire without any special map<> handling.
+    %       The ordering can be "random", due to Python hash randomization
     assertion((  Term == '.MapMessage'{
                              number_ints:[
                                  '.MapMessage.NumberIntsEntry'{key:"one",value:1},

@@ -36,7 +36,9 @@
           [ protobuf_message/2,   % ?Template ?Codes
             protobuf_message/3,   % ?Template ?Codes ?Rest
             protobuf_parse_from_codes/3, % +WireCodes, +MessageType, -Term
-            protobuf_serialize_to_codes/3  % +Term, +MessageType, -WireCodes
+            protobuf_serialize_to_codes/3,  % +Term, +MessageType, -WireCodes
+            protobuf_field_is_map/2, % +MessageType, +FieldName
+            protobuf_map_pairs/3 % ?ProtobufTermList, ?DictTag, ?Pairs
 
             % TODO: Restore the following to the public interface, if
             %       someone needs them.  For now, the tests directly specify
@@ -186,7 +188,7 @@ installed at
 %       (by field number rather than by field name).
 %
 % @bug Ignores =|.proto|= [extensions](https://developers.google.com/protocol-buffers/docs/proto#extensions).
-% @bug =map= fields are not handled correctly.
+% @bug =map= fields don't get special treatment (but see protobuf_map_pairs/3).
 % @bug Generates fields in a different order from the C++, Python,
 %      Java implementations, which use the field number to determine
 %      field order whereas currently this implementation uses field
@@ -249,7 +251,7 @@ verify_version :-
 % meta-data from =protoc= hasn't been loaded, or if a field name is incorrect
 % (and therefore nothing in the meta-data matches it).
 %
-% @bug =map= fields are not handled correctly.
+% @bug =map= fields don't get special treatment (but see protobuf_map_pairs/3).
 % @bug =oneof= is not checked for validity.
 %
 % @param Term The Prolog form of the data, as nested [dict](</pldoc/man?section=bidicts>)s.
@@ -1535,6 +1537,34 @@ packed_list_([], _, _, []).
 packed_list_([T1|Ts], Functor, Tag, [X1|Xs]) :-
     detag(T1, Functor, Tag, X1, _, _),
     packed_list_(Ts, Functor, Tag, Xs).
+
+%! protobuf_field_is_map(+MessageType, +FieldName) is semidet.
+% Succeeds if =MessageType='s =FieldName= is defined as a map<...> in
+% the .proto file.
+protobuf_field_is_map(MessageType0, FieldName) :-
+    proto_meta_normalize(MessageType0, MessageType),
+    proto_meta_field_name(MessageType, _, FieldName, FieldFqn),
+    proto_meta_field_type(FieldFqn, 'TYPE_MESSAGE'),
+    proto_meta_field_label(FieldFqn, 'LABEL_REPEATED'),
+    proto_meta_field_type_name(FieldFqn, FieldTypeName),
+    proto_meta_message_type_map_entry(FieldTypeName),
+    assertion(proto_meta_field_name(FieldTypeName, 1, key, _)),
+    assertion(proto_meta_field_name(FieldTypeName, 2, value, _)),
+    !.
+
+%! protobuf_map_pairs(+ProtobufTermList:list, ?DictTag:atom, ?Pairs) is det.
+% Convert between a list of protobuf map entries (in the form
+% =|DictTag{key:Key, value:Value}|= and a key-value list as described
+% in library(pairs). At least one of =ProtobufTermList= and =Pairs=
+% must be instantiated; =DictTag= can be uninstantiated. If
+% =ProtobufTermList= is from a term created by
+% protobuf_parse_from_codes/3, the ordering of the items is undefined;
+% you can order them by using keysort/2 (or by a predicate such as
+% dict_pairs/3, list_to_assoc/2, or list_to_rbtree/2.
+protobuf_map_pairs(ProtobufTermList, DictTag, Pairs) :-
+    maplist(protobuf_dict_map_pairs(DictTag), ProtobufTermList, Pairs).
+
+protobuf_dict_map_pairs(DictTag, DictTag{key:Key,value:Value}, Key-Value).
 
 
 end_of_file.
