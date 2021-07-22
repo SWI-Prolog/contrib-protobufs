@@ -69,13 +69,15 @@
             % protobuf_var_int//1,
             % protobuf_tag_type//2
           ]).
-:- autoload(library(error), [must_be/2, domain_error/2, instantiation_error/2, existence_error/2]).
+
+:- autoload(library(error), [must_be/2, domain_error/2, existence_error/2]).
 :- autoload(library(lists), [append/3]).
 :- autoload(library(utf8), [utf8_codes//1]).
 :- autoload(library(dif), [dif/2]).
 :- autoload(library(dcg/high_order), [sequence//2]).
 :- autoload(library(apply), [maplist/3, foldl/4]).
 :- autoload(library(when), [when/2]).
+:- autoload(library(debug), [assertion/1]). % TODO: remove
 
 % TODO: :- set_prolog_flag(optimise, true). % For arithmetic using is/2.
 

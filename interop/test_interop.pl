@@ -19,6 +19,8 @@
 
 :- initialization(test_read_main, main).
 
+:- use_module(library(plunit)).
+:- use_module(library(debug), [assertion/1]).
 :- use_module(library(protobufs)).
 :- use_module(test_templates).
 :- use_module(test_pb).

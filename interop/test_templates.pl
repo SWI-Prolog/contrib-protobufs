@@ -18,6 +18,12 @@
 
 :- encoding(utf8).
 
+:- autoload(library(pprint)).
+:- autoload(library(debug), [assertion/1]).
+:- autoload(library(readutil), [read_file_to_codes/3]).
+:- autoload(library(protobufs)).
+:- autoload(library(lists), [nth0/3]).
+
 %! protobufs:my_enum(?Key:atom, ?Value:atom) is semidet.
 % Define the my_enum callback.
 protobufs:my_enum(Key, Value) :-
