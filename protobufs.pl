@@ -79,7 +79,7 @@
 :- autoload(library(when), [when/2]).
 :- autoload(library(debug), [assertion/1]). % TODO: remove
 
-% TODO: :- set_prolog_flag(optimise, true). % For arithmetic using is/2.
+:- set_prolog_flag(optimise, true). % For arithmetic using is/2.
 
 /** <module> Google's Protocol Buffers ("protobufs")
 
@@ -550,7 +550,16 @@ packed_payload(enum, EnumSeq) -->
     { EnumSeq =.. [EnumType, Values] }, % EnumSeq = EnumType(Values)
     packed_enum(EnumType, Values).
 packed_payload(PrologType, PayloadSeq) -->
-    sequence(payload(PrologType), PayloadSeq).
+    sequence_payload(PrologType, PayloadSeq).
+
+% sequence_payload//2 (because sequence//2 isn't compile-time expanded)
+sequence_payload(PrologType, PayloadSeq) -->
+    sequence_payload_(PayloadSeq, PrologType).
+
+sequence_payload_([], _PrologType) --> [ ].
+sequence_payload_([Payload|PayloadSeq], PrologType) -->
+        payload(PrologType, Payload),
+        sequence_payload_(PayloadSeq, PrologType).
 
 packed_enum(Enum, [ A | As ]) -->
     % TODO: replace =.. with a predicate that gives all the possibilities - see detag/6.
@@ -730,14 +739,20 @@ protobuf_segment_message(Segments, WireStream) :-
     phrase(segment_message(Segments), WireStream).
 
 segment_message(Segments) -->
-    sequence(segment, Segments).
+    sequence_segment(Segments).
+
+% sequence_segment//1 (because sequence//2 isn't compile-time expanded)
+sequence_segment([]) --> [ ].
+sequence_segment([Segment|Segments]) -->
+    segment(Segment),
+    sequence_segment(Segments).
 
 segment(Segment) -->
     { nonvar(Segment) },
     !,
     % repeated(List) can be created by field_segment_scalar_or_repeated/7
     (   { Segment = repeated(Segments) }
-    ->  sequence(segment, Segments)
+    ->  sequence_segment(Segments)
     ;   { segment_type_tag(Segment, Type, Tag) },
         protobuf_tag_type(Tag, Type),
         segment(Type, Tag, Segment)
@@ -792,7 +807,7 @@ length_delimited_segment(packed(Tag,Payload), Tag, Codes) :-
     % it's more compact (I don't know whether 32-bit or 64-bit is more
     % common for floating point).
     packed_option(Type, Items, Payload),
-    phrase(sequence(payload(Type), Items), Codes).
+    phrase(sequence_payload(Type, Items), Codes).
 length_delimited_segment(length_delimited(Tag,Codes), Tag, Codes).
 
 segment_group(Tag, Segments) -->
@@ -1434,8 +1449,6 @@ combine_fields_repeat(Fields, _Field, Values, RestFields) => Values = [], RestFi
 field_and_type(ContextType, Tag, FieldName, FqnName, ContextType2, RepeatOptional, Type) =>
     assertion(ground(ContextType)), % TODO: remove
     assertion(ground(Tag)), % TODO: remove
-    % TODO: Work-around JITI not being on 1+2:
-    %       See https://swi-prolog.discourse.group/t/first-and-second-argument-indexing-which-should-be-a-first-argument/2659/5 et seq
     (   proto_meta_field_name(ContextType, Tag, FieldName, FqnName),
         proto_meta_field_type_name(FqnName, ContextType2),
         fqn_repeat_optional(FqnName, RepeatOptional),
