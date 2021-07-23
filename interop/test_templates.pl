@@ -1,4 +1,4 @@
-% -*- mode: Prolog coding:utf-8 -*-
+% -*- mode: Prolog; coding:utf-8 -*-
 
 % Common stuff for test_read.pl, test_write.pl
 % (Originally this just had templates, but other common predicates
