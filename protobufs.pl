@@ -394,7 +394,7 @@ prolog_type(Tag, integer32) -->  protobuf_tag_type(Tag, fixed32).
 prolog_type(Tag, unsigned32) --> protobuf_tag_type(Tag, fixed32).
 prolog_type(Tag, integer) -->    protobuf_tag_type(Tag, varint).
 prolog_type(Tag, unsigned) -->   protobuf_tag_type(Tag, varint).
-%                signed32  - omitted for wire-stream compabitility
+prolog_type(Tag, signed32) -->   protobuf_tag_type(Tag, varint).
 prolog_type(Tag, signed64) -->   protobuf_tag_type(Tag, varint).
 prolog_type(Tag, boolean) -->    protobuf_tag_type(Tag, varint).
 prolog_type(Tag, enum) -->       protobuf_tag_type(Tag, varint).
