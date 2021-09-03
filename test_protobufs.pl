@@ -52,6 +52,9 @@ user:message_hook(Term, error, Lines) :-
 
 :- use_module(library(protobufs)).
 
+gmp :-
+    current_prolog_flag(bounded, false).
+
 protobufs:nested_enum(Key, Value) :-
     nested_enum(Key, Value).
 
@@ -581,7 +584,7 @@ test(not_packed_repeated) :-
     assertion(Ints == [3, 270, 86942]),
     assertion(WireStream == [32,3,32,142,2,32,158,167,5]).
 
-test(not_packed_repeated2) :-
+test(not_packed_repeated2, condition(gmp)) :-
     % Same as not_packed_repeated, but wrapped in a length_delimited
     % segment, so it backtracks.
     Message = protobuf([embedded(666,
@@ -638,7 +641,7 @@ test(packed_repeated2) :-
     assertion(WireStream == [250,163,232,3,8,34,6,3,142,2,158,167,5]),
     assertion(Template == Message).
 
-test(packed_and_unpacked_repeated) :-
+test(packed_and_unpacked_repeated, condition(gmp)) :-
     % combines not_packed_repeated2 and packed_repeated2
     Message = protobuf([embedded(666,
                                  protobuf([repeated(4, unsigned([3, 270, 86942]))])),
@@ -816,7 +819,7 @@ round_trip_int32_float32(Float0) :-
     protobufs:float32_codes(Float1, Codes3),
     assertion(Codes2 == Codes3).
 
-test(uint32_codes) :-
+test(uint32_codes, condition(gmp)) :-
     test_numbers(Numbers),
     round_trip_uint32(Numbers.max_unsigned32, [0xff,0xff,0xff,0xff], Numbers.max_unsigned32),
     round_trip_uint32(2147483648, [0,0,0,0x80], 2147483648).
@@ -824,7 +827,10 @@ test(uint32_codes) :-
 test(uint32_codes_e1, [error(instantiation_error,context(protobufs:uint32_codes/2,_))]) :-
     protobufs:uint32_codes(_, _).
 
-test(uint32_codes_e2, [error(representation_error(uint),context(protobufs:uint32_codes/2,_))]) :-
+test(uint32_codes_e2,
+     [ condition(gmp),
+       error(representation_error(uint),context(protobufs:uint32_codes/2,_))
+     ]) :-
     test_numbers(Numbers),
     protobufs:uint32_codes(Numbers.max_unsigned32_plus1, _).
 
@@ -834,13 +840,13 @@ test(uint32_codes_e3, [error(type_error(list,[1,2,3,4,5]),context(protobufs:uint
 test(uint32_codes_e4, [error(representation_error(uint),context(protobufs:uint32_codes/2,_))]) :-
     protobufs:uint32_codes(-1, _).
 
-test(uint64_codes) :-
+test(uint64_codes, condition(gmp)) :-
     test_numbers(Numbers),
     round_trip_uint64(Numbers.max_unsigned64, [0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff], Numbers.max_unsigned64),
     protobufs:uint64_int64(MinSigned64, Numbers.min_signed64),
     round_trip_uint64(MinSigned64, [0,0,0,0,0,0,0,0x80], Numbers.max_signed64_plus1).
 
-test(uint32_int32) :-
+test(uint32_int32, condition(gmp)) :-
     test_numbers(Numbers),
     round_trip_uint32_int32(0, 0),
     round_trip_uint32_int32(1, 1),
@@ -849,19 +855,28 @@ test(uint32_int32) :-
     round_trip_uint32_int32(0xffffffff, -1),
     round_trip_uint32_int32(0xfffffffe, -2).
 
-test(uint32_int32_e1, [error(domain_error('32_bit_integer',4294967296),context(protobufs:uint32_int32/2,_))]) :-
+test(uint32_int32_e1,
+     [ condition(gmp),
+       error(domain_error('32_bit_integer',4294967296),context(protobufs:uint32_int32/2,_))
+     ]) :-
     test_numbers(Numbers),
     protobufs:uint32_int32(Numbers.max_unsigned32_plus1, _).
 
-test(uint32_int32_e2, [error(representation_error(int),context(protobufs:uint32_int32/2,_))]) :-
+test(uint32_int32_e2,
+     [ condition(gmp),
+       error(representation_error(int),context(protobufs:uint32_int32/2,_))
+     ]) :-
     test_numbers(Numbers),
     protobufs:uint32_int32(_, Numbers.max_signed32_plus1).
 
-test(uint32_int32_e3, [error(representation_error(int),context(protobufs:uint32_int32/2,_))]) :-
+test(uint32_int32_e3,
+     [ condition(gmp),
+       error(representation_error(int),context(protobufs:uint32_int32/2,_))
+     ]) :-
     test_numbers(Numbers),
     protobufs:uint32_int32(_, Numbers.min_signed32_minus1).
 
-test(int64_float64) :-
+test(int64_float64, condition(gmp)) :-
     % Not all bit patterns are normalized floating point, so we can't test, e.g. 0xffffffffffffffff;
     % instead, we use the min and max floating point values, plus a few others.
     prolog_flag(float_max, PosFloatMax),
@@ -912,7 +927,7 @@ round_trip_zigzag(Original, Encoded) :-
     assertion(ComputedOriginal == Original).
 
 % Examples from https://developers.google.com/protocol-buffers/docs/encoding#types
-test(zigzag) :-
+test(zigzag, condition(gmp)) :-
     test_numbers(Numbers),
     round_trip_zigzag(0, 0),
     round_trip_zigzag(-1, 1),
@@ -926,11 +941,17 @@ test(zigzag) :-
 test(zigzag_e1, [error(instantiation_error,context(protobufs:int64_zigzag/2,_))]) :-
     protobufs:int64_zigzag(_, _).
 
-test(zigzag_e2, [error(representation_error(int64_t),context(protobufs:int64_zigzag/2,_))]) :-
+test(zigzag_e2,
+     [ condition(gmp),
+       error(representation_error(int64_t),context(protobufs:int64_zigzag/2,_))
+     ]) :-
     test_numbers(Numbers),
     protobufs:int64_zigzag(Numbers.max_signed64_plus1, _).
 
-test(zigzag_e3, [error(representation_error(uint64_t),context(protobufs:int64_zigzag/2,_))]) :-
+test(zigzag_e3,
+     [ condition(gmp),
+       error(representation_error(uint64_t),context(protobufs:int64_zigzag/2,_))
+     ]) :-
     test_numbers(Numbers),
     protobufs:int64_zigzag(_, Numbers.max_unsigned64_plus1).
 
@@ -950,7 +971,7 @@ round_trip_uint64_int64(Uint64, Int64) :-
     protobufs:uint64_int64(ComputedUint64, Int64),
     assertion(ComputedUint64 == Uint64).
 
-test(coerce) :-
+test(coerce, condition(gmp)) :-
     test_numbers(Numbers),
     round_trip_uint64_int64(0, 0),
     round_trip_uint64_int64(Numbers.max_unsigned64, -1),
@@ -962,23 +983,38 @@ test(coerce) :-
 test(coerce_e1, [error(instantiation_error,context(protobufs:uint64_int64/2,_))]) :-
     protobufs:uint64_int64(_, _).
 
-test(coerce_e2, [error(domain_error(not_less_than_zero,-1),context(protobufs:uint64_int64/2,_))]) :-
+test(coerce_e2,
+     [ condition(gmp),
+       error(domain_error(not_less_than_zero,-1),context(protobufs:uint64_int64/2,_))
+     ]) :-
     test_numbers(Numbers),
     protobufs:uint64_int64(Numbers.min_unsigned64_minus1, _).
 
-test(coerce_e3, [error(representation_error(uint64_t),context(protobufs:uint64_int64/2,_))]) :-
+test(coerce_e3,
+     [ condition(gmp),
+       error(representation_error(uint64_t),context(protobufs:uint64_int64/2,_))
+     ]) :-
     test_numbers(Numbers),
     protobufs:uint64_int64(Numbers.max_unsigned64_plus1, _).
 
-test(coerce_e4, [error(representation_error(int64_t),context(protobufs:uint64_int64/2,_))]) :-
+test(coerce_e4,
+     [ condition(gmp),
+       error(representation_error(int64_t),context(protobufs:uint64_int64/2,_))
+     ]) :-
     test_numbers(Numbers),
     protobufs:uint64_int64(_, Numbers.max_signed64_plus1).
 
-test(coerce_e5, [error(representation_error(int64_t),context(protobufs:uint64_int64/2,_))]) :-
+test(coerce_e5,
+     [ condition(gmp),
+       error(representation_error(int64_t),context(protobufs:uint64_int64/2,_))
+     ]) :-
     test_numbers(Numbers),
     protobufs:uint64_int64(_, Numbers.min_signed64_minus1).
 
-test(coerce_e6, [error(representation_error(int64_t),context(protobufs:uint64_int64/2,_))]) :-
+test(coerce_e6,
+     [ condition(gmp),
+       error(representation_error(int64_t),context(protobufs:uint64_int64/2,_))
+     ]) :-
     test_numbers(Numbers),
     protobufs:uint64_int64(_, Numbers.max_signed64_plus1).
 
