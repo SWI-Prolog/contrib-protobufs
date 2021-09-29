@@ -111,17 +111,32 @@ find_program(PKG_CONFIG pkg-config)
 exec_program("python3 -c 'from google.protobuf import descriptor_pb2'"
              RETURN_VALUE python3_protobuf
              OUTPUT_VARIABLE python3_protobuf_output) # swallow stderr
+if(${python3_protobuf} EQUAL "0")
+else()
+  message("To activate the Python tests: python3 -mpip install protobuf")
+endif()
 
 if(BUILD_TESTING AND TEST_PROTOBUFS_PROTOC)
   if(PROTOC AND PKG_CONFIG AND "${python3_protobuf}" EQUAL "0")
       add_test(NAME "${SWIPL_PKG}:bootstrap"
                COMMAND make SWIPL=${PROG_SWIPL} -C ${CMAKE_CURRENT_SOURCE_DIR}/bootstrap clean test)
-      add_test(NAME "${SWIPL_PKG}:interop"
-               COMMAND make SWIPL=${PROG_SWIPL} -C ${CMAKE_CURRENT_SOURCE_DIR}/interop clean test run_addressbook)
+      if(USE_GMP)
+          add_test(NAME "${SWIPL_PKG}:interop"
+                   COMMAND make SWIPL=${PROG_SWIPL} -C ${CMAKE_CURRENT_SOURCE_DIR}/interop clean test run_addressbook)
+      else()
+          message(WARNING "${SWIPL_PKG}:interop skipped because it needs GMP")
+      endif()
       add_test(NAME "${SWIPL_PKG}:demo"
                COMMAND make SWIPL=${PROG_SWIPL} -C ${CMAKE_CURRENT_SOURCE_DIR}/demo clean test)
   else()
-      message(WARNING, "Some ${SWIPL_PKG} tests not run because of missing pkg-config, protoc, or python/protobuf.")
+      message(WARNING "Some ${SWIPL_PKG} tests not run because of missing pkg-config, protoc, or python/protobuf")
+      # message("pkg-config: ${PKG_CONFIG}")
+      # message("protoc: ${PROTOC}")
+      # message("python3_protobuf: ${python3_protobuf}")
+  endif()
+else()
+  if(BUILD_TESTING)
+    message("Some ${SWIPL_PKG} tests not run because TEST_PROTOBUFS_PROTOC not set")
   endif()
 endif()
 

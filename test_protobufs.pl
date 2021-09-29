@@ -37,7 +37,7 @@
         ]).
 
 % Trap syntax errors and halt. See https://github.com/SWI-Prolog/swipl-devel/issues/826
-% TODO: Not needed any more?
+% TODO: Not needed any more? (As of swil 8.3.29, it is needed)
 :- multifile user:message_hook/3.
 :- dynamic user:message_hook/3.
 user:message_hook(Term, error, Lines) :-
@@ -58,8 +58,8 @@ gmp :-
 protobufs:nested_enum(Key, Value) :-
     nested_enum(Key, Value).
 
-nested_enum(foo,1).
-nested_enum(bar,2).
+nested_enum(foo, 1).
+nested_enum(bar, 2).
 nested_enum(baz, 3).
 
 protobufs:foreign_enum(Key, Value) :-
@@ -109,7 +109,7 @@ test_numbers(Numbers) :-
     % SWI-Prolog doesn't distinguish between int32, int64 and GNU
     % Multi-precision arithmetic integers. However, protobufs do, so
     % the following values get min and max 32- and 64-bit values.
-    assertion(prolog_flag(bounded, false)), % verify that we're using GMP
+    assertion(gmp),
 
     MaxSigned32         is 0x7fffffff, % 2147483647
     MaxSigned32Plus1    is MaxSigned32 + 1,
@@ -584,22 +584,29 @@ test(not_packed_repeated) :-
     assertion(Ints == [3, 270, 86942]),
     assertion(WireStream == [32,3,32,142,2,32,158,167,5]).
 
-test(not_packed_repeated2, condition(gmp)) :-
+test(not_packed_repeated2) :-
     % Same as not_packed_repeated, but wrapped in a length_delimited
     % segment, so it backtracks.
+    % The protobuf_segment_message/2 test has been moved to
+    % not_packed_repeated2_gmp.
     Message = protobuf([embedded(666,
                                  protobuf([repeated(4, unsigned([3, 270, 86942]))]))]),
     Template = protobuf([embedded(_Tag0,
                                   protobuf([repeated(_Tag, unsigned(_Ints))]))]),
     protobuf_message(Message, WireStream),
+    protobuf_message(Template, WireStream),
+    assertion(Template == Message),
+    assertion(WireStream == [210,41,9,32,3,32,142,2,32,158,167,5]).
+
+test(not_packed_repeated2_gmp, condition(gmp)) :-
+    % The protobuf_segment_message/2 part of not_packed_repeated2.
+    % TODO: why does protobuf_segment_message/2 need GMP?
+    WireStream = [210,41,9,32,3,32,142,2,32,158,167,5], % See not_packed_repeated2.
     sorted_findall(Segments, protobufs:protobuf_segment_message(Segments, WireStream), AllSegments),
     assertion(AllSegments == [[length_delimited(666,[32,3,32,142,2,32,158,167,5])],
                               [message(666,[varint(4,3), varint(4,270), varint(4,86942)])],
                               [packed(666,varint([32,3,32,270,32,86942]))]
-                             ]),
-    protobuf_message(Template, WireStream),
-    assertion(Template == Message),
-    assertion(WireStream == [210,41,9,32,3,32,142,2,32,158,167,5]).
+                             ]).
 
 test(packed_repeated) :-
     % Example from https://developers.google.com/protocol-buffers/docs/encoding#packed
@@ -622,7 +629,7 @@ test(packed_repeated) :-
     assertion(Template == Message).
 
 test(packed_repeated2) :-
-    % Same as packed_repeated, but wrappe din a length_delimited segment,
+    % Same as packed_repeated, but wrapped in a length_delimited segment,
     % so it backtracks.
     Message = protobuf([embedded(999999,
                                  protobuf([packed(4, unsigned([3, 270, 86942]))]))]),
@@ -641,8 +648,9 @@ test(packed_repeated2) :-
     assertion(WireStream == [250,163,232,3,8,34,6,3,142,2,158,167,5]),
     assertion(Template == Message).
 
-test(packed_and_unpacked_repeated, condition(gmp)) :-
-    % combines not_packed_repeated2 and packed_repeated2
+test(packed_and_unpacked_repeated) :- % , condition(gmp)) :-
+    % Combines not_packed_repeated2 and packed_repeated2
+    % The protobuf_segment_message/2 part has been moved to packed_and_unpacked_repeated_gmp.
     Message = protobuf([embedded(666,
                                  protobuf([repeated(4, unsigned([3, 270, 86942]))])),
                         embedded(999999,
@@ -652,6 +660,14 @@ test(packed_and_unpacked_repeated, condition(gmp)) :-
                          embedded(_Tag0_b,
                                   protobuf([packed(_Tag1_b, unsigned(_Ints0_b))]))]),
     protobuf_message(Message, WireStream),
+    assertion(WireStream == [210,41,9,32,3,32,142,2,32,158,167,5,250,163,232,3,8,34,6,3,142,2,158,167,5]),
+    protobuf_message(Template, WireStream),
+    assertion(Template == Message).
+
+test(packed_and_unpacked_repeated_gmp, condition(gmp)) :-
+    % The protobuf_segment_message/2 part of packed_and_unpacked_repeated.
+    % TODO: why does protobuf_segment_message/2 need GMP?
+    WireStream = [210,41,9,32,3,32,142,2,32,158,167,5,250,163,232,3,8,34,6,3,142,2,158,167,5], % see packed_and_unpacked_repeated.
     sorted_findall(Segments, protobufs:protobuf_segment_message(Segments, WireStream), AllSegments),
     % The result is combinatoric explosion:
     sorted_findall([S1,S2], ( member(S1, [ length_delimited(666,[32,3,32,142,2,32,158,167,5]),
@@ -666,10 +682,7 @@ test(packed_and_unpacked_repeated, condition(gmp)) :-
                                            packed(999999,fixed32([-1912404446,94871042]))
                                          ]) ),
                    ExpectedSegments),
-    assertion(AllSegments == ExpectedSegments),
-    assertion(WireStream == [210,41,9,32,3,32,142,2,32,158,167,5,250,163,232,3,8,34,6,3,142,2,158,167,5]),
-    protobuf_message(Template, WireStream),
-    assertion(Template == Message).
+    assertion(AllSegments == ExpectedSegments).
 
 test(repeated_key_value) :-
     % KeyValue as in embedded_key_value
