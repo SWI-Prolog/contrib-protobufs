@@ -401,7 +401,15 @@ pl_uint64_zigzag(Uint64, ZigZag) :-
     ).
 
 
-test_protobufs :- run_tests.
+test_protobufs :- run_tests. % ([ protobuf_message,
+                             %    protobuf_message_2,
+                             %    some_message_example,
+                             %    repeated_fields,
+                             %    protobuf_segment_convert,
+                             %    codes,
+                             %    zigzag,
+                             %    coerce
+                             %  ]).
 
 test_input(Name, Path) :-
     source_file(test_protobufs, MyFile),
