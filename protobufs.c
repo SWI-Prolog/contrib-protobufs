@@ -122,7 +122,7 @@ uint32_codes(term_t Number, term_t Codes)
 	&& len == sizeof val.asCodes)
     {
       cp_net_order(val.asCodes, data, sizeof(val.asCodes));
-      return PL_unify_integer(Number, val.asUnsignedNumber);
+      return PL_unify_uint64(Number, val.asUnsignedNumber);
     } else
     {
       return PL_type_error("list", Codes);
