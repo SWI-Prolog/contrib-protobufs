@@ -33,13 +33,13 @@ add_index(protobufs bootstrap/protoc-gen-swipl)
 
 swipl_plugin(
     protoc-gen-swipl-subdir
-    PL_LIB_SUBDIR protobufs/protoc_gen_prolog_pb/google/protobuf
-    PL_LIBS       bootstrap/protoc_gen_prolog_pb/google/protobuf/descriptor_pb.pl)
+    PL_LIB_SUBDIR protobufs/gen_pb/google/protobuf
+    PL_LIBS       bootstrap/gen_pb/google/protobuf/descriptor_pb.pl)
 
 swipl_plugin(
     protoc-gen-swipl-subdir2
-        PL_LIB_SUBDIR protobufs/protoc_gen_prolog_pb/google/protobuf/compiler
-        PL_LIBS       bootstrap/protoc_gen_prolog_pb/google/protobuf/compiler/plugin_pb.pl)
+        PL_LIB_SUBDIR protobufs/gen_pb/google/protobuf/compiler
+        PL_LIBS       bootstrap/gen_pb/google/protobuf/compiler/plugin_pb.pl)
 
 swipl_examples(
                some_message.proto
@@ -92,7 +92,7 @@ swipl_examples(
                 # bootstrap/descriptor_proto.pl
                 # bootstrap/Makefile
                 # bootstrap/parse_descriptor_proto_dump.pl
-                # # bootstrap/protoc_gen_prolog_pb/** (subdir)
+                # # bootstrap/gen_pb/** (subdir)
                 # bootstrap/protoc-gen-swipl
                 # bootstrap/tests.pl
                 SUBDIR bootstrap

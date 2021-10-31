@@ -4,5 +4,5 @@
 *_pb0.pl
 # *_pb.pl
 *_pb2.py
-protoc_gen_prolog_pb/descriptor_pb.qlf
-protoc_gen_prolog_pb/plugin_pb.qlf
+gen_pb/descriptor_pb.qlf
+gen_pb/plugin_pb.qlf

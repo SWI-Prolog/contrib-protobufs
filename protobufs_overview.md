@@ -52,17 +52,17 @@ specify it (e.g., =|protoc -I. swipl_out=. foo.proto|=).
 For example, when bootstrapping the "swipl" plugin, these are
 used:
 ~~~{.sh}
-protoc -I/usr/include --swipl_out=protoc_gen_prolog_pb google/include/descriptor.proto google/include/compiler/plugin.proto
+protoc -I/usr/include --swipl_out=gen_pb google/include/descriptor.proto google/include/compiler/plugin.proto
 ~~~
 which creates these files:
 ~~~
-protoc_gen_prolog_pb/google/protobuf/descriptor_pb.pl
-protoc_gen_prolog_pb/google/protobuf/compiler/plugin_pb.pl
+gen_pb/google/protobuf/descriptor_pb.pl
+gen_pb/google/protobuf/compiler/plugin_pb.pl
 ~~~
 
 The =|plugin_pb|= is used by:
 ~~~{.pl}
-:- use_module(protoc_gen_prolog_pb/google/protobuf/compiler/plugin_pb)
+:- use_module(gen_pb/google/protobuf/compiler/plugin_pb)
 ~~~
 which has this (import is relative to the current module):
 ~~~{.pl}
