@@ -136,7 +136,7 @@ if(BUILD_TESTING AND TEST_PROTOBUFS_PROTOC)
   endif()
 else()
   if(BUILD_TESTING)
-    message("Some ${SWIPL_PKG} tests not run because TEST_PROTOBUFS_PROTOC not set")
+    # message("Some ${SWIPL_PKG} tests not run because TEST_PROTOBUFS_PROTOC not set")
   endif()
 endif()
 
