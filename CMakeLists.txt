@@ -111,10 +111,6 @@ find_program(PKG_CONFIG pkg-config)
 exec_program("python3 -c 'from google.protobuf import descriptor_pb2'"
              RETURN_VALUE python3_protobuf
              OUTPUT_VARIABLE python3_protobuf_output) # swallow stderr
-if(${python3_protobuf} EQUAL "0")
-else()
-  message("To activate the Python tests: python3 -m pip install protobuf")
-endif()
 
 if(BUILD_TESTING AND TEST_PROTOBUFS_PROTOC)
   if(PROTOC AND PKG_CONFIG AND "${python3_protobuf}" EQUAL "0")
