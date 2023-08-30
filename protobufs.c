@@ -453,15 +453,13 @@ int32_float32(term_t Int32, term_t Float32)
       double float64;
       if (!PL_get_float_ex(Float32, &float64))
 	return FALSE;
-      val.asFloat = float64;
+      val.asFloat = (float)float64;
       return PL_unify_int64(Int32, val.asInt);
     }
   } else
   {
-    int64_t int64;
-    if (!PL_get_int64_ex(Int32, &int64))
+    if (!PL_get_integer_ex(Int32, &val.asInt))
       return FALSE;
-    val.asInt = int64;
     return PL_unify_float(Float32, val.asFloat);
   }
 }
