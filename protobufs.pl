@@ -77,7 +77,7 @@
 :- autoload(library(dif), [dif/2]).
 :- autoload(library(dcg/high_order), [sequence//2]).
 :- autoload(library(when), [when/2]).
-:- autoload(library(debug), [assertion/1]). % TODO: remove
+:- use_module(library(debug), [assertion/1]). % TODO: remove
 
 :- set_prolog_flag(optimise, true). % For arithmetic using is/2.
 

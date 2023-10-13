@@ -19,7 +19,7 @@
 :- encoding(utf8).
 
 :- autoload(library(pprint)).
-:- autoload(library(debug), [assertion/1]).
+:- use_module(library(debug), [assertion/1]).
 :- autoload(library(readutil), [read_file_to_codes/3]).
 :- autoload(library(protobufs)).
 :- autoload(library(lists), [nth0/3]).
