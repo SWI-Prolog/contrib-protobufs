@@ -108,9 +108,9 @@ find_program(PKG_CONFIG pkg-config)
 
 # TODO: check minimal versions of protoc, python3, pip protobuf
 
-exec_program("python3 -c 'from google.protobuf import descriptor_pb2'"
-             RETURN_VALUE python3_protobuf
-             OUTPUT_VARIABLE python3_protobuf_output) # swallow stderr
+execute_process(COMMAND python3 -c "from google.protobuf import descriptor_pb2"
+		RESULT_VARIABLE python3_protobuf
+		OUTPUT_VARIABLE python3_protobuf_output) # swallow stderr
 
 if(BUILD_TESTING AND TEST_PROTOBUFS_PROTOC)
   if(PROTOC AND PKG_CONFIG AND "${python3_protobuf}" EQUAL "0")
