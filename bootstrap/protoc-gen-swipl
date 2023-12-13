@@ -7,7 +7,7 @@
 % This program gets a '.google.protobuf.compiler.CodeGeneratorRequest'
 % on standard input and outputs a
 % '.google.protobuf.compiler.CodeGeneratorResponse' to standard
-% output, with the generated contents in file `file` field (repeated).
+% output, with the generated contents in field `file` (repeated).
 
 % Note: The name of this file (protoc-gen-swipl) follows the naming
 %       conventions for a protoc plugin, assuming that it's envoked by
