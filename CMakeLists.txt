@@ -110,7 +110,8 @@ find_program(PKG_CONFIG pkg-config)
 
 execute_process(COMMAND python3 -c "from google.protobuf import descriptor_pb2"
 		RESULT_VARIABLE python3_protobuf
-		OUTPUT_VARIABLE python3_protobuf_output) # swallow stderr
+		OUTPUT_VARIABLE python3_protobuf_output
+		ERROR_QUIET)
 
 if(BUILD_TESTING AND TEST_PROTOBUFS_PROTOC)
   if(PROTOC AND PKG_CONFIG AND "${python3_protobuf}" EQUAL "0")
