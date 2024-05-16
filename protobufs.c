@@ -91,7 +91,7 @@ int64_zigzag(term_t Integer, term_t ZigZag)
     int64_t v_Integer;
     if (!PL_get_int64_ex(Integer, &v_Integer))
       return FALSE;
-    uint64_t v_ZigZag = (v_Integer << 1) ^ (v_Integer >> 63);
+    uint64_t v_ZigZag = ((uint64_t)v_Integer << 1) ^ (v_Integer >> 63);
     return PL_unify_uint64(ZigZag, v_ZigZag);
   }
 }
