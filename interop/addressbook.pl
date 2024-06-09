@@ -15,7 +15,8 @@
 %
 % If you wish to try interopability with other languages, there are
 % additional things to install; for example, for Python you should do
-% something like "python3 -m pip install protobuf"
+% something like "python3 -m pip install protobuf" or
+% "sudo apt install python3-protobuf".
 %
 % Once you've installed the protobuf compiler, you need to make
 % the SWI-Prolog compiler "plugin" available. The easiest way
@@ -24,8 +25,11 @@
 % If you don't want to change your PATH, then you can specify the
 % plugin by using the "--plugin" option to protoc, e.g.:
 %    protoc ... --plugin=protoc-gen-swipl=/usr/lib/swi-prolog/library/protobufs/protoc-gen-swipl
+% You can find these files by:
+%    dpkg -L swi-prolog-core-packages | grep protobuf
 %
 % You can then run the compiler (eventually this loop won't be necessary;
+% TODO: fix this:
 %    protoc -I. -I /usr/include --swipl_out=. addressbook.proto addressbook2.proto google/protobufs/timestamp.proto
 % This will create the files addressbook_pb.pl, addressbook2_pb.pl, google/protobufs/timestamp_pb.pl
 %
@@ -35,9 +39,9 @@
 % This will create a file addressbook.wire that contains the "wire
 % format" of an AddressBook message. If you wish to see this file
 % using the Google tools:
-%   protoc --decode=tutorial.AddressBook addressbook.proto <addressbook.msg
+%   protoc --decode=tutorial.AddressBook addressbook.proto <addressbook.wire
 % or you could try the tutorial in another programming language for
-% comparison (it swill be able to process the addressbook.wire file
+% comparison (it should be able to process the addressbook.wire file
 % created by addressbook.pl).
 
 :- module(addressbook, [test_write/0, test_read/0]).

@@ -7,28 +7,27 @@
 # executable has been built (see ../../../CMAKE.md).
 
 # Assumes that you have downloaded
-# git@github.com:protocolbuffers/protobuf.git and built it following
-# the instructions. If you prefer to download (from
-# https://developers.google.com/protocol-buffers/docs/downloads) or
-# use the PPA (package `protobuf-compiler`, that will probably work
-# with some tweaking of things like PROTOC. (Note that the PPA was
-# fairly old at the time of writing this and I don't know whether that
-# matters or not.)
+# https://github.com/protocolbuffers/protobuf (or
+# git@github.com:protocolbuffers/protobuf.git) and built it following
+# the instructions. If you prefer to download (either by installing
+# the package `protobuf-compiler` the main Ubuntu or Debian
+# respository, or from
+# https://developers.google.com/protocol-buffers/docs/downloads), that
+# should work with some tweaking of things like PROTOC.
 
 # Assumption: protoc and swipl are in your $PATH ... you can override
 # these by setting PROTOC= or SWIPL= when envoking "make".
 
-# This has been run on Ubuntu 20.0.4. It will probably run on other Linuxes
-# but trying to run it on Windows (except as Windows Subsystem for Linux)
-# will likely end in tears.
+# This has been run on Ubuntu 20.0.4. It will probably run on other
+# Linuxes.  It has not been tried on Windows, except to ensure that
+# the C code compiles with MSVC.
 
 # Many of the rules at the end of this Makefile are for development
 # and will eventually be removed.
 
-# Naming conventions - see README.md section "descriptor.proto and friends"
+# For naming conventions - see README.md section "descriptor.proto and friends"
 
-# TODO: This doesn't do what I want:
-# MAKEFLAGS=--warn-undefined-variables
+MAKEFLAGS=--warn-undefined-variables
 
 include common.mk
 

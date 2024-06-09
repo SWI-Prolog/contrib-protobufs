@@ -1,8 +1,12 @@
 # Protobufs meta-data for plugin.proto, descriptor.proto (used by protoc-gen-swipl)
 
-The two files here (`plugin_pb.pl` and `descriptor_pb.pl` are supposed
-to be generated using `protoc-gen-swipl`, but they're part of the
-bootstrap process, so the process is a bit more involved.
+The two files here (`google/protobuf/compiler/plugin_pb.pl` and
+`google/protobuf/descriptor_pb.pl` can be generated using
+`protoc-gen-swipl` as part of the bootstrap process.
+
+The files were actually generated using
+`parse_descriptor_proto_dump.pl` and extracting the term expansion,
+plus a bit of editing to make them easier to read (for debugging).
 
 Here's the result of running "make" in the parent directory
 (`protobufs/bootstrap`) on `plugin.proto` (`descriptor.proto` is
@@ -17,7 +21,3 @@ $HOME/src/protobuf/src/protoc -I. -I$HOME/src/protobuf/src -I$HOME/src/protobuf/
 $HOME/src/swipl-devel/build/src/swipl -g "parse_wiredump('plugin.proto.wiredump')" \
 	-g halt parse_descriptor_proto_dump.pl >plugin.proto.parse
 ```
-
-The files were actually generated using
-`parse_descriptor_proto_dump.pl` and extracting the term expansion,
-plus a bit of editing to make them easier to read (for debugging).

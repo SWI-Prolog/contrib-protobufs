@@ -3,8 +3,11 @@
 RM=rm -f
 
 # Get the latest swipl, built from head:
-SWIPL:=$(realpath ../../../build/src/swipl)
-PATH_WITH_SWIPL:=$(realpath ../../../build/src):$$PATH
+# TODO: This only works if using CMake into directory "build":
+#       - use: current_prolog_flag(executable, Exe)
+BUILD_BIN_DIR?=../../../build/src
+SWIPL:=$(realpath $(BUILD_BIN_DIR)/swipl)
+PATH_WITH_SWIPL?=$(realpath $BUILD_BIN_DIR):$$PATH
 
 # Where to find descriptor.proto:
 PROTOC_DOTDOT:=$(realpath $(dir $(shell which protoc))/..)

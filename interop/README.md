@@ -15,9 +15,11 @@ To run the tests:
 make test
 make clean
 ```
-You can specify these additional variables:
+You can specify these additional variables (see also `../bootstrap/common.mk`):
 ```
-make PROTOC=/path/to/protoc PYTHON=/path/to/python3 SWIPL=/path/to/swipl test
+make PROTOC=/path/to/protoc PYTHON=/path/to/python3 \
+     BUILD_BIN_DIR=/path/to/build/src SWIPL=/path/to/build/src/swipl \
+    test
 ```
 
 The tests require the Python protobuf support. One way of installing it is:
@@ -27,8 +29,7 @@ python3 -mpip install protobuf
 But you should check the version: it should be at least 3.18.1 (which you can check
 by: `python3 -mpip show protobuf`), although it's possible that anything after
 3.8.0  will work.
-You might be tempted to install using `sudo apt install python3-protobuf`,
-but its version (as of 2021-10-12) is 3.6.1, which is too old.
+Alternatively, `sudo apt install python3-protobuf`, version 3.21.12-3 or later.
 
 You will also need the protobuf compiler. This can be installed on
 Debian (Ubuntu) by:

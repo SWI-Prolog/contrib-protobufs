@@ -2,7 +2,7 @@
 
 # To run this, you must install protobufs first. The easiest way is:
 #    sudo apt install protobuf-compiler
-# Or you can get the latest source and buid it:
+# Or you can get the latest source and buid it (see ../bootstrap/README.md):
 #    https://github.com/protocolbuffers/protobuf/blob/master/src/README.md
 
 # The demo is run by:

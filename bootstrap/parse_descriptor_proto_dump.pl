@@ -16,7 +16,6 @@
 
 %%
 %% This code is used to bootstrap the protoc plugin.
-%% TODO: document bootstrap.
 
 % This code is reversible -- see test_parse_round_trip/0.
 

@@ -434,8 +434,8 @@ static foreign_t
 int32_float32(term_t Int32, term_t Float32)
 {
   /* TODO: might generate better code if we do
-              asInt = (int32_t)asFloat
-              asFloat = (double)asInt
+              int32_t asInt = (int32_t)asFloat
+              float asFloat = (float)asInt
    */
   union
   {

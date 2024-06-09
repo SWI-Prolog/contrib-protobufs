@@ -9,6 +9,7 @@
 .PRECIOUS: %.pb.cc %.pb.h %_pb.h
 
 include ../bootstrap/common.mk
+PATH_WITH_SWIPL_PLUGIN=$(realpath ../bootstrap):$(PATH_WITH_SWIPL)
 
 # unittest.proto is copied from here (see README.md):
 #   UNITTEST_PROTO=$(SRC_PROTOBUF)/src/google/protobuf/unittest.proto
@@ -27,8 +28,9 @@ test: test_interop_prolog \
 .PHONY: run_addressbook
 run_addressbook: addressbook.pl addressbook_pb.pl addressbook2_pb.pl \
 		google/protobuf/timestamp_pb.pl FORCE
-	$(RM) addressbook.msg
+	$(RM) addressbook.wire
 	$(SWIPL) -g test_write -g test_write -g test_read -t halt addressbook.pl
+	protoc --decode=tutorial.AddressBook addressbook.proto <addressbook.wire
 
 # Protobuf code generator for Python and C++
 %_pb2.py %.pb.h %.pb.cc: %.proto
@@ -38,12 +40,12 @@ run_addressbook: addressbook.pl addressbook_pb.pl addressbook2_pb.pl \
 	@# PATH=".:$$PATH" $(PROTOC) $(PROTOC_I) --swipl_out=. $<
 	@# s/OUT_PARAMETER/all/ ? (see comment in protoc-gen-swipl
 	@#                         with Request.parameter)
-	PATH=$(PATH_WITH_SWIPL) $(PROTOC) $(PROTOC_I) --swipl_out='OUT_PARAMETER':. \
-		--plugin=protoc-gen-swipl=$(realpath ../bootstrap/protoc-gen-swipl) $<
+	@# don't need: --plugin=$(realpath ../bootstrap/protoc-gen-swipl)
+	@#         or: --plugin=protoc-gen-swipl=$(realpath ../bootstrap/protoc-gen-swipl)
+	PATH=$(PATH_WITH_SWIPL_PLUGIN) $(PROTOC) $(PROTOC_I) --swipl_out='OUT_PARAMETER':. $<
 
 google/protobuf/timestamp_pb.pl:  # in ~/.local/include/google/protobuf or similar
-	PATH=$(PATH_WITH_SWIPL) $(PROTOC) $(PROTOC_I) --swipl_out='OUT_PARAMETER':. \
-		--plugin=protoc-gen-swipl=$(realpath ../bootstrap/protoc-gen-swipl) \
+	PATH=$(PATH_WITH_SWIPL_PLUGIN) $(PROTOC) $(PROTOC_I) --swipl_out='OUT_PARAMETER':. \
 		google/protobuf/timestamp.proto
 
 .PHONY: run_test_read  # a convenience label
@@ -75,7 +77,7 @@ scalars1b_from_prolog.wire \
 #    $(SRC_PROTOBUF)/src/google/protobuf/unittest.proto
 # google/protobuf/unittest_pb.pl google/protobuf/unittest_import_pb.pl \
 # google/protobuf/unittest_pb2.py google/protobuf/unittest_import_pb2.py: google/protobuf/unittest.proto google/protobuf/unittest_import.proto ../bootstrap/protoc-gen-swipl
-# 	PATH=$(PATH_WITH_SWIPL) $(PROTOC) -I google/protobuf $(PROTOC_I) --swipl_out=. --python_out=. --plugin=protoc-gen-swipl=$(realpath ../bootstrap/protoc-gen-swipl) unittest_import_public.proto
+# 	PATH=$(PATH_WITH_SWIPL_PLUGIN) $(PROTOC) -I google/protobuf $(PROTOC_I) --swipl_out=. --python_out=. unittest_import_public.proto
 
 .PHONY: test_interop_prolog
 test_interop_prolog: test_interop.pl \

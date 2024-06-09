@@ -113,8 +113,10 @@ main2(Argv, FileName) :-
         ;   format('swi_prolog_version(\'~w.~w.~w.~w\').~n', [Major, Minor, Path, Extra])
         )
     ),
+    current_prolog_flag(executable, Exe),
+    format('swi_prolog_exe(~q).~n', [Exe]),
     ProtocVersion = Request.compiler_version,
-    (   ProtocVersion.suffix == ''
+    (   ProtocVersion.suffix == '' ; ProtocVersion.suffix == ""
     ->  format('protoc_version(\'~w.~w.~w\').~n',
                [ProtocVersion.major, ProtocVersion.minor, ProtocVersion.patch])
     ;   format('protoc_version(\'~w.~w.~w.~w\').~n',
@@ -165,7 +167,7 @@ nb_set_dict_value(Key, Value, Dict) :-
     nb_set_dict(Key, Dict, Value).
 
 generated_preds(Preds) :-
-        Preds = [
+    Preds = [
      'protobufs:proto_meta_normalize/2,              % (Unnormalized, Normalized)',
      'protobufs:proto_meta_package/3,                % (Package, FileName, Options)',
      'protobufs:proto_meta_message_type/3,           % (Fqn, Package, Name)',
