@@ -150,7 +150,7 @@ test_protobufs:
 
 .PHONY: rebuild rebuild_clean rebuild other_tests
 
-rebuild_clean:
+rebuild_clean:  # TODO: rename as dist_clean
 	cd ../../.. && git clean -dxf
 	$(MAKE) rebuild
 

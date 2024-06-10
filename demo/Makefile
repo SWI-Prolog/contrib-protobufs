@@ -76,7 +76,7 @@ test_send_precompiled_command: vector_demo.pl FORCE
 clean:
 	@# TODO: special handling for descriptor.* files
 	$(RM) -r foo *.tmp *.o *.pb.cc *.pb.h *_pb2.py
-	git clean -dxf  # Should find nothing.
+	git clean -ndxf  # Should find nothing.
 
 # Assume you've cloned git@github.com:protocolbuffers/protobuf.git (fetch) to $(HOME)/src.
 # Note that ../golden_message.2.5.0 is the same as $(HOME)/src/protobuf/python/compatibility_tests/v2.5.0/tests/google/protobuf/internal/golden_message

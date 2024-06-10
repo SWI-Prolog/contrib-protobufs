@@ -113,6 +113,10 @@ execute_process(COMMAND python3 -c "from google.protobuf import descriptor_pb2"
 		OUTPUT_VARIABLE python3_protobuf_output
 		ERROR_QUIET)
 
+# TODO: The protobuf tests leave stuff in the source directories
+#       These can be removed by:
+#           for d in interop demo bootstrap; do make -C $d clean; done
+#          (also: "git clean -dxf", but that's dangerous)
 if(BUILD_TESTING AND TEST_PROTOBUFS_PROTOC)
   if(PROTOC AND PKG_CONFIG AND "${python3_protobuf}" EQUAL "0")
       add_test(NAME "${SWIPL_PKG}:bootstrap"

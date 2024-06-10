@@ -2,10 +2,13 @@
 
 RM=rm -f
 
-# Get the latest swipl, built from head:
-# TODO: This only works if using CMake into directory "build":
-#       - use: current_prolog_flag(executable, Exe)
+# If running from cmake, the command sets SWIPL=${PROG_SWIPL}
+#       - See also: current_prolog_flag(executable, Exe)
+ifdef SWIPL
+BUILD_BIN_DIR?=$(dir $(SWIPL))
+else
 BUILD_BIN_DIR?=../../../build/src
+endif
 SWIPL:=$(realpath $(BUILD_BIN_DIR)/swipl)
 PATH_WITH_SWIPL?=$(realpath $BUILD_BIN_DIR):$$PATH
 
