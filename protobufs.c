@@ -3,7 +3,7 @@
     Author:        Jeffrey Rosenwald, extended by Peter Ludemann
     E-mail:        jeffrose@acm.org, peter.ludemann@gmail.com
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2010-2015, Jeffrey Rosenwald
+    Copyright (c)  2010-2015, Jeffrey Rosenwald; 2021-2024, SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
