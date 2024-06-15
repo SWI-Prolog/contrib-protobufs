@@ -36,15 +36,6 @@
         [ test_protobufs/0
         ]).
 
-% Trap syntax errors and halt. See https://github.com/SWI-Prolog/swipl-devel/issues/826
-% TODO: Not needed any more? (As of swil 8.3.29, it is needed)
-:- multifile user:message_hook/3.
-:- dynamic user:message_hook/3.
-user:message_hook(Term, error, Lines) :-
-    Term = error(syntax_error(_Msg), _Details),
-    print_message_lines(user_error, 'ERROR: ', Lines),
-    halt(1).
-
 :- use_module(library(plunit)).
 
 :- asserta(user:file_search_path(library, .)).
