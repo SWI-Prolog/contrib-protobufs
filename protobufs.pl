@@ -111,24 +111,24 @@ The protobuf_parse_from_codes/3 and protobuf_serialize_to_codes/3
 interface translates between a "wire stream" and a Prolog term. This
 interface takes advantage of SWI-Prolog's
 [dict](</pldoc/man?section=bidicts>).
-There is a =protoc= plugin (=protoc-gen-swipl=) that generates a
+The =protoc= plugin (=protoc-gen-swipl=) generates a
 Prolog file of meta-information that captures the =|.proto|= file's
-definition in the =protobufs= module:
+definition in the =protobufs= module, with the following facts:
    * =|proto_meta_normalize(Unnormalized, Normalized)|=
    * =|proto_meta_package(Package, FileName, Options)|=
-   * =|proto_meta_message_type(                    Fqn,     Package, Name)|=
-   * =|proto_meta_message_type_map_entry(          Fqn)|=
-   * =|proto_meta_field_name(                      Fqn,     FieldNumber, FieldName, FqnName)|=
-   * =|proto_meta_field_json_name(                 FqnName, JsonName)|=
-   * =|proto_meta_field_label(                     FqnName, LabelRepeatOptional) % 'LABEL_OPTIONAL', 'LABEL_REQUIRED', 'LABEL_REPEATED'|=
-   * =|proto_meta_field_type(                      FqnName, Type) % 'TYPE_INT32', 'TYPE_MESSAGE', etc|=
-   * =|proto_meta_field_type_name(                 FqnName, TypeName)|=
-   * =|proto_meta_field_default_value(             FqnName, DefaultValue)|=
-   * =|proto_meta_field_option_packed(             FqnName)|=
-   * =|proto_meta_enum_type(                       FqnName, Fqn, Name)|=
-   * =|proto_meta_enum_value(                      FqnName, Name, Number)|=
-   * =|proto_meta_field_oneof_index(               FqnName, Index)|=
-   * =|proto_meta_oneof(                           FqnName, Index, Name)|=
+   * =|proto_meta_message_type(Fqn, Package, Name)|=
+   * =|proto_meta_message_type_map_entry(Fqn)|=
+   * =|proto_meta_field_name(Fqn, FieldNumber, FieldName, FqnName)|=
+   * =|proto_meta_field_json_name(FqnName, JsonName)|=
+   * =|proto_meta_field_label(FqnName, LabelRepeatOptional) % 'LABEL_OPTIONAL', 'LABEL_REQUIRED', 'LABEL_REPEATED'|=
+   * =|proto_meta_field_type(FqnName, Type) % 'TYPE_INT32', 'TYPE_MESSAGE', etc|=
+   * =|proto_meta_field_type_name(FqnName, TypeName)|=
+   * =|proto_meta_field_default_value(FqnName, DefaultValue)|=
+   * =|proto_meta_field_option_packed(FqnName)|=
+   * =|proto_meta_enum_type(FqnName, Fqn, Name)|=
+   * =|proto_meta_enum_value(FqnName, Name, Number)|=
+   * =|proto_meta_field_oneof_index(FqnName, Index)|=
+   * =|proto_meta_oneof(FqnName, Index, Name)|=
 
 The protobuf_message/2 interface allows you to define your message
 template as a list of predefined

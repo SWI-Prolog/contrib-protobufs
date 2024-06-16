@@ -16,8 +16,8 @@
 \begin{document}
 
 \title{Google's Protocol Buffers Library}
-\author{Jeffrey Rosenwald \\
-        E-mail: \email{JeffRose@acm.org}}
+\author{Jeffrey Rosenwald, Peter Ludemann \\
+        E-mail: \email{JeffRose@acm.org}, \email{peter.ludemann@gmail.com}}
 
 \maketitle
 
