@@ -30,7 +30,7 @@ run_addressbook: addressbook.pl addressbook_pb.pl addressbook2_pb.pl \
 		google/protobuf/timestamp_pb.pl FORCE
 	$(RM) addressbook.wire
 	$(SWIPL) -g test_write -g test_write -g test_read -t halt addressbook.pl
-	protoc --decode=tutorial.AddressBook addressbook.proto <addressbook.wire
+	$(PROTOC) --decode=tutorial.AddressBook addressbook.proto <addressbook.wire
 
 # Protobuf code generator for Python and C++
 %_pb2.py %.pb.h %.pb.cc: %.proto

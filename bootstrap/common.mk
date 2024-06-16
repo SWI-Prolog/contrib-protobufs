@@ -7,13 +7,13 @@ RM=rm -f
 ifdef SWIPL
 BUILD_BIN_DIR?=$(dir $(SWIPL))
 else
-BUILD_BIN_DIR?=../../../build/src
+BUILD_BIN_DIR?=$(dir $(shell which swipl))
+SWIPL?=$(BUILD_BIN_DIR)swipl
 endif
-SWIPL:=$(realpath $(BUILD_BIN_DIR)/swipl)
-PATH_WITH_SWIPL?=$(realpath $BUILD_BIN_DIR):$$PATH
+PATH_WITH_SWIPL?=$(realpath -s $BUILD_BIN_DIR):$$PATH
 
 # Where to find descriptor.proto:
-PROTOC_DOTDOT:=$(realpath $(dir $(shell which protoc))/..)
+PROTOC_DOTDOT:=$(realpath -s $(dir $(shell which protoc))/..)
 PROTOC_INCLUDE=$(PROTOC_DOTDOT)/include
 PROTOC_LIB:=$(PROTOC_DOTDOT)/lib
 
@@ -21,10 +21,10 @@ PROTOC_GEN_PROLOG_PB=gen_pb
 
 # If SHELL is bash, can use `type -p protoc` instead of `which protoc`
 # Requires having done "make" in ~/src/protobufs:
-#   PROTOC:=$(realpath $(HOME)/src/protobuf/src/protoc)
+#   PROTOC:=$(realpath -s $(HOME)/src/protobuf/src/protoc)
 PROTOC:=$(shell which protoc)
 # Requires having LD_LIBRARY_PATH=$(realpath ../../../../protobuf/src/.libs):
-#   PROTOC:=$(realpath $(HOME)/src/protobuf/src/.libs/protoc)
+#   PROTOC:=$(realpath -s $(HOME)/src/protobuf/src/.libs/protoc)
 
 # If using $SRC/protobuf from git@github.com:protocolbuffers/protobuf.git:
 #   -I$(SRC)/protobuf/src/google/protobuf

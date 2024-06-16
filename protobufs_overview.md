@@ -732,7 +732,33 @@ which is then embedded in the wire   stream. Recursive structures can be
 defined this way. A simple example of  a recursive XML like structure is
 shown in the appendix.
 
-# Appendix {#protobufs-appendix}
+# Appendix (examples) {#protobufs-appendix}
+
+## Example directories {#protobufs-example-directories}
+
+The examples are in
+`/usr/share/swi-prolog/doc/packages/examples/protobufs`,
+which is part of the `swi-prolog-doc` package. Each directory
+has a README. To run these, you will need to copy them to a
+writeable directory.
+* `bootstrap` - This contains the file `common.mk` file, which is used by the `demo` and
+`interop` Makefiles.
+* demo - the `test` goal runs some examples.
+* interop - used for testing interoperability with C++ and Python
+
+Additional tests are in [test\_protobufs.pl](https://github.com/SWI-Prolog/contrib-protobufs/blob/master/test_protobufs.pl).
+
+See also [Addressbook example](#protobufs-addressbook-example).
+
+The protobuf compiler (`protoc`) uses two protobuf formats
+to communicate with the plugin:
+* [plugin.proto](https://github.com/protocolbuffers/protobuf/blob/main/src/google/protobuf/compiler/plugin.proto)
+* [descriptor.proto](https://github.com/protocolbuffers/protobuf/blob/main/src/google/protobuf/descriptor.proto)
+
+The Prolog code that were generated from these, as part of the bootstrap
+process, are:
+* [plugin\_pb.pl](https://github.com/SWI-Prolog/contrib-protobufs/blob/master/bootstrap/gen_pb/google/protobuf/compiler/plugin_pb.pl)
+* [descriptor\_pb.pl](https://github.com/SWI-Prolog/contrib-protobufs/blob/master/bootstrap/gen_pb/google/protobuf/descriptor_pb.pl)
 
 ## Example: A Simple XML Like Structure {#protobufs-ex-xml}
 
