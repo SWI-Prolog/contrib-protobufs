@@ -944,7 +944,7 @@ tag_and_codes(Tag, Codes) -->
 % @error Type,Domain if =Value= or =Codes= are of the wrong
 %                    type or out of range.
 uint32_codes_when(Uint32, Codes) :-
-    when((nonvar(Uint32) ; ground(Codes)), uint32_codes(Uint32, Codes)).
+    when((nonvar(Uint32) ; nonvar(Codes)), uint32_codes(Uint32, Codes)).
 
 %! int32_codes_when(?Int32, ?Codes) is det.
 % Convert between a 32-bit signed integer value and its wirestream codes.
@@ -965,7 +965,7 @@ uint32_codes_when(Uint32, Codes) :-
 % @error Type,Domain if =Value= or =Codes= are of the wrong
 %                    type or out of range.
 int32_codes_when(Int32, Codes) :- % TODO: unused
-    when((nonvar(Int32) ; ground(Codes)), int32_codes(Int32, Codes)).
+    when((nonvar(Int32) ; nonvar(Codes)), int32_codes(Int32, Codes)).
 
 %! float32_codes_when(?Value, ?Codes) is det.
 % Convert between a 32-bit floating point value and its wirestream codes.
@@ -980,7 +980,7 @@ int32_codes_when(Int32, Codes) :- % TODO: unused
 % @param Value a floating point number
 % @param Codes a list of 4 integers (codes)
 float32_codes_when(Value, Codes) :-
-    when((nonvar(Value) ; ground(Codes)), float32_codes(Value, Codes)).
+    when((nonvar(Value) ; nonvar(Codes)), float32_codes(Value, Codes)).
 
 %! uint64_codes_when(?Uint64, ?Codes) is det.
 % Convert between a 64-bit unsigned integer value and its wirestream codes.
@@ -1002,7 +1002,7 @@ float32_codes_when(Value, Codes) :-
 % @error Type,Domain if =Uint64= or =Codes= are of the wrong
 %                    type or out of range.
 uint64_codes_when(Uint64, Codes) :-
-    when((nonvar(Uint64) ; ground(Codes)), uint64_codes(Uint64, Codes)).
+    when((nonvar(Uint64) ; nonvar(Codes)), uint64_codes(Uint64, Codes)).
 
 %! int64_codes_when(?Int64, ?Codes) is det.
 % Convert between a 64-bit signed integer value and its wirestream codes.
@@ -1024,7 +1024,7 @@ uint64_codes_when(Uint64, Codes) :-
 % @error Type,Domain if =Int64= or =Codes= are of the wrong
 %                    type or out of range.
 int64_codes_when(Int64, Codes) :-  % TODO: unused
-    when((nonvar(Int64) ; ground(Codes)), int64_codes(Int64, Codes)).
+    when((nonvar(Int64) ; nonvar(Codes)), int64_codes(Int64, Codes)).
 
 %! float64_codes_when(?Value, ?Codes) is det.
 % Convert between a 64-bit floating point value and its wirestream codes.
@@ -1044,7 +1044,7 @@ int64_codes_when(Int64, Codes) :-  % TODO: unused
 % @bug May give misleading exception under some circumstances
 %      (e.g., float64_codes(_, [_,_,_,_,_,_,_,_]).
 float64_codes_when(Value, Codes) :-
-    when((nonvar(Value) ; ground(Codes)), float64_codes(Value, Codes)).
+    when((nonvar(Value) ; nonvar(Codes)), float64_codes(Value, Codes)).
 
 %! int64_zigzag_when(?Original, ?Encoded) is det.
 % Convert between a signed integer value and its zigzag encoding,

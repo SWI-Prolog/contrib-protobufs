@@ -2,6 +2,9 @@
 
 # See comments in ../demo/Makefile about PKG_CONFIG_PATH
 
+# You may also need to set PATH_WITH_SWIPL (used by the protoc plugin
+# - this should be the something like "../../../build/src:/usr/bin"
+
 .DEFAULT_GOAL=test
 .PHONY=test clean FORCE
 # SHELL:=/bin/bash
