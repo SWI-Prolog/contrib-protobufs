@@ -3,7 +3,8 @@
     Author:        Jeffrey Rosenwald, extended by Peter Ludemann
     E-mail:        jeffrose@acm.org, peter.ludemann@gmail.com
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2010-2013, Jeffrey Rosenwald; 2021-2024, SWI-Prolog Solutions b.v.
+    Copyright (c)  2010-2013, Jeffrey Rosenwald;
+                   2021-2025, SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -183,7 +184,7 @@ installed at
 % then none of the other fields is set. You can determine which field
 % had a value by using get_dict/3.
 %
-% @tbd document the generated terms (see library(http/json) and json_read_dict/3)
+% @tbd document the generated terms (see library(json) and json_read_dict/3)
 % @tbd add options such as =true= and =value_string_as= (similar to json_read_dict/3)
 % @tbd add option for form of the [dict](</pldoc/man?section=bidicts>) tags (fully qualified or not)
 % @tbd add option for outputting fields in the C++/Python/Java order
