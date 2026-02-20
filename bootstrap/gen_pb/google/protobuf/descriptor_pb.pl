@@ -7,10 +7,11 @@
 :-encoding(utf8).
 :-multifile protobufs:protoc_gen_swipl_version/2.
 protobufs:protoc_gen_swipl_version(descriptor_pb,[0,9,1]).
-swi_prolog_version('8.3.27-14-g25936d9ba-DIRTY').
-protoc_version('3.17.3.').
+swi_prolog_version('9.3.35-15-gfd4dd90cb-DIRTY').
+swi_prolog_exe('/home/peter/.local/lib/swipl/bin/x86_64-linux/swipl').
+protoc_version('3.21.12').
 prototoc_gen_swipl_args([]).
-protoc_run_time('2021-07-19T23:01:58+0000', '2021-07-19T16:01:58-0700').
+protoc_run_time('2025-11-25T06:55:26+0000', '2025-11-24T22:55:26-0800').
 file_to_generate(["google/protobuf/descriptor.proto"]).
 
 :- multifile
@@ -31,7 +32,7 @@ file_to_generate(["google/protobuf/descriptor.proto"]).
     protobufs:proto_meta_oneof/3.                  % (FqnName, Index, Name)
 
 % Generated proto_meta_... facts:
-  % protoc compiler version: 3.17.3.
+  % protoc compiler version: 3.21.12.
   % file_to_generate: ["google/protobuf/descriptor.proto"]
   % parameter: ""
   % Processing file "google/protobuf/descriptor.proto"
@@ -740,6 +741,13 @@ protobufs:proto_meta_field_type('.google.protobuf.FieldOptions.lazy','TYPE_BOOL'
 protobufs:proto_meta_field_type_name('.google.protobuf.FieldOptions.lazy','').
 protobufs:proto_meta_field_oneof_index('.google.protobuf.FieldOptions.lazy',0).
 protobufs:proto_meta_field_default_value('.google.protobuf.FieldOptions.lazy',false).
+protobufs:proto_meta_field_name('.google.protobuf.FieldOptions',15,unverified_lazy,'.google.protobuf.FieldOptions.unverified_lazy').
+protobufs:proto_meta_field_json_name('.google.protobuf.FieldOptions.unverified_lazy',unverifiedLazy).
+protobufs:proto_meta_field_label('.google.protobuf.FieldOptions.unverified_lazy','LABEL_OPTIONAL').
+protobufs:proto_meta_field_type('.google.protobuf.FieldOptions.unverified_lazy','TYPE_BOOL').
+protobufs:proto_meta_field_type_name('.google.protobuf.FieldOptions.unverified_lazy','').
+protobufs:proto_meta_field_oneof_index('.google.protobuf.FieldOptions.unverified_lazy',0).
+protobufs:proto_meta_field_default_value('.google.protobuf.FieldOptions.unverified_lazy',false).
 protobufs:proto_meta_field_name('.google.protobuf.FieldOptions',3,deprecated,'.google.protobuf.FieldOptions.deprecated').
 protobufs:proto_meta_field_json_name('.google.protobuf.FieldOptions.deprecated',deprecated).
 protobufs:proto_meta_field_label('.google.protobuf.FieldOptions.deprecated','LABEL_OPTIONAL').

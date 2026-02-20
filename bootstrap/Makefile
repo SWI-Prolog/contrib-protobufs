@@ -43,7 +43,8 @@ all: bootstrap
 
 test: test_segment_messages $(PROTOC_GEN_PROLOG_PB)/google/protobuf/descriptor.proto.segment
 
-all2: $(PROTOC_GEN_PROLOG_PB)/google/protobuf/compiler/plugin.proto.wiredump \
+all2: \
+     $(PROTOC_GEN_PROLOG_PB)/google/protobuf/compiler/plugin.proto.wiredump \
      $(PROTOC_GEN_PROLOG_PB)/google/protobuf/compiler/plugin.proto.wire \
      $(PROTOC_GEN_PROLOG_PB)/google/protobuf/compiler/plugin.proto.parse \
      $(PROTOC_GEN_PROLOG_PB)/google/protobuf/compiler/plugin.proto.segment \
@@ -53,7 +54,6 @@ all2: $(PROTOC_GEN_PROLOG_PB)/google/protobuf/compiler/plugin.proto.wiredump \
      $(PROTOC_GEN_PROLOG_PB)/google/protobuf/descriptor.proto.segment \
      bootstrap
 
-.PHONY: bootstrap
 # The *_pb.qlf files aren't used (just the *_pb.pl files)
 # but are generated for the "--undefined" check.
 bootstrap: $(PROTOC_GEN_PROLOG_PB)/google/protobuf/descriptor_pb.qlf $(PROTOC_GEN_PROLOG_PB)/google/protobuf/compiler/plugin_pb.qlf
@@ -90,7 +90,7 @@ $(PROTOC_GEN_PROLOG_PB)/%.proto.wire: $(PROTOC_INCLUDE)/%.proto
 
 # Run the protobuf_segment_messages test.
 # See also rules descriptor.proto.wirerawdump, descriptor.proto.wiredump
-test_segment_messages: $(PROTOC_GEN_PROLOG_PB)/google/protobuf/descriptor.proto.wire tests.pl FORCE
+test_segment_messages: $(PROTOC_GEN_PROLOG_PB)/google/protobuf/descriptor.proto.wire tests.pl
 	$(SWIPL) -g "test_segment_messages('$(PROTOC_GEN_PROLOG_PB)/google/protobuf/descriptor.proto.wire')" -g halt tests.pl
 
 %.proto.wiredump: %.proto.wire
@@ -125,6 +125,7 @@ clean:
 		$(PROTOC_GEN_PROLOG_PB)/google/protobuf/compiler/*_pb2.py \
 		__pycache__
 	git clean -ndxf  # Should find nothing.
+	git status -s
 
 # For testing: this is what the build does.
 
