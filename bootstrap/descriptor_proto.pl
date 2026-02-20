@@ -39,6 +39,7 @@
 :- use_module(library(readutil), [read_stream_to_codes/3]).
 :- use_module(library(protobufs)).
 :- use_module(library(debug)).
+:- use_module(library(pcre), [re_replace/4]).
 
 :- initialization(main, main).
 

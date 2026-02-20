@@ -217,8 +217,7 @@ expand_file(FileToGenerate, File) :-
 
 :- det(expand_file_impl/1).
 expand_file_impl(File) :-
-    lookup_pieces('.google.protobuf.FileDescriptorProto',
-                  File,
+    lookup_pieces('.google.protobuf.FileDescriptorProto', File,
                   _{
                     name:              ''              -File_name,
                     package:           ''              -File_package,
@@ -257,8 +256,7 @@ expand_file_dependency(File, Dependency) :-
 
 :- det(expand_DescriptorProto/2).
 expand_DescriptorProto(Fqn, MessageType) :-
-    lookup_pieces('.google.protobuf.DescriptorProto',
-                  MessageType,
+    lookup_pieces('.google.protobuf.DescriptorProto', MessageType,
                   _{
                     name:            ''      -MessageType_name,
                     field:           []       -MessageType_field,
@@ -291,8 +289,7 @@ fqn_no_dot(FqnName, FqnNameNoDot) :-
 
 :- det(expand_OneofDescriptorProto/3).
 expand_OneofDescriptorProto(Fqn, N, Oneof) :-
-    lookup_pieces('.google.protobuf.OneofDescriptorProto',
-                  Oneof,
+    lookup_pieces('.google.protobuf.OneofDescriptorProto', Oneof,
                   _{
                     name:            ''               -Oneof_name,
                     options:         []               -_ % TODO: ??? unused
@@ -385,7 +382,8 @@ expand_FieldOptions(FqnName, Options) :-
                     lazy:                 false -_,
                     deprecated:           false -_, % TODO: output warning if a deprecated field is used
                     weak:                 false -_,
-                    uninterpreted_option: _     -_
+                    uninterpreted_option: _     -_,
+                    unverified_lazy:      _     -_
                    }),
     (   Option_packed = true
     ->  output_fact(proto_meta_field_option_packed(FqnName))
@@ -436,18 +434,20 @@ lookup_pieces(Tag, DataDict, LookupDict) :-
     is_dict(DataDict, Tag0),
     assertion(Tag == Tag0),
     dict_pairs(LookupDict, _, LookupPairs),
-    lookup_piece_pairs(LookupPairs, DataDict).
+    foldl(lookup_piece_pair, LookupPairs, DataDict, RemainderDict),
+    (   RemainderDict = _{}
+    ->  true
+    ;   throw(error('Unknown'(RemainderDict, Tag, DataDict), _))
+    ).
 
-lookup_piece_pairs([], RemainderDict) =>
-    RemainderDict = _{}. % For debugging: assertion(RemainderDict = _{})
-lookup_piece_pairs([Key-(Default-Value)|KDVs], DataDict0) =>
+:- det(lookup_piece_pair/2).
+lookup_piece_pair(Key-(Default-Value), DataDict0, DataDict) =>
     dict_create(D0, _, [Key-Value]),
     (   select_dict(D0, DataDict0, DataDict)
     ->  true
     ;   Value = Default,
         DataDict = DataDict0
-    ),
-    lookup_piece_pairs(KDVs, DataDict).
+    ).
 
 add_to_fqn(Fqn, Name, FqnName) :-
     atomic_list_concat([Fqn, Name], '.', FqnName).
