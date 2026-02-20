@@ -7,6 +7,7 @@
            test_segment_messages/1
           ]).
 
+:- use_module(library(debug), [assertion/1]).
 :- use_module(library(protobufs)).
 
 %! test_segment_messages is det.

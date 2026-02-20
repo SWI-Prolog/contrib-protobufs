@@ -101,14 +101,22 @@ swipl_examples(
 test_libs(protobufs
           TEST_FILES
               golden_message.2.3.0 golden_message.2.5.0
-              eventually_implies.pl)
+              eventually_implies.pl
+              test_bootstrap.sh test_interop.sh test_demo.sh
+              some_message.proto
+              some_message.py
+              test_protobufs.pl
+          TEST_DIRS
+              bootstrap demo interop
+              )
 
 find_program(PROTOC protoc)
 find_program(PKG_CONFIG pkg-config)
 
 # TODO: check minimal versions of protoc, python3, pip protobuf
 
-execute_process(COMMAND python3 -c "from google.protobuf import descriptor_pb2"
+find_program(PYTHON_EXE python3 REQUIRED)
+execute_process(COMMAND ${PYTHON_EXE} -c "from google.protobuf import descriptor_pb2"
 		RESULT_VARIABLE python3_protobuf
 		OUTPUT_VARIABLE python3_protobuf_output
 		ERROR_QUIET)
@@ -119,22 +127,23 @@ execute_process(COMMAND python3 -c "from google.protobuf import descriptor_pb2"
 #          (also: "git clean -dxf", but that's dangerous)
 if(BUILD_TESTING AND TEST_PROTOBUFS_PROTOC)
   if(PROTOC AND PKG_CONFIG AND "${python3_protobuf}" EQUAL "0")
+      find_program(BASH_EXE bash REQUIRED)
       add_test(NAME "${SWIPL_PKG}:bootstrap"
-               COMMAND make SWIPL=${PROG_SWIPL} -C ${CMAKE_CURRENT_SOURCE_DIR}/bootstrap clean test)
+               COMMAND ${BASH_EXE} ${CMAKE_CURRENT_SOURCE_DIR}/test_bootstrap.sh ${PROG_SWIPL} ${CMAKE_CURRENT_SOURCE_DIR}/bootstrap)
       if(USE_GMP)
           add_test(NAME "${SWIPL_PKG}:interop"
-                   COMMAND make SWIPL=${PROG_SWIPL} -C ${CMAKE_CURRENT_SOURCE_DIR}/interop clean test run_addressbook)
+                   COMMAND ${BASH_EXE} ${CMAKE_CURRENT_SOURCE_DIR}/test_interop.sh ${PROG_SWIPL} ${CMAKE_CURRENT_SOURCE_DIR}/interop)
       else()
           message(WARNING "${SWIPL_PKG}:interop skipped because it needs GMP")
       endif()
       add_test(NAME "${SWIPL_PKG}:demo"
-               COMMAND make SWIPL=${PROG_SWIPL} -C ${CMAKE_CURRENT_SOURCE_DIR}/demo clean test)
+               COMMAND ${BASH_EXE} ${CMAKE_CURRENT_SOURCE_DIR}/test_demo.sh ${PROG_SWIPL} ${CMAKE_CURRENT_SOURCE_DIR}/demo)
   else()
       message(WARNING "Some ${SWIPL_PKG} tests not run because of missing pkg-config, protoc, or python/protobuf")
-      # message(WARNING "See demo/README.md for how to set up the build and test environment")
-      # message("pkg-config: ${PKG_CONFIG}")
-      # message("protoc: ${PROTOC}")
-      # message("python3_protobuf: ${python3_protobuf}")
+      message(WARNING "See demo/README.md for how to set up the build and test environment")
+      message(WARNING "pkg-config: ${PKG_CONFIG}")
+      message(WARNING "protoc: ${PROTOC}")
+      message(WARNING "python3_protobuf: ${python3_protobuf}")
   endif()
 else()
   if(BUILD_TESTING)
