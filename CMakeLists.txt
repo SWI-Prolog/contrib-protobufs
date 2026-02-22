@@ -117,7 +117,7 @@ find_program(PKG_CONFIG pkg-config)
 
 find_program(PROG_PYTHON NAMES python3 python)
 if(PROG_PYTHON)
-  execute_process(COMMAND ${PYTHON_EXE} -c "from google.protobuf import descriptor_pb2"
+  execute_process(COMMAND ${PROG_PYTHON} -c "from google.protobuf import descriptor_pb2"
     RESULT_VARIABLE python3_protobuf
     OUTPUT_VARIABLE python3_protobuf_output
     ERROR_QUIET)
