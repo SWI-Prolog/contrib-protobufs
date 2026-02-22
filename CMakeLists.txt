@@ -115,11 +115,13 @@ find_program(PKG_CONFIG pkg-config)
 
 # TODO: check minimal versions of protoc, python3, pip protobuf
 
-find_program(PYTHON_EXE python3 REQUIRED)
-execute_process(COMMAND ${PYTHON_EXE} -c "from google.protobuf import descriptor_pb2"
-		RESULT_VARIABLE python3_protobuf
-		OUTPUT_VARIABLE python3_protobuf_output
-		ERROR_QUIET)
+find_program(PROG_PYTHON NAMES python3 python)
+if(PROG_PYTHON)
+  execute_process(COMMAND ${PYTHON_EXE} -c "from google.protobuf import descriptor_pb2"
+    RESULT_VARIABLE python3_protobuf
+    OUTPUT_VARIABLE python3_protobuf_output
+    ERROR_QUIET)
+endif()
 
 # TODO: The protobuf tests leave stuff in the source directories
 #       These can be removed by:
