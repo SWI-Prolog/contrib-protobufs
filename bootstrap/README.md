@@ -5,11 +5,11 @@
 The bootstrap used files from https://github.com/protocolbuffers/protobuf
 dated 12 Oct 2021 (commit `39013ab238a152b1794080b369f8c6648ab8104b`).
 
-The `protoc` executable is version 3.6.1
+This was originally generated with `protoc` version 3.6.1.
 
-As of June 2024, the only changes to `descriptor.proto` are some
-comments and the addition of the field `unverified_lazy`;
-`plugin.proto` hasn't changed.
+As of June 2024 (`protoc` 3.21.12), the only changes to
+`descriptor.proto` are some comments and the addition of the field
+`unverified_lazy`; `plugin.proto` hasn't changed.
 
 ## Installing protobuf (on Ubuntu)
 
@@ -26,8 +26,13 @@ There are some additional notes on this in the `Makefile`.
 TODO: These notes reflect an older stage of the bootstrap process.
 Both the notes and the Makefile need to be cleaned up, to remove stuff
 that's no longer needed. However, Google has enormous amounts of code
-that depeds on protobufs, so all changes are extremely likely to be
+that depends on protobufs, so all changes are very likely to be
 backwards compatible.
+
+NOTE: the Prolog plugin outputs an error if there is a field it
+doesn't recognize. This is to catch the unlikely event that the
+`.proto` specification has changed by adding something which changes
+the meaning of existing fields.
 
 ## Overview of the original bootstrap process
 
@@ -47,7 +52,7 @@ the original bootstrap code was no longer needed, and the
 
 If for some reason you need to redo the bootstrap, you'll very likely
 need to modify the simple parser - the ".wiredump" files were deleted
-because I didn't want to keep updating the parser as new features were
+because I didn't want to keep updating the parser as new features are
 added to protobufs.
 
 The tests are fairly minimal. For additional testing, see directory `interop`.

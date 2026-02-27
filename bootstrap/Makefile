@@ -67,6 +67,7 @@ bootstrap: $(PROTOC_GEN_PROLOG_PB)/google/protobuf/descriptor_pb.qlf $(PROTOC_GE
 		--plugin=protoc-gen-swipl=$(realpath protoc-gen-swipl) $<
 
 $(PROTOC_GEN_PROLOG_PB)/%_pb.pl: $(PROTOC_INCLUDE)/%.proto protoc-gen-swipl
+	PATH=$(PATH_WITH_SWIPL) $(PROTOC) --version
 	PATH=$(PATH_WITH_SWIPL) $(PROTOC) -I$(PROTOC_INCLUDE) --swipl_out=$(PROTOC_GEN_PROLOG_PB) \
 		--plugin=protoc-gen-swipl=$(realpath protoc-gen-swipl) $(subst $(PROTOC_INCLUDE)/,,$<)
 
@@ -78,14 +79,16 @@ $(PROTOC_GEN_PROLOG_PB)/%_pb.pl: $(PROTOC_INCLUDE)/%.proto protoc-gen-swipl
 
 # TODO: should put the *_pb2.py files in a different directory
 $(PROTOC_GEN_PROLOG_PB)/%_pb2.py: $(PROTOC_INCLUDE)/%.proto
-	$(PROTOC) $(PROTOC_I) -I$(PROTOC_INCLUDE) --python_out=$(PROTOC_GEN_PROLOG_PB) \
+	PATH=$(PATH_WITH_SWIPL) $(PROTOC) --version
+	PATH=$(PATH_WITH_SWIPL) $(PROTOC) $(PROTOC_I) -I$(PROTOC_INCLUDE) --python_out=$(PROTOC_GEN_PROLOG_PB) \
 		$(subst $(PROTOC_INCLUDE)/,,$<)
 
 # Make a binary protobuf msg file (see $(DESCRIPTOR_PROTO)) with a
 # FileDescriptorSet message, describing the .proto and all its
 # dependencies:
 $(PROTOC_GEN_PROLOG_PB)/%.proto.wire: $(PROTOC_INCLUDE)/%.proto
-	$(PROTOC) -I$(PROTOC_INCLUDE) --include_imports --descriptor_set_out=$@ \
+	PATH=$(PATH_WITH_SWIPL) $(PROTOC) --version
+	PATH=$(PATH_WITH_SWIPL) $(PROTOC) -I$(PROTOC_INCLUDE) --include_imports --descriptor_set_out=$@ \
 		$(subst $(PROTOC_INCLUDE)/,,$<)
 
 # Run the protobuf_segment_messages test.
@@ -94,7 +97,8 @@ test_segment_messages: $(PROTOC_GEN_PROLOG_PB)/google/protobuf/descriptor.proto.
 	$(SWIPL) -g "test_segment_messages('$(PROTOC_GEN_PROLOG_PB)/google/protobuf/descriptor.proto.wire')" -g halt tests.pl
 
 %.proto.wiredump: %.proto.wire
-	$(PROTOC) -I$(PROTOC_INCLUDE) \
+	PATH=$(PATH_WITH_SWIPL) $(PROTOC) --version
+	PATH=$(PATH_WITH_SWIPL) $(PROTOC) -I$(PROTOC_INCLUDE) \
 		--decode=google.protobuf.FileDescriptorSet \
 		google/protobuf/descriptor.proto \
 		<$*.proto.wire >$@

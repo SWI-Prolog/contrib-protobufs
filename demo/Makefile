@@ -54,7 +54,7 @@ foo: pb_vector.pb.o foo.o
 	@# or for non-static: -Wl,-rpath=$(PROTOC_LIB)
 	@# $(CXX) -Wl,-rpath=$(PROTOC_LIB) -o $@ $^ $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS)
 	@# $(CXX) -static -o $@ $^ $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS)
-	$(CXX) -o $@ $^ $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS)
+	$(CXX) $(PROTOC_I) -o $@ $^ $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS)
 
 tmp99.tmp: vector_demo.pl ../eventually_implies.pl
 	$(SWIPL) -s vector_demo.pl -g make_tmp99 --

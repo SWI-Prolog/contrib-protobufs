@@ -113,8 +113,10 @@ main2(Argv, FileName) :-
         ;   format('swi_prolog_version(\'~w.~w.~w.~w\').~n', [Major, Minor, Path, Extra])
         )
     ),
-    current_prolog_flag(executable, Exe),
-    format('swi_prolog_exe(~q).~n', [Exe]),
+    % The following is commented out because an absolute file path
+    % causes some automated packaging software to complain:
+    %% current_prolog_flag(executable, Exe),
+    %% format('% swi_prolog_exe(~q).~n', [Exe]),
     ProtocVersion = Request.compiler_version,
     (   ProtocVersion.suffix == '' ; ProtocVersion.suffix == ""
     ->  format('protoc_version(\'~w.~w.~w\').~n',

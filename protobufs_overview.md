@@ -15,7 +15,7 @@ size  or  endianness.  Techniques  exist  to  safely  extend  your  data
 structure without breaking deployed programs   that are compiled against
 the "old" format.
 
-See https://developers.google.com/protocol-buffers
+See https://protobuf.dev/ or https://developers.google.com/protocol-buffers
 
 The idea behind Google's  Protocol  Buffers   is  that  you  define your
 structured messages using a  domain-specific   language.  This takes the

@@ -8,7 +8,6 @@
 :-multifile protobufs:protoc_gen_swipl_version/2.
 protobufs:protoc_gen_swipl_version(descriptor_pb,[0,9,1]).
 swi_prolog_version('9.3.35-15-gfd4dd90cb-DIRTY').
-swi_prolog_exe('/home/peter/.local/lib/swipl/bin/x86_64-linux/swipl').
 protoc_version('3.21.12').
 prototoc_gen_swipl_args([]).
 protoc_run_time('2025-11-25T06:55:26+0000', '2025-11-24T22:55:26-0800').
