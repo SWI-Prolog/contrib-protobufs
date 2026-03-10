@@ -60,8 +60,8 @@ list_commalist([Pred|Preds], (Pred,CommaList)) :-
 %! lookup_pieces(+Tag, +DataDict, ?LookupDict) is det.
 % Given a =DataDict=, look up the items in =LookupDict= If =DataDict=
 % contains any keys that aren't in =LookupDict=, this predicate
-% fails. This is to catch typos. For example: =|lookup_pieces(d,
-% d{a:1,b:2}, _{a:0-A,bb:0-B,c:[]-C})|= will fail but
+% fails. This is to catch typos. For example:
+% =|lookup_pieces(d, d{a:1,b:2}, _{a:0-A,bb:0-B,c:[]-C})|= will fail but
 % =|lookup_pieces(d, d{a:1,b:2}, _{a:0-A,b:0-B,c:[]-C})|= will succeed
 % with =|A=1,B=2,C=[]|=. In other words, =LookupDict= must contain all
 % the possible keys in =DataDict= (with suitable defaults, of course).

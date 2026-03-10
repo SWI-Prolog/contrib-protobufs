@@ -33,6 +33,7 @@
 :- use_module(library(dcg/high_order),
               [sequence//2,
                optional//2]).
+:- use_module(library(pcre), [re_replace/4]).
 :- use_module(library(debug), [debug/3, debug/1]).
 
 :- meta_predicate bidi(3, 2, ?, ?, ?).
@@ -207,8 +208,8 @@ colon_id(_Indent, IdAsAtom) -->
     bidi(nonblanks, atom_codes, IdAsAtom),
     blanks_to_nl, !.
 
-%! indent(Indent0, Indent)// is det.
-%! For output, indent by the codes in Indent0; new indent in Indent
+%! indent(?Indent0, ?Indent)// is det.
+% For output, indent by the codes in Indent0; new indent in Indent
 indent(Indent, [0' ,0' |Indent], S0, S) :-
     (   var(S0)
     ->  whites(Indent, S0, S)

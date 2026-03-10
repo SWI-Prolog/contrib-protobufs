@@ -110,7 +110,7 @@ test_libs(protobufs
               bootstrap demo interop
               )
 
-find_program(PROTOC protoc)
+find_program(PROG_PROTOC protoc)
 find_program(PKG_CONFIG pkg-config)
 
 # TODO: check minimal versions of protoc, python3, pip protobuf
@@ -128,7 +128,7 @@ endif()
 #           for d in interop demo bootstrap; do make -C $d clean; done
 #          (also: "git clean -dxf", but that's dangerous)
 if(BUILD_TESTING AND TEST_PROTOBUFS_PROTOC)
-  if(PROTOC AND PKG_CONFIG AND "${python3_protobuf}" EQUAL "0")
+  if(PROG_PROTOC AND PKG_CONFIG AND "${python3_protobuf}" EQUAL "0")
       find_program(BASH_EXE bash REQUIRED)
       add_test(NAME "${SWIPL_PKG}:bootstrap"
                COMMAND ${BASH_EXE} ${CMAKE_CURRENT_SOURCE_DIR}/test_bootstrap.sh ${PROG_SWIPL} ${CMAKE_CURRENT_SOURCE_DIR}/bootstrap)
@@ -144,7 +144,7 @@ if(BUILD_TESTING AND TEST_PROTOBUFS_PROTOC)
       message(WARNING "Some ${SWIPL_PKG} tests not run because of missing pkg-config, protoc, or python/protobuf")
       message(WARNING "See demo/README.md for how to set up the build and test environment")
       message(WARNING "pkg-config: ${PKG_CONFIG}")
-      message(WARNING "protoc: ${PROTOC}")
+      message(WARNING "protoc: ${PROG_PROTOC}")
       message(WARNING "python3_protobuf: ${python3_protobuf}")
   endif()
 else()

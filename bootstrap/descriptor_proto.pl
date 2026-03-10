@@ -15,7 +15,7 @@
 %       descriptor.proto \
 %       < descriptor.proto.wire
 %       > descriptor.proto.wiredump
-%   And then run use parse_descriptor_proto_dump.pl:
+%   And then use parse_descriptor_proto_dump.pl:
 %     ?- parse_descriptor('descriptor.proto.wiredump').
 
 :- module(descriptor_proto,

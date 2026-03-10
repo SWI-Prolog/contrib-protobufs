@@ -1,4 +1,4 @@
-#!/usr/bin/env swipl
+#!/usr/bin/env -S swipl -q
 % -*- mode: prolog -*-
 
 % Plugin for generating SWI-Prolog protobuf code from a .proto file.
@@ -10,7 +10,7 @@
 % output, with the generated contents in field `file` (repeated).
 
 % Note: The name of this file (protoc-gen-swipl) follows the naming
-%       conventions for a protoc plugin, assuming that it's envoked by
+%       conventions for a protoc plugin, assuming that it's invoked by
 %       `protoc --swipl_out=...`
 
 :- initialization(main, main).
