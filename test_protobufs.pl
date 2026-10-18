@@ -38,9 +38,6 @@
 
 :- use_module(library(plunit)).
 
-:- asserta(user:file_search_path(library, .)).
-:- asserta(user:file_search_path(foreign, .)).
-
 :- use_module(library(protobufs)).
 
 gmp :-
