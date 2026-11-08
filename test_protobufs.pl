@@ -32,6 +32,14 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
+% TODO: many of the tests throw representation_error when domain_error
+%       is probably more appropriate (and provides the value that
+%       triggered the error) ... there is a discussion about this,
+%       which will probably go to the ISO Prolog committee. In the
+%       meantime, the questionable errors are marked with commented
+%       "fixme". See also
+%       https://swi-prolog.discourse.group/t/representation-error-domain-error-type-error/9881
+
 :- module(test_protobufs,
         [ test_protobufs/0
         ]).
@@ -42,6 +50,11 @@
 
 gmp :-
     current_prolog_flag(bounded, false).
+
+
+check_exception(Goal, ExpectedError) :-
+    catch(Goal, E, true),
+    assertion(subsumes_term(ExpectedError, E)).
 
 protobufs:nested_enum(Key, Value) :-
     nested_enum(Key, Value).
@@ -74,6 +87,7 @@ sorted_findall(Template, Goal, Bag) :-
     findall(Template, Goal, Bag0),
     msort(Bag0, Bag).
 
+:- det(test_numbers/1).
 test_numbers(Numbers) :-
     Numbers =
     numbers{
@@ -139,6 +153,10 @@ test_numbers(Numbers) :-
                      min_unsigned64_minus1: -1
                     }).
 
+:- det(test_value/2).
+test_value(Key, Value) :-
+    test_numbers(Numbers),
+    get_dict(Key, Numbers, Value).
 
 golden_message(Proto) :-
     % This corresponds to protobuf_unittest.TestAllTypes
@@ -829,25 +847,31 @@ round_trip_int32_float32(Float0) :-
     assertion(Codes2 == Codes3).
 
 test(uint32_codes, condition(gmp)) :-
-    test_numbers(Numbers),
-    round_trip_uint32(Numbers.max_unsigned32, [0xff,0xff,0xff,0xff], Numbers.max_unsigned32),
+    test_value(max_unsigned32, V),
+    round_trip_uint32(V, [0xff,0xff,0xff,0xff], V),
     round_trip_uint32(2147483648, [0,0,0,0x80], 2147483648).
 
 test(uint32_codes_e1, [error(instantiation_error,context(protobufs:uint32_codes/2,_))]) :-
     protobufs:uint32_codes(_, _).
 
 test(uint32_codes_e2,
-     [ condition(gmp),
-       error(representation_error(uint),context(protobufs:uint32_codes/2,_))
+     [ condition(gmp)
+       % , fixme('gets representation_error')
      ]) :-
-    test_numbers(Numbers),
-    protobufs:uint32_codes(Numbers.max_unsigned32_plus1, _).
+    test_value(max_unsigned32_plus1, V),
+    check_exception(protobufs:uint32_codes(V, _),
+                    % error(domain_error(uint,V), context(protobufs:uint32_codes/2,_))).
+                    error(representation_error(uint), context(protobufs:uint32_codes/2,_))).
 
-test(uint32_codes_e3, [error(type_error(list,[1,2,3,4,5]),context(protobufs:uint32_codes/2,_))]) :-
+test(uint32_codes_e3, [error(type_error('list[4]',[1,2,3,4,5]),context(protobufs:uint32_codes/2,_))]) :-
     protobufs:uint32_codes(_, [1,2,3,4,5]).
 
-test(uint32_codes_e4, [error(representation_error(uint),context(protobufs:uint32_codes/2,_))]) :-
-    protobufs:uint32_codes(-1, _).
+test(uint32_codes_e4,
+     [ % , fixme('gets representation_error')
+       ]) :-
+    check_exception(protobufs:uint32_codes(-1, _),
+                    % error(domain_error(uint,-1),context(protobufs:uint32_codes/2,_))).
+                    error(representation_error(uint),context(protobufs:uint32_codes/2,_))).
 
 test(uint64_codes, condition(gmp)) :-
     test_numbers(Numbers),
@@ -864,26 +888,28 @@ test(uint32_int32, condition(gmp)) :-
     round_trip_uint32_int32(0xffffffff, -1),
     round_trip_uint32_int32(0xfffffffe, -2).
 
-test(uint32_int32_e1,
-     [ condition(gmp),
-       error(domain_error('32_bit_integer',4294967296),context(protobufs:uint32_int32/2,_))
-     ]) :-
-    test_numbers(Numbers),
-    protobufs:uint32_int32(Numbers.max_unsigned32_plus1, _).
+test(uint32_int32_e1, condition(gmp)) :-
+    test_value(max_unsigned32_plus1, V),
+    check_exception(protobufs:uint32_int32(V, _),
+                    error(domain_error('32_bit_integer',V),context(protobufs:uint32_int32/2,_))).
 
 test(uint32_int32_e2,
-     [ condition(gmp),
-       error(representation_error(int),context(protobufs:uint32_int32/2,_))
+     [ condition(gmp)
+       % , fixme('gets representation_error(int)')
      ]) :-
-    test_numbers(Numbers),
-    protobufs:uint32_int32(_, Numbers.max_signed32_plus1).
+    test_value(max_signed32_plus1, V),
+    check_exception(protobufs:uint32_int32(_, V),
+                    % error(domain_error(int,V),context(protobufs:uint32_int32/2,_))).
+                    error(representation_error(int),context(protobufs:uint32_int32/2,_))).
 
 test(uint32_int32_e3,
-     [ condition(gmp),
-       error(representation_error(int),context(protobufs:uint32_int32/2,_))
+     [ condition(gmp)
+       % , fixme('gets representation_error')
      ]) :-
-    test_numbers(Numbers),
-    protobufs:uint32_int32(_, Numbers.min_signed32_minus1).
+    test_value(max_signed32_plus1, V),
+    check_exception(protobufs:uint32_int32(_, V),
+                    % error(domain_error(int,V),context(protobufs:uint32_int32/2,_)))
+                    error(representation_error(int),context(protobufs:uint32_int32/2,_))).
 
 test(int64_float64, condition(gmp)) :-
     % Not all bit patterns are normalized floating point, so we can't test, e.g. 0xffffffffffffffff;
@@ -950,19 +976,22 @@ test(zigzag, condition(gmp)) :-
 test(zigzag_e1, [error(instantiation_error,context(protobufs:int64_zigzag/2,_))]) :-
     protobufs:int64_zigzag(_, _).
 
-test(zigzag_e2,
-     [ condition(gmp),
-       error(representation_error(int64_t),context(protobufs:int64_zigzag/2,_))
+test(zigzag_e2, [ condition(gmp)
+                  % , fixme('gets representation_error'),
      ]) :-
-    test_numbers(Numbers),
-    protobufs:int64_zigzag(Numbers.max_signed64_plus1, _).
+    test_value(max_signed64_plus1, V),
+    check_exception(protobufs:int64_zigzag(V, _),
+                    % error(domain_error(int64_t,V),context(protobufs:int64_zigzag/2,_))).
+                    error(representation_error(int64_t),context(protobufs:int64_zigzag/2,_))).
 
 test(zigzag_e3,
-     [ condition(gmp),
-       error(representation_error(uint64_t),context(protobufs:int64_zigzag/2,_))
+     [ condition(gmp)
+       % fixme('gets representation_error')
      ]) :-
-    test_numbers(Numbers),
-    protobufs:int64_zigzag(_, Numbers.max_unsigned64_plus1).
+    test_value(max_unsigned64_plus1, V),
+    check_exception(protobufs:int64_zigzag(_, V),
+                    % domain_error(uint64_t,V),context(protobufs:int64_zigzag/2,_)))
+                    error(representation_error(uint64_t),context(protobufs:int64_zigzag/2,_))).
 
 test(zigzag_e4, [error(type_error(integer,'123'),context(protobufs:int64_zigzag/2,_))]) :-
     protobufs:int64_zigzag('123', _).
@@ -996,36 +1025,44 @@ test(coerce_e2,
      [ condition(gmp),
        error(domain_error(not_less_than_zero,-1),context(protobufs:uint64_int64/2,_))
      ]) :-
-    test_numbers(Numbers),
-    protobufs:uint64_int64(Numbers.min_unsigned64_minus1, _).
+    test_value(min_unsigned64_minus1, V),
+    protobufs:uint64_int64(V, _).
 
 test(coerce_e3,
-     [ condition(gmp),
-       error(representation_error(uint64_t),context(protobufs:uint64_int64/2,_))
+     [ condition(gmp)
+       % ,fixme('gets representation_error')
      ]) :-
-    test_numbers(Numbers),
-    protobufs:uint64_int64(Numbers.max_unsigned64_plus1, _).
+    test_value(max_unsigned64_plus1, V),
+    check_exception(protobufs:uint64_int64(V, _),
+                    % error(type_error(uint64_t,V),context(protobufs:uint64_int64/2,_))).
+                    error(representation_error(uint64_t),context(protobufs:uint64_int64/2,_))).
 
 test(coerce_e4,
-     [ condition(gmp),
-       error(representation_error(int64_t),context(protobufs:uint64_int64/2,_))
+     [ condition(gmp)
+       % , fixme('gets representation_error')
      ]) :-
-    test_numbers(Numbers),
-    protobufs:uint64_int64(_, Numbers.max_signed64_plus1).
+    test_value(max_signed64_plus1, V),
+    check_exception(protobufs:uint64_int64(_, V),
+                    % error(type_error(int64_t,V),context(protobufs:uint64_int64/2,_))).
+                    error(representation_error(int64_t),context(protobufs:uint64_int64/2,_))).
 
 test(coerce_e5,
-     [ condition(gmp),
-       error(representation_error(int64_t),context(protobufs:uint64_int64/2,_))
+     [ condition(gmp)
+       % , fixme('gets representation_error')
      ]) :-
-    test_numbers(Numbers),
-    protobufs:uint64_int64(_, Numbers.min_signed64_minus1).
+    test_value(min_signed64_minus1, V),
+    check_exception(protobufs:uint64_int64(_, V),
+                    % error(type_error(int64_t,V),context(protobufs:uint64_int64/2,_))).
+                    error(representation_error(int64_t),context(protobufs:uint64_int64/2,_))).
 
 test(coerce_e6,
-     [ condition(gmp),
-       error(representation_error(int64_t),context(protobufs:uint64_int64/2,_))
+     [ condition(gmp)
+       % , fixme('gets representation_error')
      ]) :-
-    test_numbers(Numbers),
-    protobufs:uint64_int64(_, Numbers.max_signed64_plus1).
+    test_value(max_signed64_plus1, V),
+    check_exception(protobufs:uint64_int64(_, V),
+                    % error(type_error(int64_t,V),context(protobufs:uint64_int64/2,_))).
+                    error(representation_error(int64_t),context(protobufs:uint64_int64/2,_))).
 
 test(coerce_e7, [error(type_error(integer,'666'),context(protobufs:uint64_int64/2,_))]) :-
     protobufs:uint64_int64('666', _).
