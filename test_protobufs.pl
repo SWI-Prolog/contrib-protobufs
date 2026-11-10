@@ -1179,4 +1179,39 @@ test(int32_overflow, error(representation_error(int))) :-
 
 :- end_tests(varint_range).
 
+:- begin_tests(utf8).
+
+fdp_name(Bytes, Name) :-
+    length(Bytes, Len),
+    protobuf_parse_from_codes([10,Len|Bytes],
+                              '.google.protobuf.FileDescriptorProto', Term),
+    Name = Term.name.
+
+invalid_utf8([0xff]).                   % never valid
+invalid_utf8([0x80]).                   % stray continuation byte
+invalid_utf8([0xc0,0x80]).              % overlong NUL
+invalid_utf8([0xe0,0x9f,0xbf]).         % overlong 3-byte
+invalid_utf8([0xed,0xa0,0x80]).         % surrogate
+invalid_utf8([0xf4,0x90,0x80,0x80]).    % > 0x10ffff
+invalid_utf8([0xe2,0x82]).              % truncated
+invalid_utf8([0x41,0xc3]).              % truncated at end
+
+test(invalid, [forall(invalid_utf8(Bytes)), error(syntax_error(illegal_utf8_sequence))]) :-
+    fdp_name(Bytes, _).
+test(valid, Name == "A\u00E9\u20AC\U0001F600\uFFFF") :-
+    fdp_name([0x41, 0xc3,0xa9, 0xe2,0x82,0xac, 0xf0,0x9f,0x98,0x80,
+              0xef,0xbf,0xbf], Name).
+test(roundtrip, Name == "A\u00E9\U0001F600") :-
+    T = '.google.protobuf.FileDescriptorProto',
+    protobuf_serialize_to_codes(T{name:"A\u00E9\U0001F600"}, T, Codes),
+    assertion(Codes == [10,7,0x41,0xc3,0xa9,0xf0,0x9f,0x98,0x80]),
+    protobuf_parse_from_codes(Codes, T, Term),
+    Name = Term.name.
+test(template_invalid, fail) :-
+    protobuf_message(protobuf([utf8_codes(1, _)]), [10,2,0xc0,0x80]).
+test(template_surrogate, error(type_error(character_code, 0xd800))) :-
+    protobuf_message(protobuf([utf8_codes(1, [0xd800])]), _).
+
+:- end_tests(utf8).
+
 end_of_file.

@@ -74,11 +74,10 @@
 :- use_module(library(apply_macros)).  % autoload(library(apply), [maplist/3, foldl/4]).
 :- autoload(library(error),
             [ must_be/2, domain_error/2, existence_error/2,
-              representation_error/1
+              representation_error/1, syntax_error/1
             ]).
 :- autoload(library(lists), [append/3, append/2]).
 :- autoload(library(pairs), [group_pairs_by_key/2]).
-:- autoload(library(utf8), [utf8_codes//1]).
 :- autoload(library(dif), [dif/2]).
 :- autoload(library(dcg/high_order), [sequence//2]).
 :- autoload(library(when), [when/2]).
@@ -229,6 +228,8 @@ installed at
 %        with a newer version of =|protoc|=.
 % @error resource_error(protobuf_max_depth(Max)) if messages are nested
 %        too deeply.
+% @error syntax_error(illegal_utf8_sequence) if a string field is not
+%        valid UTF-8.
 protobuf_parse_from_codes(WireCodes, MessageType0, Term) :-
     verify_version,
     must_be(ground, MessageType0),
@@ -547,12 +548,12 @@ payload(codes, Payload) -->
 payload(utf8_codes, Payload) -->
     { nonvar(Payload), % TODO: use freeze/2 or when/2
       !,
-      phrase(utf8_codes(Payload), B)
+      utf8_codes_strict(Payload, B)
     },
     payload(codes, B).
 payload(utf8_codes, Payload) -->
     payload(codes, B),
-    { phrase(utf8_codes(Payload), B) }.
+    { utf8_codes_strict(Payload, B) }.
 payload(atom, Payload) -->
     { nonvar(Payload),
       atom_codes(Payload, Codes)
@@ -881,8 +882,8 @@ length_delimited_segment(group(Tag,Segments), Tag, Codes, Mode) :-
 length_delimited_segment(string(Tag,String), Tag, Codes, _) :-
     (   nonvar(String)
     ->  string_codes(String, StringCodes),
-        phrase(utf8_codes(StringCodes), Codes)
-    ;   phrase(utf8_codes(StringCodes), Codes),
+        utf8_codes_strict(StringCodes, Codes)
+    ;   utf8_codes_strict(StringCodes, Codes),
         string_codes(String, StringCodes)
     ).
 length_delimited_segment(packed(Tag,Payload), Tag, Codes, _) :-
@@ -1442,7 +1443,13 @@ convert_segment('TYPE_BOOL', _ContextType, Tag, Segment0, Value) =>
 convert_segment('TYPE_STRING', _ContextType, Tag, Segment0, Value) =>
     % TODO: option to control whether to use atom_string(Value,ValueStr)
     Segment = string(Tag,Value),
-    segment_convert(Segment0, Segment), !.
+    (   segment_convert(Segment0, Segment)
+    ->  true
+    ;   nonvar(Segment0),
+        segment_type_tag(Segment0, length_delimited, _)
+    ->  syntax_error(illegal_utf8_sequence)
+    ;   fail
+    ).
 convert_segment('TYPE_GROUP', ContextType, Tag, Segment0, Value) =>
     Segment = group(Tag,MsgSegments),
     % TODO: combine with TYPE_MESSAGE code:

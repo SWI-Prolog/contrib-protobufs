@@ -46,6 +46,7 @@
 
 #include <config.h>
 #include <SWI-Prolog.h>
+#include <stdlib.h>
 #ifdef _MSC_VER
 #define inline __inline
 typedef int int32_t;
@@ -464,6 +465,111 @@ int32_float32(term_t Int32, term_t Float32)
   }
 }
 
+/* Strict UTF-8 validation (Unicode Table 3-7): no overlong forms,
+   surrogates or code points above 0x10FFFF. */
+static int
+utf8_valid(const unsigned char *s, size_t len)
+{ const unsigned char *e = s+len;
+
+  while(s < e)
+  { unsigned char c = *s;
+
+    if ( c < 0x80 )
+    { s++;
+      continue;
+    }
+    if ( c >= 0xC2 && c <= 0xDF )
+    { if ( e-s < 2 || (s[1]&0xC0) != 0x80 )
+	return FALSE;
+      s += 2;
+    } else if ( c >= 0xE0 && c <= 0xEF )
+    { unsigned char lo = (c == 0xE0 ? 0xA0 : 0x80);
+      unsigned char hi = (c == 0xED ? 0x9F : 0xBF);
+
+      if ( e-s < 3 || s[1] < lo || s[1] > hi || (s[2]&0xC0) != 0x80 )
+	return FALSE;
+      s += 3;
+    } else if ( c >= 0xF0 && c <= 0xF4 )
+    { unsigned char lo = (c == 0xF0 ? 0x90 : 0x80);
+      unsigned char hi = (c == 0xF4 ? 0x8F : 0xBF);
+
+      if ( e-s < 4 || s[1] < lo || s[1] > hi ||
+	   (s[2]&0xC0) != 0x80 || (s[3]&0xC0) != 0x80 )
+	return FALSE;
+      s += 4;
+    } else
+      return FALSE;
+  }
+
+  return TRUE;
+}
+
+/* For documentation of this function, see protobufs.pl */
+static foreign_t
+utf8_codes_strict(term_t Codes, term_t Bytes)
+{ if ( !PL_is_variable(Bytes) )
+  { char *data;
+    size_t len;
+
+    if ( PL_get_list_nchars(Bytes, &len, &data, CVT_LIST) &&
+	 utf8_valid((const unsigned char*)data, len) )
+      return PL_unify_chars(Codes, PL_CODE_LIST|REP_UTF8, len, data);
+
+    return FALSE;
+  } else
+  { term_t tail = PL_copy_term_ref(Codes);
+    term_t head = PL_new_term_ref();
+    size_t len;
+    char *buf, *o;
+    int rc;
+
+    switch(PL_skip_list(Codes, 0, &len))
+    { case PL_LIST:
+	break;
+      case PL_PARTIAL_LIST:
+	return PL_instantiation_error(Codes);
+      default:
+	return PL_type_error("list", Codes);
+    }
+    if ( !(buf = malloc(len*4+1)) )
+      return PL_resource_error("memory");
+    o = buf;
+    while( PL_get_list(tail, head, tail) )
+    { int c;
+
+      if ( !PL_get_char_ex(head, &c, FALSE) )
+      { free(buf);
+	return FALSE;
+      }
+      if ( c < 0x80 )
+      { *o++ = (char)c;
+      } else if ( c < 0x800 )
+      { *o++ = (char)(0xC0|(c>>6));
+	*o++ = (char)(0x80|(c&0x3F));
+      } else if ( c < 0x10000 )
+      { if ( c >= 0xD800 && c <= 0xDFFF )
+	{ free(buf);
+	  return PL_representation_error("code_point");
+	}
+	*o++ = (char)(0xE0|(c>>12));
+	*o++ = (char)(0x80|((c>>6)&0x3F));
+	*o++ = (char)(0x80|(c&0x3F));
+      } else if ( c <= 0x10FFFF )
+      { *o++ = (char)(0xF0|(c>>18));
+	*o++ = (char)(0x80|((c>>12)&0x3F));
+	*o++ = (char)(0x80|((c>>6)&0x3F));
+	*o++ = (char)(0x80|(c&0x3F));
+      } else
+      { free(buf);
+	return PL_representation_error("code_point");
+      }
+    }
+    rc = PL_unify_chars(Bytes, PL_CODE_LIST, o-buf, buf);
+    free(buf);
+    return rc;
+  }
+}
+
 install_t
 install_protobufs()
 {
@@ -478,4 +584,5 @@ install_protobufs()
   PL_register_foreign("uint64_int64",  2, uint64_int64,  0);
   PL_register_foreign("int64_float64", 2, int64_float64, 0);
   PL_register_foreign("int32_float32", 2, int32_float32, 0);
+  PL_register_foreign("utf8_codes_strict", 2, utf8_codes_strict, 0);
 }
