@@ -47,6 +47,9 @@
 :- use_module(library(plunit)).
 
 :- use_module(library(protobufs)).
+:- use_module(library(protobufs/gen_pb/google/protobuf/descriptor_pb)).
+:- use_module(library(lists)).
+:- use_module(library(apply)).
 
 gmp :-
     current_prolog_flag(bounded, false).
@@ -1071,5 +1074,76 @@ test(coerce_e8, [error(type_error(integer,'999'),context(protobufs:uint64_int64/
     protobufs:uint64_int64(_, '999').
 
 :- end_tests(coerce).
+
+:- begin_tests(malformed).
+
+fds_parse(Codes, Term) :-
+    protobuf_parse_from_codes(Codes, '.google.protobuf.FileDescriptorSet', Term).
+
+%   empty_fields(+N, -Codes)
+%
+%   N empty length delimited fields with tag 1.  Each empty field has
+%   many interpretations.
+
+empty_fields(N, Codes) :-
+    length(L, N),
+    maplist(=([10,0]), L),
+    append(L, Codes).
+
+%   nested(+N, +Tag, +Inner, -Codes)
+%
+%   Wrap Inner N times in a length delimited field with Tag.
+
+nested(0, _, Codes, Codes) :- !.
+nested(N, Tag, Inner, Codes) :-
+    N1 is N-1,
+    nested(N1, Tag, Inner, Codes1),
+    length(Codes1, Len),
+    phrase(protobufs:protobuf_var_int(Len), LenCodes),
+    append([Tag|LenCodes], Codes1, Codes).
+
+%   deep_fds(+N, -Codes)
+%
+%   A FileDescriptorSet with a FileDescriptorProto with a DescriptorProto
+%   with N nested DescriptorProto messages (nested_type, tag 3).
+
+deep_fds(N, Codes) :-
+    nested(N, 26, [], C0),
+    nested(1, 34, C0, C1),
+    nested(1, 10, C1, Codes).
+
+test(bad_tail, fail) :-
+    empty_fields(40, Codes0),
+    append(Codes0, [7], Codes),         % 7: invalid wire type
+    fds_parse(Codes, _).
+test(huge_length, fail) :-
+    fds_parse([10,255,255,255,255,255,255,255,255,1], _).
+test(long_varint, fail) :-
+    length(L, 1000),
+    maplist(=(255), L),
+    append([8|L], [1], Codes),
+    fds_parse(Codes, _).
+test(varint_10, X == 0xffffffffffffffff) :-
+    protobufs:protobuf_var_int(X, [255,255,255,255,255,255,255,255,255,1], []).
+test(varint_11, fail) :-
+    protobufs:protobuf_var_int(_, [255,255,255,255,255,255,255,255,255,255,1], []).
+test(nested_ok) :-
+    deep_fds(98, Codes),
+    fds_parse(Codes, _).
+test(nested_deep, error(resource_error(protobuf_max_depth(100)))) :-
+    deep_fds(99, Codes),
+    fds_parse(Codes, _).
+test(many_repeated, Len == 20000) :-
+    empty_fields(20000, Codes),
+    fds_parse(Codes, Term),
+    length(Term.file, Len).
+test(interleaved_repeated, Deps == ["a","b","c"]) :-
+    % FileDescriptorProto: name = 1, dependency = 3 (repeated)
+    Codes = [26,1,0'a, 10,1,0'x, 26,1,0'b, 10,1,0'y, 26,1,0'c],
+    protobuf_parse_from_codes(Codes, '.google.protobuf.FileDescriptorProto', Term),
+    Deps = Term.dependency,
+    assertion(Term.name == "y").
+
+:- end_tests(malformed).
 
 end_of_file.

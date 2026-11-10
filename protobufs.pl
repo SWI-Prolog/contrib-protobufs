@@ -73,7 +73,8 @@
 
 :- use_module(library(apply_macros)).  % autoload(library(apply), [maplist/3, foldl/4]).
 :- autoload(library(error), [must_be/2, domain_error/2, existence_error/2]).
-:- autoload(library(lists), [append/3]).
+:- autoload(library(lists), [append/3, append/2]).
+:- autoload(library(pairs), [group_pairs_by_key/2]).
 :- autoload(library(utf8), [utf8_codes//1]).
 :- autoload(library(dif), [dif/2]).
 :- autoload(library(dcg/high_order), [sequence//2]).
@@ -81,6 +82,8 @@
 :- use_module(library(debug), [assertion/1]). % TODO: remove
 
 :- set_prolog_flag(optimise, true). % For arithmetic using is/2.
+
+:- create_prolog_flag(protobuf_max_depth, 100, [keep(true), type(integer)]).
 
 /** <module> Google's Protocol Buffers ("protobufs")
 
@@ -184,6 +187,10 @@ installed at
 % then none of the other fields is set. You can determine which field
 % had a value by using get_dict/3.
 %
+% Messages may be nested at most as deep as the Prolog flag
+% `protobuf_max_depth` (default 100, the default of the C++
+% implementation).
+%
 % @tbd document the generated terms (see library(json) and json_read_dict/3)
 % @tbd add options such as =true= and =value_string_as= (similar to json_read_dict/3)
 % @tbd add option for form of the [dict](</pldoc/man?section=bidicts>) tags (fully qualified or not)
@@ -217,6 +224,8 @@ installed at
 % @see  [library(protobufs): Google's Protocol Buffers](#protobufs-serialize-to-codes)
 % @error version_error(Module-Version) you need to recompile the =Module=
 %        with a newer version of =|protoc|=.
+% @error resource_error(protobuf_max_depth(Max)) if messages are nested
+%        too deeply.
 protobuf_parse_from_codes(WireCodes, MessageType0, Term) :-
     verify_version,
     must_be(ground, MessageType0),
@@ -224,13 +233,14 @@ protobuf_parse_from_codes(WireCodes, MessageType0, Term) :-
     ->  true
     ;   existence_error(protobuf_package, MessageType0)
     ),
-    protobuf_segment_message(Segments, WireCodes),
+    max_depth(MaxDepth),
+    protobuf_segment_message(Segments, WireCodes, first(MaxDepth)),
     % protobuf_segment_message/2 can leave choicepoints, backtracking
     % through all the possibilities would have combinatoric explosion;
     % instead use segment_to_term/3 call protobuf_segment_convert/2 to
     % change segments that were guessed incorrectly.
     !,
-    maplist(segment_to_term(MessageType), Segments, MsgFields),
+    maplist(segment_to_term(MessageType, MaxDepth), Segments, MsgFields),
     !, % TODO: remove
     combine_fields(MsgFields, MessageType{}, Term),
     !. % TODO: remove? - but proto_meta might have left choicepoints if loaded twice
@@ -323,9 +333,28 @@ fixed_float32(X, [A0, A1, A2, A3 | Rest], Rest) :-
 %
 
 code_string(N, Codes, Rest, Rest1) :-
+    var(Codes),
+    !,
+    take_codes(N, Rest, Codes, Rest1).
+code_string(N, Codes, Rest, Rest1) :-
     length(Codes, N),
     append(Codes, Rest1, Rest),
     !.
+
+% take_codes(+N, +List, -Prefix, -Rest) is semidet.
+%
+% Split List after N elements.  Fails if List is shorter than N
+% without creating a list of N elements first.
+
+take_codes(0, Rest, Codes, Rest1) =>
+    Codes = [],
+    Rest1 = Rest.
+take_codes(N, [H|T], Codes, Rest1), N > 0 =>
+    Codes = [H|Codes1],
+    N1 is N-1,
+    take_codes(N1, T, Codes1, Rest1).
+take_codes(_, _, _, _) =>
+    fail.
 /*
 code_string(N, Codes) -->
         { length(Codes, N) },
@@ -358,9 +387,23 @@ protobuf_var_int(X, [A | Rest], Rest1) :-
     protobuf_var_int(X1, Rest, Rest1),
     !.
 protobuf_var_int(X, [A | Rest], Rest1) :-
-    protobuf_var_int(X1, Rest, Rest1),
-    X is (X1 << 7) + A - 128,
-    !.
+    X0 is A - 128,
+    var_int_cont(Rest, 7, X0, X, Rest1).
+
+% var_int_cont(+Codes, +Shift, +X0, -X, -Rest)
+%
+% Decode the continuation bytes of a varint.  A varint encodes at
+% most 64 bits and thus has at most 10 bytes.
+
+var_int_cont([A|Rest], Shift, X0, X, Rest1) :-
+    Shift < 70,
+    (   A < 128
+    ->  X is X0 + (A << Shift),
+        Rest1 = Rest
+    ;   X1 is X0 + ((A - 128) << Shift),
+        Shift1 is Shift + 7,
+        var_int_cont(Rest, Shift1, X1, X, Rest1)
+    ).
 
 %! protobuf_tag_type(?Tag:int, ?WireType:atom)// is det.
 % Conversion between Tag (number) + WireType and wirestream codes.
@@ -737,69 +780,98 @@ protobuf_message(protobuf(TemplateList), WireStream, Residue) :-
 %
 %  @see https://developers.google.com/protocol-buffers/docs/encoding
 protobuf_segment_message(Segments, WireStream) :-
-    phrase(segment_message(Segments), WireStream).
+    protobuf_segment_message(Segments, WireStream, all).
 
-segment_message(Segments) -->
-    sequence_segment(Segments).
+% protobuf_segment_message(?Segments, ?WireStream, +Mode)
+%
+% Mode is one of `all`, enumerating all interpretations of
+% length_delimited segments on backtracking or first(MaxDepth),
+% committing to the first interpretation of each segment and not
+% interpreting length_delimited segments as messages or groups
+% beyond MaxDepth.  Using `all` on input that does not parse results
+% in a combinatorial explosion.
 
-% sequence_segment//1 (because sequence//2 isn't compile-time expanded)
-sequence_segment([]) --> [ ].
-sequence_segment([Segment|Segments]) -->
-    segment(Segment),
-    sequence_segment(Segments).
+protobuf_segment_message(Segments, WireStream, Mode) :-
+    phrase(segment_message(Segments, Mode), WireStream).
 
-segment(Segment) -->
+segment_message(Segments, Mode) -->
+    sequence_segment(Segments, Mode).
+
+nested_mode(all, all).
+nested_mode(first(D0), first(D)) :-
+    D0 > 0,
+    D is D0-1.
+
+max_depth(Depth) :-
+    current_prolog_flag(protobuf_max_depth, Depth).
+
+% sequence_segment//2 (because sequence//2 isn't compile-time expanded)
+sequence_segment([], _) --> [ ].
+sequence_segment([Segment|Segments], Mode) -->
+    segment(Segment, Mode),
+    sequence_segment(Segments, Mode).
+
+segment(Segment, Mode) -->
     { nonvar(Segment) },
     !,
     % repeated(List) can be created by field_segment_scalar_or_repeated/7
     (   { Segment = repeated(Segments) }
-    ->  sequence_segment(Segments)
+    ->  sequence_segment(Segments, Mode)
     ;   { segment_type_tag(Segment, Type, Tag) },
         protobuf_tag_type(Tag, Type),
-        segment(Type, Tag, Segment)
+        segment(Type, Tag, Segment, Mode)
     ).
-segment(Segment) -->
+segment(Segment, first(D)) -->
+    !,
+    protobuf_tag_type(Tag, Type),
+    segment(Type, Tag, Segment, first(D)),
+    !.
+segment(Segment, Mode) -->
     % { var(Segment) },
     protobuf_tag_type(Tag, Type),
-    segment(Type, Tag, Segment).
+    segment(Type, Tag, Segment, Mode).
 
-segment(varint, Tag, varint(Tag,Value)) -->
+segment(varint, Tag, varint(Tag,Value), _) -->
     protobuf_var_int(Value).
-segment(fixed64, Tag, fixed64(Tag, Int64)) -->
+segment(fixed64, Tag, fixed64(Tag, Int64), _) -->
     payload(integer64, Int64).
-segment(fixed32, Tag, fixed32(Tag, Int32)) -->
+segment(fixed32, Tag, fixed32(Tag, Int32), _) -->
     payload(integer32, Int32).
-segment(start_group, Tag, group(Tag, Segments)) -->
-    segment_message(Segments),
+segment(start_group, Tag, group(Tag, Segments), Mode) -->
+    { nested_mode(Mode, Mode1) },
+    segment_message(Segments, Mode1),
     protobuf_tag_type(Tag, end_group).
-segment(length_delimited, Tag, Result) -->
-    segment_length_delimited(Tag, Result).
+segment(length_delimited, Tag, Result, Mode) -->
+    segment_length_delimited(Tag, Result, Mode).
 
-segment_length_delimited(Tag, Result) -->
+segment_length_delimited(Tag, Result, Mode) -->
     { nonvar(Result) },
     !,
-    { length_delimited_segment(Result, Tag, Codes) },
+    { length_delimited_segment(Result, Tag, Codes, Mode) },
     { length(Codes, CodesLen) },
     protobuf_var_int(CodesLen),
     code_string(CodesLen, Codes).
-segment_length_delimited(Tag, Result) -->
+segment_length_delimited(Tag, Result, Mode) -->
     % { var(Result) },
     protobuf_var_int(CodesLen),
     code_string(CodesLen, Codes),
-    { length_delimited_segment(Result, Tag, Codes) }.
+    { length_delimited_segment(Result, Tag, Codes, Mode) }.
 
-length_delimited_segment(message(Tag,Segments), Tag, Codes) :-
-    protobuf_segment_message(Segments, Codes).
-length_delimited_segment(group(Tag,Segments), Tag, Codes) :-
-    phrase(segment_group(Tag, Segments), Codes).
-length_delimited_segment(string(Tag,String), Tag, Codes) :-
+
+length_delimited_segment(message(Tag,Segments), Tag, Codes, Mode) :-
+    nested_mode(Mode, Mode1),
+    protobuf_segment_message(Segments, Codes, Mode1).
+length_delimited_segment(group(Tag,Segments), Tag, Codes, Mode) :-
+    nested_mode(Mode, Mode1),
+    phrase(segment_group(Tag, Segments, Mode1), Codes).
+length_delimited_segment(string(Tag,String), Tag, Codes, _) :-
     (   nonvar(String)
     ->  string_codes(String, StringCodes),
         phrase(utf8_codes(StringCodes), Codes)
     ;   phrase(utf8_codes(StringCodes), Codes),
         string_codes(String, StringCodes)
     ).
-length_delimited_segment(packed(Tag,Payload), Tag, Codes) :-
+length_delimited_segment(packed(Tag,Payload), Tag, Codes, _) :-
     % We don't know the type of the fields, so we try the 3
     % possibilities.  This has a problem: an even number of fixed32
     % items can't be distinguished from half the number of fixed64
@@ -809,11 +881,11 @@ length_delimited_segment(packed(Tag,Payload), Tag, Codes) :-
     % common for floating point).
     packed_option(Type, Items, Payload),
     phrase(sequence_payload(Type, Items), Codes).
-length_delimited_segment(length_delimited(Tag,Codes), Tag, Codes).
+length_delimited_segment(length_delimited(Tag,Codes), Tag, Codes, _).
 
-segment_group(Tag, Segments) -->
+segment_group(Tag, Segments, Mode) -->
     start_group(Tag),
-    segment_message(Segments),
+    segment_message(Segments, Mode),
     end_group(Tag).
 
 % See also prolog_type//2. Note that this doesn't handle repeated(List),
@@ -912,12 +984,29 @@ packed_option(unsigned,  Items, varint(Items)).
 % @param Form1 =|message(Tag,Pieces)|=, =|string(Tag,String)|=, =|length_delimited(Tag,Codes)|=,
 %        =|varint(Tag,Value)|=, =|fixed64(Tag,Value)|=, =|fixed32(Tag,Value)|=.
 % @param Form2 similar to =Form1=.
-protobuf_segment_convert(Form, Form). % for efficiency, don't generate codes
 protobuf_segment_convert(Form1, Form2) :-
+    protobuf_segment_convert(Form1, Form2, all).
+
+% protobuf_segment_convert(+Form1, ?Form2, +Mode)
+%
+% As protobuf_segment_convert/2, using Mode as in
+% protobuf_segment_message/3 for interpreting nested segments.
+
+protobuf_segment_convert(Form, Form, _). % for efficiency, don't generate codes
+protobuf_segment_convert(Form1, Form2, Mode) :-
     dif(Form1, Form2),          % Form1=Form2 handled by first clause
     protobuf_segment_message([Form1], WireCodes),
     phrase(tag_and_codes(Tag, Codes), WireCodes),
-    length_delimited_segment(Form2, Tag, Codes).
+    length_delimited_segment(Form2, Tag, Codes, Mode).
+
+% segment_convert(+Form1, ?Form2) is nondet.
+%
+% Used for converting guessed segments using the schema.  Commits to
+% the first interpretation of nested segments.
+
+segment_convert(Form1, Form2) :-
+    max_depth(MaxDepth),
+    protobuf_segment_convert(Form1, Form2, first(MaxDepth)).
 
 tag_and_codes(Tag, Codes) -->
     protobuf_tag_type(Tag, length_delimited),
@@ -1192,21 +1281,34 @@ proto_meta_enum_value_(ContextType, EnumValue, IntValue) :-
     ;   existence_error(ContextType, EnumValue-IntValue)
     ).
 
-:- det(segment_to_term/3).
-%! segment_to_term(+ContextType:atom, +Segment, -FieldAndValue) is det.
+:- det(segment_to_term/4).
+%! segment_to_term(+ContextType:atom, +Depth, +Segment, -FieldAndValue) is det.
 % ContextType is the type (name) of the containing message
 % Segment is a segment from protobuf_segment_message/2
+% Depth is the number of further nested messages allowed.
 % TODO: if performance is an issue, this code can be combined with
 %       protobuf_segment_message/2 (and thereby avoid the use of protobuf_segment_convert/2)
-segment_to_term(ContextType0, Segment, FieldAndValue) =>
+segment_to_term(ContextType0, Depth, Segment, FieldAndValue) =>
     segment_type_tag(Segment, _, Tag),
     field_and_type(ContextType0, Tag, FieldName, _FqnName, ContextType, RepeatOptional, Type),
     (   RepeatOptional = repeat_packed
     ->  convert_segment_packed(Type, ContextType, Tag, Segment, Value)
+    ;   nested_segment(Type, Tag, MsgSegment, MsgSegments)
+    ->  (   Depth > 0
+        ->  Depth1 is Depth-1
+        ;   max_depth(MaxDepth),
+            resource_error(protobuf_max_depth(MaxDepth))
+        ),
+        segment_convert(Segment, MsgSegment),
+        maplist(segment_to_term(ContextType, Depth1), MsgSegments, MsgFields),
+        combine_fields(MsgFields, ContextType{}, Value)
     ;   convert_segment(Type, ContextType, Tag, Segment, Value)
     ),
     !, % TODO: get rid of this?
     FieldAndValue = field_and_value(FieldName,RepeatOptional,Value).
+
+nested_segment('TYPE_MESSAGE', Tag, message(Tag, MsgSegments), MsgSegments).
+nested_segment('TYPE_GROUP',   Tag, group(Tag, MsgSegments),   MsgSegments).
 
 % :- det(convert_segment_packed/5). % TODO: "succeeded with a choicepoint"
 %! convert_segment_packed(+Type:atom, +ContextType:atom, +Tag:atom, ?Segment, ?Values) is det.
@@ -1215,47 +1317,47 @@ segment_to_term(ContextType0, Segment, FieldAndValue) =>
 % TODO: these are very similar to convert_segment - can they be combined?
 
 convert_segment_packed('TYPE_DOUBLE', _ContextType, Tag, Segment0, Values) =>
-    freeze(Segment0, protobuf_segment_convert(Segment0, packed(Tag, fixed64(Values0)))),
+    freeze(Segment0, segment_convert(Segment0, packed(Tag, fixed64(Values0)))),
     maplist(int64_float64_when, Values0, Values), !.
 convert_segment_packed('TYPE_FLOAT', _ContextType, Tag, Segment0, Values) =>
-    freeze(Segment0, protobuf_segment_convert(Segment0, packed(Tag, fixed32(Values0)))),
+    freeze(Segment0, segment_convert(Segment0, packed(Tag, fixed32(Values0)))),
     maplist(int32_float32_when, Values0, Values), !.
 convert_segment_packed('TYPE_INT64', _ContextType, Tag, Segment0, Values) =>
-    freeze(Segment0, protobuf_segment_convert(Segment0, packed(Tag, varint(Values0)))),
+    freeze(Segment0, segment_convert(Segment0, packed(Tag, varint(Values0)))),
     maplist(uint64_int64_when, Values0, Values).
 convert_segment_packed('TYPE_UINT64', _ContextType, Tag, Segment0, Values) =>
-    protobuf_segment_convert(Segment0, packed(Tag, varint(Values))), !.
+    segment_convert(Segment0, packed(Tag, varint(Values))), !.
 convert_segment_packed('TYPE_INT32', _ContextType, Tag, Segment0, Values) =>
-    freeze(Segment0, protobuf_segment_convert(Segment0, packed(Tag, varint(Values0)))),
+    freeze(Segment0, segment_convert(Segment0, packed(Tag, varint(Values0)))),
     maplist(uint32_int32_when, Values0, Values).
 convert_segment_packed('TYPE_FIXED64', _ContextType, Tag, Segment0, Values) =>
-    freeze(Segment0, protobuf_segment_convert(Segment0, packed(Tag, fixed64(Values0)))),
+    freeze(Segment0, segment_convert(Segment0, packed(Tag, fixed64(Values0)))),
     maplist(int64_uint64_when, Values0, Values).
 convert_segment_packed('TYPE_FIXED32', _ContextType, Tag, Segment0, Values) =>
-    freeze(Segment0, protobuf_segment_convert(Segment0, packed(Tag, fixed32(Values0)))),
+    freeze(Segment0, segment_convert(Segment0, packed(Tag, fixed32(Values0)))),
     maplist(int32_uint32_when, Values0, Values).
 convert_segment_packed('TYPE_BOOL', _ContextType, Tag, Segment0, Values) =>
-    freeze(Segment0, protobuf_segment_convert(Segment0, packed(Tag, varint(Values0)))),
+    freeze(Segment0, segment_convert(Segment0, packed(Tag, varint(Values0)))),
     maplist(int_bool_when, Values0, Values).
 % TYPE_STRING  isn't allowed TODO: add it anyway?
 % TYPE_GROUP   isn't allowed
 % TYPE_MESSAGE isn't allowed
 % TYPE_BYTES   isn't allowed TODO: add it anyway?
 convert_segment_packed('TYPE_UINT32', _ContextType, Tag, Segment0, Values) =>
-    protobuf_segment_convert(Segment0, packed(Tag, varint(Values))), !.
+    segment_convert(Segment0, packed(Tag, varint(Values))), !.
 convert_segment_packed('TYPE_ENUM', ContextType, Tag, Segment0, Values) =>
     % uint64_int64_when(...), % TODO! https://github.com/SWI-Prolog/contrib-protobufs/issues/9
-    freeze(Segment0, protobuf_segment_convert(Segment0, packed(Tag, varint(Values0)))),
+    freeze(Segment0, segment_convert(Segment0, packed(Tag, varint(Values0)))),
     maplist(convert_enum(ContextType), Values, Values0).
 convert_segment_packed('TYPE_SFIXED32', _ContextType, Tag, Segment0, Values) =>
-    protobuf_segment_convert(Segment0, packed(Tag, fixed32(Values))).
+    segment_convert(Segment0, packed(Tag, fixed32(Values))).
 convert_segment_packed('TYPE_SFIXED64', _ContextType, Tag, Segment0, Values) =>
-    protobuf_segment_convert(Segment0, packed(Tag, fixed64(Values))).
+    segment_convert(Segment0, packed(Tag, fixed64(Values))).
 convert_segment_packed('TYPE_SINT32', _ContextType, Tag, Segment0, Values) =>
-    freeze(Segment0, protobuf_segment_convert(Segment0, packed(Tag, varint(Values0)))),
+    freeze(Segment0, segment_convert(Segment0, packed(Tag, varint(Values0)))),
     maplist(int64_zigzag_when, Values, Values0).
 convert_segment_packed('TYPE_SINT64', _ContextType, Tag, Segment0, Values) =>
-    freeze(Segment0, protobuf_segment_convert(Segment0, packed(Tag, varint(Values0)))),
+    freeze(Segment0, segment_convert(Segment0, packed(Tag, varint(Values0)))),
     maplist(int64_zigzag_when, Values, Values0).
 % convert_segment_packed(Type, ContextType, Tag, Segment, Values) => % TODO: delete this clause
 %     domain_error(type(type=Type, % TODO: this is a bit funky
@@ -1272,37 +1374,37 @@ convert_segment_packed('TYPE_SINT64', _ContextType, Tag, Segment0, Values) =>
 convert_segment('TYPE_DOUBLE', _ContextType, Tag, Segment0, Value) =>
     Segment = fixed64(Tag,Int64),
     int64_float64_when(Int64, Value),
-    protobuf_segment_convert(Segment0, Segment), !.
+    segment_convert(Segment0, Segment), !.
 convert_segment('TYPE_FLOAT', _ContextType, Tag, Segment0, Value) =>
     Segment = fixed32(Tag,Int32),
     int32_float32_when(Int32, Value),
-    protobuf_segment_convert(Segment0, Segment), !.
+    segment_convert(Segment0, Segment), !.
 convert_segment('TYPE_INT64', _ContextType, Tag, Segment0, Value) =>
     Segment = varint(Tag,Value0),
     uint64_int64_when(Value0, Value),
-    protobuf_segment_convert(Segment0, Segment), !.
+    segment_convert(Segment0, Segment), !.
 convert_segment('TYPE_UINT64', _ContextType, Tag, Segment0, Value) =>
     Segment = varint(Tag,Value),
-    protobuf_segment_convert(Segment0, Segment), !.
+    segment_convert(Segment0, Segment), !.
 convert_segment('TYPE_INT32', _ContextType, Tag, Segment0, Value) =>
     Segment = varint(Tag,Value0),
     uint32_int32_when(Value0, Value),
-    protobuf_segment_convert(Segment0, Segment), !.
+    segment_convert(Segment0, Segment), !.
 convert_segment('TYPE_FIXED64', _ContextType, Tag, Segment0, Value) =>
     Segment = fixed64(Tag,Value0),
     uint64_int64_when(Value, Value0),
-    protobuf_segment_convert(Segment0, Segment), !.
+    segment_convert(Segment0, Segment), !.
 convert_segment('TYPE_FIXED32', _ContextType, Tag, Segment0, Value) =>
     Segment = fixed32(Tag,Value0),
     uint32_int32_when(Value, Value0),
-    protobuf_segment_convert(Segment0, Segment), !.
+    segment_convert(Segment0, Segment), !.
 convert_segment('TYPE_BOOL', _ContextType, Tag, Segment0, Value) =>
     Segment = varint(Tag,Value0),
     int_bool_when(Value0, Value),
-    protobuf_segment_convert(Segment0, Segment), !.
+    segment_convert(Segment0, Segment), !.
 % convert_segment('TYPE_STRING', _ContextType, Tag, Segment0, Value) =>
 %     Segment = string(Tag,ValueStr),
-%     protobuf_segment_convert(Segment0, Segment), !,
+%     segment_convert(Segment0, Segment), !,
 %     (   false    % TODO: control whether atom or string with an option
 %     ->  atom_string(Value, ValueStr)
 %     ;   Value = ValueStr
@@ -1310,16 +1412,17 @@ convert_segment('TYPE_BOOL', _ContextType, Tag, Segment0, Value) =>
 convert_segment('TYPE_STRING', _ContextType, Tag, Segment0, Value) =>
     % TODO: option to control whether to use atom_string(Value,ValueStr)
     Segment = string(Tag,Value),
-    protobuf_segment_convert(Segment0, Segment), !.
+    segment_convert(Segment0, Segment), !.
 convert_segment('TYPE_GROUP', ContextType, Tag, Segment0, Value) =>
     Segment = group(Tag,MsgSegments),
     % TODO: combine with TYPE_MESSAGE code:
     (   nonvar(Value)
     ->  dict_pairs(Value, _, FieldValues),
         maplist(field_segment(ContextType), FieldValues, MsgSegments),
-        protobuf_segment_convert(Segment0, Segment)
-    ;   protobuf_segment_convert(Segment0, Segment),
-        maplist(segment_to_term(ContextType), MsgSegments, MsgFields),
+        segment_convert(Segment0, Segment)
+    ;   segment_convert(Segment0, Segment),
+        max_depth(MaxDepth),
+        maplist(segment_to_term(ContextType, MaxDepth), MsgSegments, MsgFields),
         combine_fields(MsgFields, ContextType{}, Value)
     ), !.
 convert_segment('TYPE_MESSAGE', ContextType, Tag, Segment0, Value) =>
@@ -1327,35 +1430,36 @@ convert_segment('TYPE_MESSAGE', ContextType, Tag, Segment0, Value) =>
     (   nonvar(Value)
     ->  dict_pairs(Value, _, FieldValues),
         maplist(field_segment(ContextType), FieldValues, MsgSegments),
-        protobuf_segment_convert(Segment0, Segment)
-    ;   protobuf_segment_convert(Segment0, Segment),
-        maplist(segment_to_term(ContextType), MsgSegments, MsgFields),
+        segment_convert(Segment0, Segment)
+    ;   segment_convert(Segment0, Segment),
+        max_depth(MaxDepth),
+        maplist(segment_to_term(ContextType, MaxDepth), MsgSegments, MsgFields),
         combine_fields(MsgFields, ContextType{}, Value)
     ), !.
 convert_segment('TYPE_BYTES', _ContextType, Tag, Segment0, Value) =>
     Segment = length_delimited(Tag,Value),
-    protobuf_segment_convert(Segment0, Segment), !.
+    segment_convert(Segment0, Segment), !.
 convert_segment('TYPE_UINT32', _ContextType, Tag, Segment0, Value) =>
     Segment = varint(Tag,Value),
-    protobuf_segment_convert(Segment0, Segment), !.
+    segment_convert(Segment0, Segment), !.
 convert_segment('TYPE_ENUM', ContextType, Tag, Segment0, Value) =>
     Segment = varint(Tag,Value0),
     convert_enum(ContextType, Value, Value0), % TODO: negative values: https://github.com/SWI-Prolog/contrib-protobufs/issues/9
-    protobuf_segment_convert(Segment0, Segment), !.
+    segment_convert(Segment0, Segment), !.
 convert_segment('TYPE_SFIXED32', _ContextType, Tag, Segment0, Value) =>
     Segment = fixed32(Tag,Value),
-    protobuf_segment_convert(Segment0, Segment), !.
+    segment_convert(Segment0, Segment), !.
 convert_segment('TYPE_SFIXED64', _ContextType, Tag, Segment0, Value) =>
     Segment = fixed64(Tag,Value),
-    protobuf_segment_convert(Segment0, Segment), !.
+    segment_convert(Segment0, Segment), !.
 convert_segment('TYPE_SINT32', _ContextType, Tag, Segment0, Value) =>
     Segment = varint(Tag,Value0),
     int64_zigzag_when(Value, Value0),
-    protobuf_segment_convert(Segment0, Segment), !.
+    segment_convert(Segment0, Segment), !.
 convert_segment('TYPE_SINT64', _ContextType, Tag, Segment0, Value) =>
     Segment = varint(Tag,Value0),
     int64_zigzag_when(Value, Value0),
-    protobuf_segment_convert(Segment0, Segment), !.
+    segment_convert(Segment0, Segment), !.
 
 convert_enum(ContextType, Enum, Uint) :-
     uint64_int64_when(Uint, Int),
@@ -1400,49 +1504,37 @@ add_empty_field_if_missing(FieldName-DefaultValue, Dict0, Dict) :-
 % Combines the fields into a dict and sets missing fields to their default values.
 % If the field is marked as 'norepeat' (optional/required), then the last
 %    occurrence is kept (as per the protobuf wire spec)
-% If the field is marked as 'repeat', then all the occurrences
-%    are put into a list, in order.
-% This code assumes that fields normally occur all together, but can handle
-% (less efficiently) fields not occurring together, as is allowed
-% by the protobuf spec.
-combine_fields([], MsgDict0, MsgDict) =>
-    is_dict(MsgDict0, ContextType),
-    add_defaulted_fields(MsgDict0, ContextType, MsgDict).
-combine_fields([field_and_value(Field,norepeat,Value)|Fields], MsgDict0, MsgDict) =>
-    put_dict(Field, MsgDict0, Value, MsgDict1),
-    combine_fields(Fields, MsgDict1, MsgDict).
-combine_fields([field_and_value(Field,repeat_packed,Values0)|Fields], MsgDict0, MsgDict) =>
-    (   get_dict(Field, MsgDict0, ExistingValues)
-    ->  append(ExistingValues, Values0, Values)
-    ;   Values = Values0
-    ),
-    put_dict(Field, MsgDict0, Values, MsgDict1),
-    combine_fields(Fields, MsgDict1, MsgDict).
-combine_fields([field_and_value(Field,repeat,Value)|Fields], MsgDict0, MsgDict) =>
-    combine_fields_repeat(Fields, Field, NewValues, RestFields),
-    (   get_dict(Field, MsgDict0, ExistingValues)
-    ->  append(ExistingValues, [Value|NewValues], Values)
-    ;   Values = [Value|NewValues]
-    ),
-    put_dict(Field, MsgDict0, Values, MsgDict1),
-    combine_fields(RestFields, MsgDict1, MsgDict).
+% If the field is marked as 'repeat' or 'repeat_packed', then all the
+%    occurrences are put into a list, in order.  The occurrences do not
+%    need to be together, as is allowed by the protobuf spec.
+combine_fields(Fields, MsgDict0, MsgDict) :-
+    combine_fields_(Fields, MsgDict0, MsgDict1, Repeated),
+    keysort(Repeated, Sorted),          % stable: preserves the order
+    group_pairs_by_key(Sorted, Grouped),
+    foldl(put_repeated, Grouped, MsgDict1, MsgDict2),
+    is_dict(MsgDict2, ContextType),
+    add_defaulted_fields(MsgDict2, ContextType, MsgDict).
 
-:- det(combine_fields_repeat/4).
-%! combine_fields_repeat(+Fields:list, Field:atom, -Values:list, RestFields:list) is det.
-% Helper for combine_fields/3
-% Stops at the first item that doesn't match =Field= - the assumption
-% is that all the items for a field will be together and if they're
-% not, they would be combined outside this predicate.
-%
-% @param Fields a list of fields (Field-Repeat-Value)
-% @param Field the name of the field that is being combined
-% @param Values gets the Value items that match Field
-% @param RestFields gets any left-over fields
-combine_fields_repeat([], _Field, Values, RestFields) => Values = [], RestFields = [].
-combine_fields_repeat([Field-repeat-Value|Fields], Field, Values, RestFields) =>
-    Values = [Value|Values2],
-    combine_fields_repeat(Fields, Field, Values2, RestFields).
-combine_fields_repeat(Fields, _Field, Values, RestFields) => Values = [], RestFields = Fields.
+:- det(combine_fields_/4).
+combine_fields_([], MsgDict0, MsgDict, Repeated) =>
+    MsgDict = MsgDict0,
+    Repeated = [].
+combine_fields_([field_and_value(Field,norepeat,Value)|Fields], MsgDict0, MsgDict, Repeated) =>
+    put_dict(Field, MsgDict0, Value, MsgDict1),
+    combine_fields_(Fields, MsgDict1, MsgDict, Repeated).
+combine_fields_([field_and_value(Field,repeat_packed,Values)|Fields], MsgDict0, MsgDict, Repeated) =>
+    Repeated = [Field-Values|Repeated1],
+    combine_fields_(Fields, MsgDict0, MsgDict, Repeated1).
+combine_fields_([field_and_value(Field,repeat,Value)|Fields], MsgDict0, MsgDict, Repeated) =>
+    Repeated = [Field-[Value]|Repeated1],
+    combine_fields_(Fields, MsgDict0, MsgDict, Repeated1).
+
+put_repeated(Field-ValueLists, MsgDict0, MsgDict) :-
+    (   get_dict(Field, MsgDict0, ExistingValues)
+    ->  append([ExistingValues|ValueLists], Values)
+    ;   append(ValueLists, Values)
+    ),
+    put_dict(Field, MsgDict0, Values, MsgDict).
 
 :- det(field_and_type/7).
 %! field_and_type(+ContextType:atom, +Tag:int, -FieldName:atom, -FqnName:atom, -ContextType2:atom, -RepeatOptional:atom, -Type:atom) is det.
