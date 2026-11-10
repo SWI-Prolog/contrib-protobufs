@@ -1146,4 +1146,37 @@ test(interleaved_repeated, Deps == ["a","b","c"]) :-
 
 :- end_tests(malformed).
 
+:- begin_tests(varint_range).
+
+uo_serialize(Value, Codes) :-
+    T = '.google.protobuf.UninterpretedOption',
+    protobuf_serialize_to_codes(T{positive_int_value:Value}, T, Codes).
+
+fd_number(Number, Codes) :-
+    T = '.google.protobuf.FieldDescriptorProto',
+    (   nonvar(Number)
+    ->  protobuf_serialize_to_codes(T{number:Number}, T, Codes)
+    ;   protobuf_parse_from_codes(Codes, T, Term),
+        Number = Term.number
+    ).
+
+test(uint64_negative, error(type_error(nonneg, -5))) :-
+    uo_serialize(-5, _).
+test(uint64_max, Codes == [32,255,255,255,255,255,255,255,255,255,1]) :-
+    uo_serialize(0xffffffffffffffff, Codes).
+test(uint64_overflow, error(representation_error(uint64_t))) :-
+    uo_serialize(0x10000000000000000, _).
+test(template_negative, error(type_error(nonneg, -3))) :-
+    protobuf_message(protobuf([unsigned(1,-3)]), _).
+test(int32_negative, Codes == [24,255,255,255,255,255,255,255,255,255,1]) :-
+    fd_number(-1, Codes).
+test(int32_negative_read, N == -1) :-
+    fd_number(N, [24,255,255,255,255,255,255,255,255,255,1]).
+test(int32_negative_read_32, N == -1) :-
+    fd_number(N, [24,255,255,255,255,15]).
+test(int32_overflow, error(representation_error(int))) :-
+    fd_number(0x80000000, _).
+
+:- end_tests(varint_range).
+
 end_of_file.

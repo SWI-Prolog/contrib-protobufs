@@ -72,7 +72,10 @@
           ]).
 
 :- use_module(library(apply_macros)).  % autoload(library(apply), [maplist/3, foldl/4]).
-:- autoload(library(error), [must_be/2, domain_error/2, existence_error/2]).
+:- autoload(library(error),
+            [ must_be/2, domain_error/2, existence_error/2,
+              representation_error/1
+            ]).
 :- autoload(library(lists), [append/3, append/2]).
 :- autoload(library(pairs), [group_pairs_by_key/2]).
 :- autoload(library(utf8), [utf8_codes//1]).
@@ -372,23 +375,34 @@ code_string(N, Codes) -->
 %! protobuf_var_int(?A:int)// is det.
 % Conversion between an int A and a list of codes, using the
 % "varint" encoding.
-% The behvior is undefined if =A= is negative.
+% Raises an error if =A= is negative or does not fit in 64 bits.
 % This is a low-level predicate; normally, you should use
 % template_message/2 and the appropriate template term.
 % e.g. phrase(protobuf_var_int(300), S) => S = [172,2]
 %      phrase(protobuf_var_int(A), [172,2]) -> A = 300
+protobuf_var_int(X, Codes, Rest) :-
+    nonvar(X),
+    !,
+    must_be(nonneg, X),
+    (   X =< 0xffffffffffffffff
+    ->  var_int_encode(X, Codes, Rest)
+    ;   representation_error(uint64_t)
+    ).
 protobuf_var_int(A, [A | Rest], Rest) :-
     A < 128,
     !.
 protobuf_var_int(X, [A | Rest], Rest1) :-
-    nonvar(X),
-    X1 is X >> 7,
-    A is 128 + (X /\ 0x7f),
-    protobuf_var_int(X1, Rest, Rest1),
-    !.
-protobuf_var_int(X, [A | Rest], Rest1) :-
     X0 is A - 128,
     var_int_cont(Rest, 7, X0, X, Rest1).
+
+var_int_encode(X, Codes, Rest) :-
+    X < 128,
+    !,
+    Codes = [X|Rest].
+var_int_encode(X, [A|Rest], Rest1) :-
+    A is 128 + (X /\ 0x7f),
+    X1 is X >> 7,
+    var_int_encode(X1, Rest, Rest1).
 
 % var_int_cont(+Codes, +Shift, +X0, -X, -Rest)
 %
@@ -1203,6 +1217,22 @@ int64_uint64_when(Int64, Uint64) :-
 uint32_int32_when(Uint32, Int32) :-
     when((nonvar(Uint32) ; nonvar(Int32)), uint32_int32(Uint32, Int32)).
 
+%! varint_int32_when(?Varint, ?Int32) is det.
+% Conversion between an int32 field and its varint value.  As
+% specified, negative values are written sign-extended to 64 bits (10
+% bytes).  When reading, both the 64-bit and the 32-bit forms are
+% accepted.
+varint_int32_when(Varint, Int32) :-
+    when((nonvar(Varint) ; nonvar(Int32)), varint_int32(Varint, Int32)).
+
+varint_int32(Varint, Int32) :-
+    nonvar(Int32),
+    !,
+    uint32_int32(_, Int32),             % range check
+    uint64_int64(Varint, Int32).
+varint_int32(Varint, Int32) :-
+    uint32_int32(Varint, Int32).
+
 % Reversed argument ordering for maplist/3
 int32_uint32_when(Int32, Uint32) :-
 
@@ -1329,7 +1359,7 @@ convert_segment_packed('TYPE_UINT64', _ContextType, Tag, Segment0, Values) =>
     segment_convert(Segment0, packed(Tag, varint(Values))), !.
 convert_segment_packed('TYPE_INT32', _ContextType, Tag, Segment0, Values) =>
     freeze(Segment0, segment_convert(Segment0, packed(Tag, varint(Values0)))),
-    maplist(uint32_int32_when, Values0, Values).
+    maplist(varint_int32_when, Values0, Values).
 convert_segment_packed('TYPE_FIXED64', _ContextType, Tag, Segment0, Values) =>
     freeze(Segment0, segment_convert(Segment0, packed(Tag, fixed64(Values0)))),
     maplist(int64_uint64_when, Values0, Values).
@@ -1388,7 +1418,7 @@ convert_segment('TYPE_UINT64', _ContextType, Tag, Segment0, Value) =>
     segment_convert(Segment0, Segment), !.
 convert_segment('TYPE_INT32', _ContextType, Tag, Segment0, Value) =>
     Segment = varint(Tag,Value0),
-    uint32_int32_when(Value0, Value),
+    varint_int32_when(Value0, Value),
     segment_convert(Segment0, Segment), !.
 convert_segment('TYPE_FIXED64', _ContextType, Tag, Segment0, Value) =>
     Segment = fixed64(Tag,Value0),
