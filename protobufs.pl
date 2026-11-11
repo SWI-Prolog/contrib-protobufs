@@ -387,7 +387,7 @@ protobuf_var_int(X, Codes, Rest) :-
     must_be(nonneg, X),
     (   X =< 0xffffffffffffffff
     ->  var_int_encode(X, Codes, Rest)
-    ;   representation_error(uint64_t)
+    ;   representation_error(uint64_t(X))
     ).
 protobuf_var_int(A, [A | Rest], Rest) :-
     A < 128,
