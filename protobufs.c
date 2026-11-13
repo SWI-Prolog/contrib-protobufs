@@ -467,7 +467,7 @@ int32_float32(term_t Int32, term_t Float32)
 
 /* Strict UTF-8 validation (Unicode Table 3-7): no overlong forms,
    surrogates or code points above 0x10FFFF. */
-static int
+static bool
 utf8_valid(const unsigned char *s, size_t len)
 { const unsigned char *e = s+len;
 
