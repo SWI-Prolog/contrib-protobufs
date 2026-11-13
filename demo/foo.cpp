@@ -300,7 +300,7 @@ int main(int argc, char *argv[])
 
 	DoublePBVector buffer, buffer1;
 
-	register int i;
+	int i;
 
 	try
 		{

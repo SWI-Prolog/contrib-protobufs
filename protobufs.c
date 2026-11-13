@@ -58,7 +58,7 @@ typedef int int32_t;
 static inline void
 cp_net_order(char *to, const char *from, size_t size)	/* must be a power of 2 */
 {
-  register int i = 0, j = 0;
+  int i = 0, j = 0;
 
 #ifdef WORDS_BIGENDIAN
   j = size - 1;
@@ -83,7 +83,7 @@ int64_zigzag(term_t Integer, term_t ZigZag)
     {
       uint64_t v_ZigZag;
       if (!PL_get_uint64_ex(ZigZag, &v_ZigZag))
-	return FALSE;
+	return false;
       int64_t v_Integer = (v_ZigZag >> 1) ^ (-1 * (v_ZigZag & 1));
       return PL_unify_int64(Integer, v_Integer);
     }
@@ -91,7 +91,7 @@ int64_zigzag(term_t Integer, term_t ZigZag)
   {
     int64_t v_Integer;
     if (!PL_get_int64_ex(Integer, &v_Integer))
-      return FALSE;
+      return false;
     uint64_t v_ZigZag = ((uint64_t)v_Integer << 1) ^ (v_Integer >> 63);
     return PL_unify_uint64(ZigZag, v_ZigZag);
   }
@@ -131,7 +131,7 @@ uint32_codes(term_t Number, term_t Codes)
   } else
   {
     if (!PL_cvt_i_uint(Number, &val.asUnsignedNumber))
-      return FALSE;
+      return false;
     cp_net_order(val1.asCodes, val.asCodes, sizeof val1.asCodes);
     return PL_unify_list_ncodes(Codes, sizeof(val1.asCodes), val1.asCodes);
   }
@@ -171,7 +171,7 @@ int32_codes(term_t Number, term_t Codes)
   } else
   {
     if (!PL_cvt_i_int(Number, &val.asSignedNumber))
-      return FALSE;
+      return false;
     cp_net_order(val1.asCodes, val.asCodes, sizeof val1.asCodes);
     return PL_unify_list_ncodes(Codes, sizeof(val1.asCodes), val1.asCodes);
   }
@@ -210,7 +210,7 @@ uint64_codes(term_t Number, term_t Codes)
   {
     uint64_t v_Number;
     if (!PL_get_uint64_ex(Number, &v_Number))
-      return FALSE;
+      return false;
     val.asUnsignedNumber = v_Number;
     cp_net_order(val1.asCodes, val.asCodes, sizeof val1.asCodes);
     return PL_unify_list_ncodes(Codes, sizeof(val1.asCodes), val1.asCodes);
@@ -250,7 +250,7 @@ int64_codes(term_t Number, term_t Codes)
   {
     int64_t v_Number;
     if (!PL_get_int64_ex(Number, &v_Number))
-      return FALSE;
+      return false;
     val.asSignedNumber = v_Number;
     cp_net_order(val1.asCodes, val.asCodes, sizeof val1.asCodes);
     return PL_unify_list_ncodes(Codes, sizeof(val1.asCodes), val1.asCodes);
@@ -344,7 +344,7 @@ uint32_int32(term_t Uint32, term_t Int32)
     } else
     {
       if (!PL_cvt_i_int(Int32, &val.asSigned))
-	return FALSE;
+	return false;
       return PL_unify_uint64(Uint32, val.asUnsigned);
     }
   } else
@@ -354,7 +354,7 @@ uint32_int32(term_t Uint32, term_t Int32)
        and mask. */
     uint64_t uint64;
     if (!PL_get_uint64_ex(Uint32, &uint64))
-      return FALSE;
+      return false;
     if (uint64 > 0xffffffff && ((uint64 & 0xffffffff00000000) != 0xffffffff00000000))
     {
       return PL_domain_error("32_bit_integer", Uint32);
@@ -386,13 +386,13 @@ uint64_int64(term_t Uint64, term_t Int64)
     } else
     {
       if (!PL_get_int64_ex(Int64, &val.asSigned))
-	return FALSE;
+	return false;
       return PL_unify_uint64(Uint64, val.asUnsigned);
     }
   } else
   {
     if (!PL_get_uint64_ex(Uint64, &val.asUnsigned))
-      return FALSE;
+      return false;
     return PL_unify_int64(Int64, val.asSigned);
   }
 }
@@ -419,13 +419,13 @@ int64_float64(term_t Int64, term_t Float64)
     } else
     {
       if (!PL_get_float_ex(Float64, &val.asFloat))
-	return FALSE;
+	return false;
       return PL_unify_int64(Int64, val.asInt);
     }
   } else
   {
     if (!PL_get_int64_ex(Int64, &val.asInt))
-      return FALSE;
+      return false;
     return PL_unify_float(Float64, val.asFloat);
   }
 }
@@ -453,14 +453,14 @@ int32_float32(term_t Int32, term_t Float32)
     {
       double float64;
       if (!PL_get_float_ex(Float32, &float64))
-	return FALSE;
+	return false;
       val.asFloat = (float)float64;
       return PL_unify_int64(Int32, val.asInt);
     }
   } else
   {
     if (!PL_get_integer_ex(Int32, &val.asInt))
-      return FALSE;
+      return false;
     return PL_unify_float(Float32, val.asFloat);
   }
 }
@@ -480,14 +480,14 @@ utf8_valid(const unsigned char *s, size_t len)
     }
     if ( c >= 0xC2 && c <= 0xDF )
     { if ( e-s < 2 || (s[1]&0xC0) != 0x80 )
-	return FALSE;
+	return false;
       s += 2;
     } else if ( c >= 0xE0 && c <= 0xEF )
     { unsigned char lo = (c == 0xE0 ? 0xA0 : 0x80);
       unsigned char hi = (c == 0xED ? 0x9F : 0xBF);
 
       if ( e-s < 3 || s[1] < lo || s[1] > hi || (s[2]&0xC0) != 0x80 )
-	return FALSE;
+	return false;
       s += 3;
     } else if ( c >= 0xF0 && c <= 0xF4 )
     { unsigned char lo = (c == 0xF0 ? 0x90 : 0x80);
@@ -495,13 +495,13 @@ utf8_valid(const unsigned char *s, size_t len)
 
       if ( e-s < 4 || s[1] < lo || s[1] > hi ||
 	   (s[2]&0xC0) != 0x80 || (s[3]&0xC0) != 0x80 )
-	return FALSE;
+	return false;
       s += 4;
     } else
-      return FALSE;
+      return false;
   }
 
-  return TRUE;
+  return true;
 }
 
 /* For documentation of this function, see protobufs.pl */
@@ -515,7 +515,7 @@ utf8_codes_strict(term_t Codes, term_t Bytes)
 	 utf8_valid((const unsigned char*)data, len) )
       return PL_unify_chars(Codes, PL_CODE_LIST|REP_UTF8, len, data);
 
-    return FALSE;
+    return false;
   } else
   { term_t tail = PL_copy_term_ref(Codes);
     term_t head = PL_new_term_ref();
@@ -537,9 +537,9 @@ utf8_codes_strict(term_t Codes, term_t Bytes)
     while( PL_get_list(tail, head, tail) )
     { int c;
 
-      if ( !PL_get_char_ex(head, &c, FALSE) )
+      if ( !PL_get_char_ex(head, &c, false) )
       { free(buf);
-	return FALSE;
+	return false;
       }
       if ( c < 0x80 )
       { *o++ = (char)c;
