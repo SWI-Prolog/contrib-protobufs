@@ -866,7 +866,7 @@ test(uint32_codes_e2,
                     % error(domain_error(uint,V), context(protobufs:uint32_codes/2,_))).
                     error(representation_error(uint(V)), context(protobufs:uint32_codes/2,_))).
 
-test(uint32_codes_e3, [error(type_error('list[4]',[1,2,3,4,5]),context(protobufs:uint32_codes/2,_))]) :-
+test(uint32_codes_e3, [error(type_error(list,[1,2,3,4,5]),context(protobufs:uint32_codes/2,_))]) :-
     protobufs:uint32_codes(_, [1,2,3,4,5]).
 
 test(uint32_codes_e4,
@@ -909,7 +909,7 @@ test(uint32_int32_e3,
      [ condition(gmp)
        % , fixme('gets representation_error')
      ]) :-
-    test_value(max_signed32_plus1, V),
+    test_value(min_signed32_minus1, V),
     check_exception(protobufs:uint32_int32(_, V),
                     % error(domain_error(int,V),context(protobufs:uint32_int32/2,_)))
                     error(representation_error(int(V)),context(protobufs:uint32_int32/2,_))).
