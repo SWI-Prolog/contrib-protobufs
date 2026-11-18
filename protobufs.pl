@@ -979,8 +979,8 @@ packed_option(unsigned,  Items, varint(Items)).
 % ?- protobuf_segment_convert(
 %        string(10, "inputType"),
 %        length_delimited(10,[105,110,112,117,116,84,121,112,101])).
-% ?- forall(protobuf_segment_convert(string(1999,"\x1\\x0\\x0\\x0\\x2\\x0\\x0\\x0\"),Z), writeln(Z)).
-%       string(1999,"\x00\\x00\\x00\\x00\\x00\\x00\")
+% ?- forall(protobuf_segment_convert(string(1999,"\x1\\x0\\x0\\x0\\x2\\x0\\x0\\x0\"),Z), (writeq(Z),nl)).
+%       string(1999,"\x1\\0\\0\\0\\x2\\0\\0\\0\")
 %       packed(1999,fixed64([8589934593]))
 %       packed(1999,fixed32([1,2]))
 %       packed(1999,varint([1,0,0,0,2,0,0,0]))
