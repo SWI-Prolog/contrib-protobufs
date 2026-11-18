@@ -1127,6 +1127,10 @@ test(varint_10, X == 0xffffffffffffffff) :-
     phrase(protobufs:protobuf_var_int(X), [255,255,255,255,255,255,255,255,255,1]).
 test(varint_11, fail) :-
     phrase(protobufs:protobuf_var_int(_), [255,255,255,255,255,255,255,255,255,255,1]).
+test(varint_10_overflow, fail) :-       % 10th byte may only be 0 or 1
+    phrase(protobufs:protobuf_var_int(_), [255,255,255,255,255,255,255,255,255,2]).
+test(varint_10_zero, X == 0x7fffffffffffffff) :-
+    phrase(protobufs:protobuf_var_int(X), [255,255,255,255,255,255,255,255,255,0]).
 
 % two tests from the protobufs.pl comments.
 test(varint, S == [172,2]) :-

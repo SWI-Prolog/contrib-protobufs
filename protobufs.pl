@@ -407,15 +407,20 @@ var_int_encode(X, [A|Rest], Rest1) :-
 
 % var_int_cont(+Codes, +Shift, +X0, -X, -Rest)
 %
-% Decode the continuation bytes of a varint.  A varint encodes at
-% most 64 bits and thus has at most 10 bytes.
+% Decode the continuation bytes of a varint.  Each byte carries a 7 bit
+% payload and the high bit indicates more bytes follow.  A varint
+% encodes at most 64 bits, so it has at most 10 bytes (9*7 = 63 bits,
+% plus 1 bit from the 10th byte).  Shift is 7*(N-1) for the N-th byte,
+% so the 10th byte has Shift = 63 and may only be 0 or 1.  Longer or
+% larger encodings are rejected.
 
 var_int_cont([A|Rest], Shift, X0, X, Rest1) :-
-    Shift < 70, % 7 bit payload, maximum 10 bytes
     (   A < 128
-    ->  X is X0 + (A << Shift),
+    ->  ( Shift < 63 -> true ; A < 2 ),
+        X is X0 + (A << Shift),
         Rest1 = Rest
-    ;   X1 is X0 + ((A - 128) << Shift),
+    ;   Shift < 63,
+        X1 is X0 + ((A - 128) << Shift),
         Shift1 is Shift + 7,
         var_int_cont(Rest, Shift1, X1, X, Rest1)
     ).
