@@ -7,6 +7,13 @@ AC_CHECK_HEADERS(sys/types.h)
 
 configure_file(config.h.cmake config.h)
 
+# The following test requires installing protobuf-compiler python3-protobuf
+# libprotobuf-devel (or protobuf-devel)
+# See bootstrap/README.md for additional needed packages
+option(TEST_PROTOBUFS_PROTOC
+       "Run protobuf tests that require protoc, etc."
+       OFF)
+
 swipl_plugin(
     protobufs
     C_SOURCES protobufs.c
