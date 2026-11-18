@@ -345,7 +345,7 @@ code_string(N, Codes, Rest, Rest1) :-
     append(Codes, Rest1, Rest),
     !.
 
-% take_codes(+N, +List, -Prefix, -Rest) is semidet.
+%! take_codes(+N, +List, -Prefix, -Rest) is semidet.
 %
 % Split List after N elements.  Fails if List is shorter than N
 % without creating a list of N elements first.
@@ -379,8 +379,8 @@ code_string(N, Codes) -->
 % Raises an error if =A= is negative or does not fit in 64 bits.
 % This is a low-level predicate; normally, you should use
 % template_message/2 and the appropriate template term.
-% e.g. phrase(protobuf_var_int(300), S) => S = [172,2]
-%      phrase(protobuf_var_int(A), [172,2]) -> A = 300
+% e.g. phrase(protobuf_var_int(300), S) → S = [172,2]
+%      phrase(protobuf_var_int(A), [172,2]) → A = 300
 protobuf_var_int(X, Codes, Rest) :-
     nonvar(X),
     !,
@@ -411,7 +411,7 @@ var_int_encode(X, [A|Rest], Rest1) :-
 % most 64 bits and thus has at most 10 bytes.
 
 var_int_cont([A|Rest], Shift, X0, X, Rest1) :-
-    Shift < 70,
+    Shift < 70, % 7 bit payload, maximum 10 bytes
     (   A < 128
     ->  X is X0 + (A << Shift),
         Rest1 = Rest
@@ -960,7 +960,7 @@ packed_option(unsigned,  Items, varint(Items)).
 %   length_delimited(Tag,Codes) => length_delimited(Tag,Codes)
 %
 % Note that for fixed32, fixed64, only the signed integer forms are
-% given; if you want the floating point forms, then you need to do use
+% given; if you want the floating point forms, then you need to use
 % int64_float64_when/2 and int32_float32_when/2.
 %
 % For example:
@@ -975,7 +975,7 @@ packed_option(unsigned,  Items, varint(Items)).
 %        string(10, "inputType"),
 %        length_delimited(10,[105,110,112,117,116,84,121,112,101])).
 % ?- forall(protobuf_segment_convert(string(1999,"\x1\\x0\\x0\\x0\\x2\\x0\\x0\\x0\"),Z), writeln(Z)).
-%       string(1999,      )
+%       string(1999,"\x00\\x00\\x00\\x00\\x00\\x00\")
 %       packed(1999,fixed64([8589934593]))
 %       packed(1999,fixed32([1,2]))
 %       packed(1999,varint([1,0,0,0,2,0,0,0]))
@@ -1236,7 +1236,6 @@ varint_int32(Varint, Int32) :-
 
 % Reversed argument ordering for maplist/3
 int32_uint32_when(Int32, Uint32) :-
-
     uint32_int32_when(Uint32, Int32).
 
 %! int64_float64_when(?Int64:integer, ?Float64:float) is det.
